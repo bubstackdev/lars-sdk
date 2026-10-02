@@ -51,6 +51,8 @@ pub struct LlamaOptions {
     pub flash_attention: FlashAttention,
     pub batch_suffixes: bool,
     pub reuse_prefix: bool,
+    /// Let llama.cpp repack weights for its CPU kernels (faster on CPU, but a second copy in memory).
+    pub repack_cpu_weights: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,6 +74,7 @@ impl Default for LlamaOptions {
             flash_attention: FlashAttention::Off,
             batch_suffixes: false,
             reuse_prefix: true,
+            repack_cpu_weights: true,
         }
     }
 }
@@ -176,6 +179,7 @@ impl LlamaBackend {
         let mut model_params = unsafe { sys::llama_model_default_params() };
         model_params.n_gpu_layers = options.gpu_layers;
         model_params.progress_callback = Some(quiet_progress);
+        model_params.use_extra_bufts = options.repack_cpu_weights;
         let model = NonNull::new(unsafe { sys::llama_model_load_from_file(c_path.as_ptr(), model_params) })
             .ok_or_else(|| backend_error(format!("could not load {}", path.display())))?;
 

@@ -19,7 +19,7 @@ use crate::primitives::{
     softmax, top_margin, total_variation,
 };
 use crate::py;
-use crate::render::{Row, compose_prompt, plan_rows, render_content};
+use crate::render::{Layout, Row, plan_rows, render_content};
 use crate::schema::{
     Constraint, ConstraintKind, DEFAULT_MODEL, Kind, MAX_CHOICE_OPTIONS, Options, Question, Request, py_repr,
 };
@@ -120,6 +120,8 @@ pub struct EngineOptions {
     pub max_rows: Option<usize>,
     /// Input tokens one request may need; None for no limit.
     pub max_input_tokens: Option<usize>,
+    /// The prompt layout; a pack's calibrator is valid only for the layout it was fitted on.
+    pub layout: Layout,
 }
 
 impl Default for EngineOptions {
@@ -128,6 +130,7 @@ impl Default for EngineOptions {
             version: env!("CARGO_PKG_VERSION").to_string(),
             max_rows: Some(DEFAULT_MAX_ROWS),
             max_input_tokens: Some(DEFAULT_MAX_INPUT_TOKENS),
+            layout: Layout::V1,
         }
     }
 }
@@ -283,7 +286,7 @@ impl Engine {
         let mut groups: IndexMap<String, Vec<(usize, String)>> = IndexMap::new();
         for (index, row) in rows.iter().enumerate() {
             let state_text = row.state_text.as_deref().unwrap_or(&base_state);
-            let (prefix, suffix) = compose_prompt(&template, state_text, &row.suffix_body);
+            let (prefix, suffix) = self.options.layout.compose(&template, state_text, &row.suffix_body);
             groups.entry(prefix).or_default().push((index, suffix));
         }
         let mut scored: Vec<Option<Scored>> = (0..rows.len()).map(|_| None).collect();
@@ -423,7 +426,7 @@ impl Engine {
         let mut tokens = 0;
         for row in rows {
             let state_text = row.state_text.as_deref().unwrap_or(&base_state);
-            let (prefix, suffix) = compose_prompt(template, state_text, &row.suffix_body);
+            let (prefix, suffix) = self.options.layout.compose(template, state_text, &row.suffix_body);
             tokens += self.backend.count_tokens(&suffix);
             if seen.insert(prefix.clone()) {
                 tokens += self.backend.count_tokens(&prefix);

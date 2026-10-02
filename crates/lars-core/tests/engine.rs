@@ -78,6 +78,7 @@ fn options(budgets: &Value) -> EngineOptions {
         version: "0.0.1".into(),
         max_rows: get("max_rows").or(Some(512)),
         max_input_tokens: get("max_input_tokens").or(Some(32768)),
+        ..EngineOptions::default()
     }
 }
 

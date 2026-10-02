@@ -321,6 +321,50 @@ pub fn plan_rows(request: &Request, labels: &[String]) -> Vec<Row> {
     rows
 }
 
+/// Where the question sits relative to the state.
+///
+/// - `V1`, the reference's layout: system prompt, fenced state, question. Rows that share a
+///   state share a prefix, so several questions about one state prefill it once.
+/// - `V2`, question first: system prompt, question, fenced state. Rows that share a question
+///   share a prefix, so one predicate asked of many states prefills its question once. Adapters
+///   and calibrators are only valid for the layout they were fitted on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Layout {
+    #[default]
+    V1,
+    V2,
+}
+
+impl Layout {
+    pub fn parse(name: &str) -> Option<Layout> {
+        match name {
+            "v1" => Some(Layout::V1),
+            "v2" => Some(Layout::V2),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Layout::V1 => "v1",
+            Layout::V2 => "v2",
+        }
+    }
+
+    /// (prefix, suffix) for one row in this layout; prefix + suffix is the full prompt.
+    pub fn compose(self, template: &Template, state_text: &str, suffix_body: &str) -> (String, String) {
+        match self {
+            Layout::V1 => compose_prompt(template, state_text, suffix_body),
+            Layout::V2 => {
+                let full = template.apply(SYSTEM_PROMPT, &format!("{suffix_body}\n\n{SENTINEL}"));
+                let at = full.rfind(SENTINEL).expect("the template keeps the user message");
+                let (prefix, rest) = (&full[..at], &full[at + SENTINEL.len()..]);
+                (prefix.to_string(), format!("{}{rest}Answer:", fence_state(state_text)))
+            }
+        }
+    }
+}
+
 /// (prefix, suffix) such that prefix + suffix is the full prompt.
 ///
 /// The template is applied with a sentinel in place of the question so the split lands after
@@ -331,4 +375,23 @@ pub fn compose_prompt(template: &Template, state_text: &str, suffix_body: &str) 
     let at = full.rfind(SENTINEL).expect("the template keeps the user message");
     let (prefix, rest) = (&full[..at], &full[at + SENTINEL.len()..]);
     (prefix.to_string(), format!("{suffix_body}{rest}Answer:"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn question_first_puts_the_question_before_the_fenced_state() {
+        let state = "I was charged twice.";
+        let question = "QUESTION: Refund?\nIs this true of the state?\nOPTIONS:\nA) yes\nB) no";
+        for template in [Template::Plain, Template::ChatMl, Template::Gemma, Template::Llama3] {
+            let (prefix, suffix) = Layout::V2.compose(&template, state, question);
+            let expected = template.apply(SYSTEM_PROMPT, &format!("{question}\n\n{}", fence_state(state)));
+            assert_eq!(format!("{prefix}{suffix}"), format!("{expected}Answer:"));
+            assert!(prefix.ends_with(&format!("{question}\n\n")));
+            assert!(suffix.starts_with("<STATE "));
+            assert_eq!(Layout::V1.compose(&template, state, question), compose_prompt(&template, state, question));
+        }
+    }
 }

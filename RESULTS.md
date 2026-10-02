@@ -120,3 +120,84 @@ New defaults in `LlamaOptions`, from these numbers:
 - **batching off,** pending the Phase 2b transfer check
 
 `bench/run.sh` reproduces the table with the new flag names.
+
+## 2026-10-02: Phase 2b, zero-shot model sizes in the shipping runtime (first results)
+
+**Setup:**
+- **Models:** GGUFs built from the original weights with the pinned llama.cpp's
+  `convert_hf_to_gguf.py` and `llama-quantize` (`sweep/prepare.sh`).
+- **Data:** jev-bench, 22 configs, 4,120 validation and 4,400 test rows. Raw logits are
+  captured by `sweep/run.sh` and analyzed on CPU by `sweep/analyze.py`, which uses the
+  reference engine's own calibration functions and the corrected soft-target decoding.
+- **Machine:** busy with the sweep's CPU queue throughout, so latency here is indicative only.
+
+| model (Metal, layout) | raw acc | per-config calibrated | pooled calibrated | pooled Brier | coverage at 5%, empirical (test error) | coverage at 5%, Wilson (test error) |
+|---|---|---|---|---|---|---|
+| Qwen3-0.6B Q4_K_M, v1 | 0.338 | 0.403 | 0.399 | 0.629 | 8.2% (9.9%) | 0% |
+| Qwen3-0.6B Q4_K_M, v2 | 0.357 | 0.366 | 0.358 | 0.647 | 3.8% (10.1%) | 0% |
+| Qwen3-0.6B Q8_0, v1 | 0.385 | 0.418 | 0.409 | 0.617 | 8.5% (8.9%) | 6.6% (4.1%) |
+| Qwen3-1.7B Q4_K_M, v1 | 0.408 | 0.459 | 0.423 | 0.629 | 8.9% (11.0%) | 2.9% (1.6%) |
+| Qwen3-1.7B Q4_K_M, v2 | 0.351 | 0.408 | 0.367 | 0.660 | 6.8% (6.7%) | 0% |
+| Qwen3-4B-Instruct-2507 Q4_K_M, v1 | 0.655 | 0.673 | 0.655 | 0.434 | 26.0% (7.3%) | 7.7% (4.7%) |
+
+- **The 4B through the SDK reproduces the prototype:** 0.673 per-config calibrated, against
+  0.662 for the same model zero-shot on MLX (lars RESULTS, 2026-09-22).
+- **The small models are far behind zero-shot, and it's the models, not the pipeline.**
+  Three checks:
+  - llama.cpp's tokenization of the prompts is identical to the original tokenizer's.
+  - The reference engine's MLX backend on the original BF16 weights gives the SDK's numbers
+    on validation:
+
+    | config | reference MLX, BF16 | SDK, Q4_K_M |
+    |---|---|---|
+    | boolq | 0.655 | 0.655 |
+    | mmlu | 0.415 | 0.380 |
+    | arc_challenge | 0.485 | 0.465 |
+    | paws | 0.435 | 0.435 |
+
+  - The empty think block in the hybrid template doesn't matter. On BF16, with and without
+    it: boolq 0.655 against 0.660, mmlu 0.430 against 0.430, paws 0.435 against 0.460.
+
+  The small models put 99–100% of their probability on the label tokens and answer with
+  strong position biases: the 0.6B says "yes" to every boolq and paws row. Part of the gap
+  to the 4B is post-training: the 4B is the newer 2507 Instruct release, the small models
+  are the original hybrid Qwen3.
+- **Q4_K_M costs the 0.6B** 1.0 to 4.7 points against Q8_0, depending on the measure.
+- **Question-first (v2) is worse zero-shot:** −3.7 points per-config calibrated on the
+  0.6B and −5.1 on the 1.7B. The 4B is pending; v1 stays unless it disagrees.
+- **A threshold chosen on validation doesn't hold its error budget on test:** the empirical
+  5% threshold gives 7–11% error. A threshold that requires the Wilson 95% upper bound to
+  be at most 5% holds the budget (1.6–4.7% on test), at a fraction of the coverage.
+
+**Few labels per decision** (per config, n validation rows, 10 draws, against the pooled
+calibrator):
+
+| model | n | Brier change | accuracy change | coverage, empirical (test error) | coverage, Wilson (test error) |
+|---|---|---|---|---|---|
+| 1.7B Q4_K_M | 25 | −0.044 | +3.2 pts | 19.3% (19.2%) | 0% |
+| 1.7B Q4_K_M | 100 | −0.052 | +3.7 pts | 13.9% (17.1%) | 1.0% (2.1%) |
+| 4B Q4_K_M | 25 | −0.038 | +1.6 pts | 35.4% (13.1%) | 0% |
+| 4B Q4_K_M | 100 | −0.046 | +1.9 pts | 30.5% (10.5%) | 2.7% (4.0%) |
+| 4B Q4_K_M | 200 | −0.039 | +1.6 pts | 29.7% (11.8%) | 9.2% (5.4%) |
+
+- **Calibrating on a few dozen of your own labels helps every model** more than the pooled
+  calibrator does: Brier improves by 0.04–0.05, and Platt moves binary decisions.
+- **Those labels cannot certify an error budget.** A threshold whose error on the labels is
+  at most 5% runs at 10–20% on test. Certifying 5% at 95% confidence takes about 60
+  accepted rows with no errors, so below about 100 labels the conservative policy accepts
+  nothing.
+- **What this means for the SDK:** `calibrate(examples, { maxError })` uses the
+  conservative bound, and reports "not enough labels to certify" rather than an optimistic
+  threshold.
+
+**Latency of the 0.6B Q4_K_M on Metal,** with the CPU queue running alongside:
+
+| request | p50 |
+|---|---|
+| one noul, prefix reuse | 12 ms |
+| one noul, no prefix reuse | 24 ms |
+| Molar Triage | 45 ms |
+| twenty questions | 297 ms |
+| twenty questions, batched | 65 ms |
+
+Peak RSS is 1.5 GB. Its CPU numbers that day are unusable: two 12-thread jobs on 18 cores.

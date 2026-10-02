@@ -380,9 +380,9 @@ Needs `cmake` (`brew install cmake`); llama.cpp builds only with CMake.
 
 No GPU training and no new work for Codex. The SDK's own harness answers the size questions.
 
-- [ ] GGUFs for Qwen3-0.6B, Qwen3-1.7B and Qwen3-4B-Instruct-2507, at Q8_0 and Q4_K_M. Use
-  Qwen's published GGUFs where they exist, otherwise `convert_hf_to_gguf.py`. Each gets its
-  captured template.
+- [x] GGUFs for Qwen3-0.6B, Qwen3-1.7B and Qwen3-4B-Instruct-2507, at BF16, Q8_0 and
+  Q4_K_M. All are built from the original weights with the pinned llama.cpp's converter and
+  quantizer (`sweep/prepare.sh`), and each gets its captured template.
 - [ ] `lars-dev capture`: raw label logits for every jev-bench validation and test row
   (`lars/evals/data`, read only), in render v1 and v2.
 - [ ] From the captures, on CPU with no model loaded:
@@ -483,6 +483,12 @@ Done when the pack's manifest carries its own as-shipped accuracy, calibration a
 - [ ] Version 1.0.0, tag, release notes.
 
 ## Codex's answers, and what's left for Codex
+
+**2026-10-02: Codex is shut down; every experiment below is the SDK's.**
+- Codex's uncommitted lars work was reviewed and committed as found on lars branch
+  `codex-wip-2026-10-02` (`b4a1180`); the lars test suite passes.
+- `sweep/train.sh` trains small-model LoRAs from that branch on the repaired corpus E, then
+  fuses, converts, quantizes and captures them through the SDK, unattended under launchd.
 
 Answered 2026-10-02:
 - Questions 1–6 have no measurements yet.

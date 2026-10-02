@@ -12,7 +12,7 @@
 //!     lars-dev capture-requests --model M.gguf --requests requests.json --out rows.jsonl
 //!
 //! Backend flags: --template chatml|plain|gemma|llama3|<captured.json>, --cpu, --threads N,
-//! --batch-suffixes, --no-reuse-prefix, --flash off|on|auto (default off), --n-ctx N. `--model mock` uses the
+//! --layout v1|v2, --batch-suffixes, --no-reuse-prefix, --no-repack, --flash off|on|auto (default off), --n-ctx N. `--model mock` uses the
 //! mock backend.
 
 use std::collections::HashMap;
@@ -24,7 +24,7 @@ use lars_core::calibration::Calibrator;
 use lars_core::engine::{Engine, EngineOptions};
 use lars_core::eval::{self, read_examples};
 use lars_core::primitives::argmax;
-use lars_core::render::Template;
+use lars_core::render::{Layout, Template};
 use lars_core::schema::Request;
 use lars_llama::{FlashAttention, LlamaBackend, LlamaOptions};
 use serde_json::{Value, json};
@@ -38,7 +38,7 @@ struct Args {
 
 impl Args {
     fn parse(raw: impl Iterator<Item = String>) -> Args {
-        let switches = ["cpu", "batch-suffixes", "no-reuse-prefix"];
+        let switches = ["cpu", "batch-suffixes", "no-reuse-prefix", "no-repack"];
         let (mut positional, mut flags) = (Vec::new(), HashMap::new());
         let mut raw = raw.peekable();
         while let Some(arg) = raw.next() {
@@ -96,6 +96,7 @@ fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
         },
         batch_suffixes: args.get("batch-suffixes").is_some(),
         reuse_prefix: args.get("no-reuse-prefix").is_none(),
+        repack_cpu_weights: args.get("no-repack").is_none(),
         ..defaults
     })
 }
@@ -115,7 +116,11 @@ fn engine(args: &Args) -> Result<Engine, Failure> {
         Some(path) => Calibrator::from_json(&serde_json::from_str(&std::fs::read_to_string(path)?)?)?,
         None => Calibrator::default(),
     };
-    let options = EngineOptions { version: "0.0.1".into(), ..EngineOptions::default() };
+    let layout = match args.get("layout") {
+        None => Layout::V1,
+        Some(name) => Layout::parse(name).ok_or(format!("--layout {name:?}: use v1 or v2"))?,
+    };
+    let options = EngineOptions { version: "0.0.1".into(), layout, ..EngineOptions::default() };
     Ok(Engine::new(backend(args)?, calibrator, options)?)
 }
 

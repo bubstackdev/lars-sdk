@@ -1,0 +1,8 @@
+{
+ "model": "Qwen/Qwen3-1.7B",
+ "before_system": "<|im_start|>system\n",
+ "between": "<|im_end|>\n<|im_start|>user\n",
+ "after_user": "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+ "trims_content": false,
+ "equals_chatml": false
+}

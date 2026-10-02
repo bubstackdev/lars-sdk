@@ -1,0 +1,8 @@
+{
+ "model": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+ "before_system": "<|im_start|>system\n",
+ "between": "<|im_end|>\n<|im_start|>user\n",
+ "after_user": "<|im_end|>\n<|im_start|>assistant\n",
+ "trims_content": false,
+ "equals_chatml": true
+}

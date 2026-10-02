@@ -7,3 +7,5 @@ obj/
 *.gguf
 .DS_Store
 __pycache__/
+models/
+sweep/out/
