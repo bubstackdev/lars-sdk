@@ -1,0 +1,2476 @@
+{
+ "calibration_file": "molar_triage.calibration.jsonl",
+ "test_file": "molar_triage.test.jsonl",
+ "calibration_examples": [
+  "{\"state\": \"Hi, I'd like to book my six-month cleaning sometime next month, mornings preferred.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Hi, I'd like to book my six-month cleaning sometime next month, mornings preferred.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"Hi, I'd like to book my six-month cleaning sometime next month, mornings preferred.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"I knocked out my front tooth playing hockey twenty minutes ago and it's bleeding a lot.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"I knocked out my front tooth playing hockey twenty minutes ago and it's bleeding a lot.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"I knocked out my front tooth playing hockey twenty minutes ago and it's bleeding a lot.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"4\"}",
+  "{\"state\": \"The wire on my braces is poking my cheek and it's really sore.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"The wire on my braces is poking my cheek and it's really sore.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"The wire on my braces is poking my cheek and it's really sore.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"I had a wisdom tooth out three days ago and now there's a horrible taste and throbbing pain.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"I had a wisdom tooth out three days ago and now there's a horrible taste and throbbing pain.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"I had a wisdom tooth out three days ago and now there's a horrible taste and throbbing pain.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"Does my insurance cover a night guard? The estimate said $450.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Does my insurance cover a night guard? The estimate said $450.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Does my insurance cover a night guard? The estimate said $450.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"A filling fell out this morning and the tooth is aching whenever I drink anything.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"A filling fell out this morning and the tooth is aching whenever I drink anything.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"A filling fell out this morning and the tooth is aching whenever I drink anything.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"There's a swelling on my gum above a molar and it hurts to bite. It's getting bigger since yesterday.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"There's a swelling on my gum above a molar and it hurts to bite. It's getting bigger since yesterday.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"There's a swelling on my gum above a molar and it hurts to bite. It's getting bigger since yesterday.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"I chipped a back tooth on a popcorn kernel. Doesn't hurt but it's sharp against my tongue.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I chipped a back tooth on a popcorn kernel. Doesn't hurt but it's sharp against my tongue.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"I chipped a back tooth on a popcorn kernel. Doesn't hurt but it's sharp against my tongue.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"Can I set up a payment plan for the implant? The full amount up front isn't possible for me.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Can I set up a payment plan for the implant? The full amount up front isn't possible for me.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Can I set up a payment plan for the implant? The full amount up front isn't possible for me.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"My face is swollen on one side and I can barely open my mouth. Fever since last night.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"My face is swollen on one side and I can barely open my mouth. Fever since last night.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"My face is swollen on one side and I can barely open my mouth. Fever since last night.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"4\"}",
+  "{\"state\": \"Just confirming: is it normal for the extraction site to still bleed a little after two hours?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Just confirming: is it normal for the extraction site to still bleed a little after two hours?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"Just confirming: is it normal for the extraction site to still bleed a little after two hours?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"I get a sharp pain in a top molar every time I chew on that side. Started about a week ago.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"I get a sharp pain in a top molar every time I chew on that side. Started about a week ago.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"I get a sharp pain in a top molar every time I chew on that side. Started about a week ago.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"My daughter is due for a checkup and sealants before school starts.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My daughter is due for a checkup and sealants before school starts.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"My daughter is due for a checkup and sealants before school starts.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Toothache kept me up all night, over-the-counter painkillers aren't touching it.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"Toothache kept me up all night, over-the-counter painkillers aren't touching it.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"Toothache kept me up all night, over-the-counter painkillers aren't touching it.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"I received a bill for a procedure I never had. Invoice number 88213.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I received a bill for a procedure I never had. Invoice number 88213.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"I received a bill for a procedure I never had. Invoice number 88213.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"My gums bleed every time I floss. Is that something to worry about?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My gums bleed every time I floss. Is that something to worry about?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"My gums bleed every time I floss. Is that something to worry about?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Can I get the pre-authorization form for my orthodontic coverage?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Can I get the pre-authorization form for my orthodontic coverage?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Can I get the pre-authorization form for my orthodontic coverage?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"I'm having an implant consult next week. Is there anything I should bring?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I'm having an implant consult next week. Is there anything I should bring?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"I'm having an implant consult next week. Is there anything I should bring?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"Do you have any evening appointments for a routine exam?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Do you have any evening appointments for a routine exam?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Do you have any evening appointments for a routine exam?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"Pain after the root canal was expected, but it's day five and getting worse, with a bump on the gum.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"Pain after the root canal was expected, but it's day five and getting worse, with a bump on the gum.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"Pain after the root canal was expected, but it's day five and getting worse, with a bump on the gum.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"I swallowed a small piece of my broken retainer. No pain, just worried.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I swallowed a small piece of my broken retainer. No pain, just worried.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"I swallowed a small piece of my broken retainer. No pain, just worried.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"Bleeding won't stop from where the tooth was pulled this morning, gauze is soaked through every ten minutes.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Bleeding won't stop from where the tooth was pulled this morning, gauze is soaked through every ten minutes.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"Bleeding won't stop from where the tooth was pulled this morning, gauze is soaked through every ten minutes.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"4\"}",
+  "{\"state\": \"Cold sensitivity on one tooth has turned into a dull constant ache over the last two days.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"Cold sensitivity on one tooth has turned into a dull constant ache over the last two days.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"Cold sensitivity on one tooth has turned into a dull constant ache over the last two days.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"The metal band around my molar came loose and is spinning. It's not hurting.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"The metal band around my molar came loose and is spinning. It's not hurting.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"The metal band around my molar came loose and is spinning. It's not hurting.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"Stitches from the wisdom tooth removal came out early. No pain or bleeding, just checking.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Stitches from the wisdom tooth removal came out early. No pain or bleeding, just checking.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"Stitches from the wisdom tooth removal came out early. No pain or bleeding, just checking.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"There's a dark spot on my tooth that wasn't there before. No pain.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"There's a dark spot on my tooth that wasn't there before. No pain.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"There's a dark spot on my tooth that wasn't there before. No pain.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Your online form won't let me submit the medical history page.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Your online form won't let me submit the medical history page.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Your online form won't let me submit the medical history page.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"A tooth cracked down the middle and it throbs when I release my bite.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"A tooth cracked down the middle and it throbs when I release my bite.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"A tooth cracked down the middle and it throbs when I release my bite.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"Getting a deep cleaning quote for my mom, she's on Medicare.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Getting a deep cleaning quote for my mom, she's on Medicare.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Getting a deep cleaning quote for my mom, she's on Medicare.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"The numbness from this morning's filling still hasn't worn off after six hours and I bit my lip badly.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"The numbness from this morning's filling still hasn't worn off after six hours and I bit my lip badly.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"The numbness from this morning's filling still hasn't worn off after six hours and I bit my lip badly.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}"
+ ],
+ "test_examples": [
+  "{\"state\": \"My crown came off while eating caramel. No pain, but the tooth underneath feels weird.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My crown came off while eating caramel. No pain, but the tooth underneath feels weird.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"My crown came off while eating caramel. No pain, but the tooth underneath feels weird.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"Can you send me a copy of my last invoice for my HSA? I need it by Friday.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Can you send me a copy of my last invoice for my HSA? I need it by Friday.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Can you send me a copy of my last invoice for my HSA? I need it by Friday.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"What are your hours on Saturdays? I want to bring my kids in.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"What are your hours on Saturdays? I want to bring my kids in.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"What are your hours on Saturdays? I want to bring my kids in.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"My teeth are sensitive to cold lately. Not painful, just annoying. Any toothpaste you recommend?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My teeth are sensitive to cold lately. Not painful, just annoying. Any toothpaste you recommend?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"My teeth are sensitive to cold lately. Not painful, just annoying. Any toothpaste you recommend?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"I lost my retainer on vacation. How fast can I get a new one before my teeth shift?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I lost my retainer on vacation. How fast can I get a new one before my teeth shift?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"I lost my retainer on vacation. How fast can I get a new one before my teeth shift?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"Need to reschedule Tuesday's appointment, something came up at work.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Need to reschedule Tuesday's appointment, something came up at work.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Need to reschedule Tuesday's appointment, something came up at work.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"My son's aligner tray cracked. He has plenty of trays left, should he just move to the next one?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My son's aligner tray cracked. He has plenty of trays left, should he just move to the next one?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"My son's aligner tray cracked. He has plenty of trays left, should he just move to the next one?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Are you accepting new patients? My family just moved to the area.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Are you accepting new patients? My family just moved to the area.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Are you accepting new patients? My family just moved to the area.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"I'd like to ask about whitening before my wedding in October.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I'd like to ask about whitening before my wedding in October.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"I'd like to ask about whitening before my wedding in October.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"You charged me twice for last week's visit. Please refund the duplicate.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"You charged me twice for last week's visit. Please refund the duplicate.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"You charged me twice for last week's visit. Please refund the duplicate.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"My retainer feels tight after skipping a few nights. Should I keep wearing it?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My retainer feels tight after skipping a few nights. Should I keep wearing it?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"My retainer feels tight after skipping a few nights. Should I keep wearing it?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Please update my address and phone number on file.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Please update my address and phone number on file.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Please update my address and phone number on file.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"My bracket popped off but nothing is poking me. Next adjustment is in three weeks.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My bracket popped off but nothing is poking me. Next adjustment is in three weeks.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"My bracket popped off but nothing is poking me. Next adjustment is in three weeks.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Does the practice validate parking?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Does the practice validate parking?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Does the practice validate parking?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"The temporary crown feels loose and rough. Not painful. Permanent one is due in ten days.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"The temporary crown feels loose and rough. Not painful. Permanent one is due in ten days.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"The temporary crown feels loose and rough. Not painful. Permanent one is due in ten days.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"2\"}",
+  "{\"state\": \"I fell off my bike and two front teeth are loose and pushed backward. There's blood.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"I fell off my bike and two front teeth are loose and pushed backward. There's blood.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"I fell off my bike and two front teeth are loose and pushed backward. There's blood.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"4\"}",
+  "{\"state\": \"Elastics for my braces ran out. Can I pick some up at the front desk?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Elastics for my braces ran out. Can I pick some up at the front desk?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"Elastics for my braces ran out. Can I pick some up at the front desk?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"A sharp piece of my molar broke off and the edge is cutting my tongue with every word.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"A sharp piece of my molar broke off and the edge is cutting my tongue with every word.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"restorative\"}",
+  "{\"state\": \"A sharp piece of my molar broke off and the edge is cutting my tongue with every word.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"3\"}",
+  "{\"state\": \"My jaw clicks and aches when I wake up. Could I be grinding?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"My jaw clicks and aches when I wake up. Could I be grinding?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"My jaw clicks and aches when I wake up. Could I be grinding?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"The aligner scan appointment: do I need to stop eating beforehand?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"The aligner scan appointment: do I need to stop eating beforehand?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"The aligner scan appointment: do I need to stop eating beforehand?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"My insurance changed in January. Sending the new card, please update before my next visit.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My insurance changed in January. Sending the new card, please update before my next visit.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"My insurance changed in January. Sending the new card, please update before my next visit.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"Can you send my x-rays to my new dentist in Portland?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Can you send my x-rays to my new dentist in Portland?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"Can you send my x-rays to my new dentist in Portland?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"Booking a cleaning for me and my partner back to back, if possible.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Booking a cleaning for me and my partner back to back, if possible.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"Booking a cleaning for me and my partner back to back, if possible.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"I need a written estimate for a bridge to submit to my employer's benefits portal.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"I need a written estimate for a bridge to submit to my employer's benefits portal.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"I need a written estimate for a bridge to submit to my employer's benefits portal.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"My whitening trays are giving me a zing of sensitivity. Should I take a break?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My whitening trays are giving me a zing of sensitivity. Should I take a break?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"My whitening trays are giving me a zing of sensitivity. Should I take a break?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"I'm at the ER after a car accident, they say my jaw may be fractured and want your records.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"yes\"}",
+  "{\"state\": \"I'm at the ER after a car accident, they say my jaw may be fractured and want your records.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"surgery\"}",
+  "{\"state\": \"I'm at the ER after a car accident, they say my jaw may be fractured and want your records.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"4\"}",
+  "{\"state\": \"Can I pay my remaining balance over the phone?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Can I pay my remaining balance over the phone?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"billing\"}",
+  "{\"state\": \"Can I pay my remaining balance over the phone?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}",
+  "{\"state\": \"My retainer wire came unglued from behind my bottom teeth. No pain.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"My retainer wire came unglued from behind my bottom teeth. No pain.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"orthodontics\"}",
+  "{\"state\": \"My retainer wire came unglued from behind my bottom teeth. No pain.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"Persistent bad breath despite brushing. Would a hygiene visit help?\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"Persistent bad breath despite brushing. Would a hygiene visit help?\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"hygiene\"}",
+  "{\"state\": \"Persistent bad breath despite brushing. Would a hygiene visit help?\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"1\"}",
+  "{\"state\": \"What's the earliest you open on weekdays? I'd like a 7am slot.\", \"question\": {\"type\": \"noul\", \"instructions\": \"The sender says they are in pain right now.\"}, \"label\": \"no\"}",
+  "{\"state\": \"What's the earliest you open on weekdays? I'd like a 7am slot.\", \"question\": {\"type\": \"choice\", \"instructions\": \"Which department should take this message?\", \"criteria\": {\"hygiene\": \"Cleanings, checkups, whitening, sensitivity advice\", \"restorative\": \"Fillings, crowns, chipped or broken teeth, lost fillings\", \"orthodontics\": \"Braces, aligners, retainers, wires\", \"surgery\": \"Extractions, wisdom teeth, implants, post-operative care\", \"billing\": \"Insurance, invoices, payment plans, estimates\", \"front_desk\": \"Scheduling, forms, hours, directions, records requests\"}}, \"label\": \"front_desk\"}",
+  "{\"state\": \"What's the earliest you open on weekdays? I'd like a 7am slot.\", \"question\": {\"type\": \"score\", \"instructions\": \"How urgently does this message need attention?\", \"criteria\": [\"Routine: can wait for the next regular visit\", \"Soon: book within a few weeks\", \"This week: schedule in the next few days\", \"Today: needs same-day attention\", \"Emergency: go to the practice or an emergency room now\"]}, \"label\": \"0\"}"
+ ],
+ "example_ids": [
+  "ce6d7119c442ac12",
+  "a6af2e72c35b8a7b",
+  "fee573fd33c84749",
+  "f29b0a11b6a72de7",
+  "b525b16eb19e70bd",
+  "fa13405586abc34a",
+  "ace05d0c2b4abd89",
+  "3c54902a4d853c3a",
+  "7b0612cf4df251b5",
+  "bb00b486bc05347d",
+  "3fe15a45b05925cb",
+  "7fc17cda0517fe6a",
+  "6bdb540eb859e432",
+  "bfa940945074c1a3",
+  "2742d2c3be5538c1",
+  "9f08f5a2d3cfed57",
+  "1b23f84a30617b18",
+  "4c8b8651f7f1c129",
+  "ec9df8d952ccddfd",
+  "5ea68ff20aea663c",
+  "6c1c1ebe24302d6c",
+  "d291fc41ce2ddc2b",
+  "ca43a96d7e9b8719",
+  "62c31150c758338d",
+  "310f7e7794e4add9",
+  "5061e3297463f096",
+  "9a9e878f363c9870",
+  "47f491ab2ccc4ac8",
+  "ac11dca0362be9eb",
+  "6c3567a170acf22d",
+  "8e4eecf30020a649",
+  "ed307a8ad4d32247",
+  "b4ef341a4aefade9",
+  "8f6e1343010c574c",
+  "86121792801344c3",
+  "1f3e3a79c04ae925",
+  "0b63584b4d0189e8",
+  "f4a9fe3da505a1bc",
+  "fb14808c07c6a117",
+  "c4ce46bcf5f3db28",
+  "5490aed1544d3deb",
+  "4553bf8928405419",
+  "e74490aa35de58e9",
+  "ff8e5487b32ea5b5",
+  "eda2519499dec447",
+  "8922021a7a296090",
+  "773453f37f8e2840",
+  "70bb0ee70da75f8e",
+  "07eea14b1f87f8d2",
+  "632724fd6d858193",
+  "e359d2cd2f0f6629",
+  "0b58b5b3d333e40b",
+  "ecce8280d04cbab8",
+  "8b777f574a8987d0",
+  "213bfd16a9bad616",
+  "82ba4f641c538c8d",
+  "1d51e2aea8c31fd2",
+  "33fbb07dfd0f09cf",
+  "16d72ecb8f84f176",
+  "38b93d196f866656",
+  "2110f5edced3a2bc",
+  "4277039c34661757",
+  "c1838b42fef9b559",
+  "640f863be21447ae",
+  "326ceef32fb41f17",
+  "db9074d77f48cade",
+  "e12e51b0eb10af25",
+  "97c6edb1e1d99b3c",
+  "9161b994451d8910",
+  "8667975a41a5a2bb",
+  "fea44a1ade415d7f",
+  "4fffa88424783cf6",
+  "3530889dbce9f9ad",
+  "f31f52adfaf50fd1",
+  "90172eb5fe3d7360",
+  "bc012b61de3a7c60",
+  "f2f34c8a997d4bc0",
+  "db07d25a45603f27",
+  "92ea1c59adffc428",
+  "ba140513872a8410",
+  "0903bc1d6d1c4e63",
+  "fd154f481a41ee43",
+  "4860a6018922be66",
+  "5a694992c3909b2e",
+  "9db15331d874b9b2",
+  "fdd0dffe7bbe1a37",
+  "a8a36a2f5a35e1e0",
+  "598564441a26a95f",
+  "2e12915720da2163",
+  "6aaceef450d7badc"
+ ],
+ "calibrated": {
+  "temperatures": {
+   "noul": 1.0,
+   "choice": 4.13311383024411,
+   "score": 20.0,
+   "multi": 1.0
+  },
+  "platt": {
+   "noul": [
+    -0.01989208636369823,
+    -0.384720832468781
+   ]
+  },
+  "fusion": {},
+  "fitted_on": "molar_triage.calibration.jsonl",
+  "escalate": null
+ },
+ "eval_raw": {
+  "count": 90,
+  "accuracy": 0.34444444444444444,
+  "ece": 0.31036805210350843,
+  "brier": 0.8413011107880974,
+  "coverage_at_5pct": 0.0,
+  "threshold_at_5pct": 1.0,
+  "per_kind": {
+   "noul": {
+    "count": 30,
+    "accuracy": 0.4666666666666667
+   },
+   "choice": {
+    "count": 30,
+    "accuracy": 0.23333333333333334
+   },
+   "score": {
+    "count": 30,
+    "accuracy": 0.3333333333333333
+   }
+  },
+  "ms_per_example": 0.0,
+  "temperatures": {
+   "choice": 1.0,
+   "noul": 1.0,
+   "score": 1.0
+  },
+  "platt": {
+   "choice": null,
+   "noul": null,
+   "score": null
+  }
+ },
+ "eval_raw_rows": [
+  {
+   "id": "ce6d7119c442ac12",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.8664530074566035,
+    0.13354699254339653
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "a6af2e72c35b8a7b",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.06273939454926857,
+    0.2161003292003975,
+    0.09551967955444336,
+    0.13668360495793808,
+    0.17732144861649815,
+    0.31163554312145436
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "fee573fd33c84749",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.2060012609213046,
+    0.0089754965330889,
+    0.71280868456183,
+    0.0016791060308002708,
+    0.07053545195297611
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "f29b0a11b6a72de7",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.8493544521538318,
+    0.15064554784616824
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "b525b16eb19e70bd",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.055104152417940276,
+    0.055041407685753545,
+    0.5785900590694526,
+    0.1644419102575108,
+    0.0317660697148082,
+    0.11505640085453468
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "fa13405586abc34a",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.5412228597197081,
+    0.13786339276335555,
+    0.14734052429713204,
+    0.15326663902917337,
+    0.020306584190631038
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "ace05d0c2b4abd89",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.2190429345969702,
+    0.7809570654030298
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "3c54902a4d853c3a",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.014907088522650854,
+    0.056056173117754175,
+    0.009005368022484935,
+    0.15385084385698813,
+    0.005251083527112757,
+    0.7609294429530091
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "7b0612cf4df251b5",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.38984350202064716,
+    0.0241450963232573,
+    0.04579957307010493,
+    0.05809008982311767,
+    0.48212173876287306
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "bb00b486bc05347d",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.17718561546130226,
+    0.8228143845386977
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "3fe15a45b05925cb",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.010327192126467334,
+    0.5472851001189887,
+    0.002552893658907428,
+    0.4135562121105331,
+    0.022122296734873682,
+    0.004156305250229794
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "7fc17cda0517fe6a",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.04878086066173594,
+    0.1270561790570013,
+    0.23165293094935832,
+    0.3814692704894504,
+    0.21104075884245402
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "6bdb540eb859e432",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.2599280578597423,
+    0.7400719421402577
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "bfa940945074c1a3",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.013272011959551216,
+    0.2308145637480657,
+    0.035422342368665025,
+    0.6645429591418704,
+    0.006981184983080651,
+    0.04896693779876708
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "2742d2c3be5538c1",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.8325248363852278,
+    0.0058404424036892525,
+    0.09075408414969575,
+    0.004643354721133193,
+    0.06623728234025414
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "9f08f5a2d3cfed57",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.3942958169191075,
+    0.6057041830808925
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "1b23f84a30617b18",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.07228942012219385,
+    0.16782291762324403,
+    0.10873087448149936,
+    0.47561834154243704,
+    0.16230651557390594,
+    0.01323193065671987
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "4c8b8651f7f1c129",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.09759132384710506,
+    0.5812072559611307,
+    0.024772785840958978,
+    0.27622218623803707,
+    0.020206448112768206
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "ec9df8d952ccddfd",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.4807195611897283,
+    0.5192804388102716
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "5ea68ff20aea663c",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.22773079715384223,
+    0.017615025044410842,
+    0.1223777643586234,
+    0.009667534617640333,
+    0.13274061876568066,
+    0.48986826005980266
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "6c1c1ebe24302d6c",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.8139975039563648,
+    0.0010495952517953037,
+    0.14428498264999787,
+    0.003989924317715279,
+    0.03667799382412677
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "d291fc41ce2ddc2b",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.7862581875511542,
+    0.21374181244884582
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "ca43a96d7e9b8719",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.19411020399522927,
+    0.1020478846185305,
+    0.02472118315987827,
+    0.013053907406730215,
+    0.5653170606576814,
+    0.10074976016195045
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "62c31150c758338d",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.3892903007914171,
+    0.0064599274625534945,
+    0.4302437603000607,
+    0.004576896871510415,
+    0.16942911457445825
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "310f7e7794e4add9",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.09241601284604742,
+    0.9075839871539526
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "5061e3297463f096",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.9558947527917391,
+    0.007038641050664197,
+    0.02250391706576162,
+    0.0030189519986380036,
+    0.01010204435246785,
+    0.0014416927407292844
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "9a9e878f363c9870",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.5201828550383599,
+    0.1348331827974714,
+    0.20493521007706514,
+    0.019561928557479527,
+    0.12048682352962402
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "47f491ab2ccc4ac8",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.05411037476376079,
+    0.9458896252362392
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "ac11dca0362be9eb",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.036471862132759304,
+    0.1386347397915316,
+    0.35648316680402875,
+    0.318369165597693,
+    0.018521934669655748,
+    0.1315191310043314
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "6c3567a170acf22d",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.5773970452146323,
+    0.002177771008337994,
+    0.37166715987522175,
+    0.012415588740421124,
+    0.036342435161386855
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "8e4eecf30020a649",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.7684863305759922,
+    0.23151366942400775
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "ed307a8ad4d32247",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.5543654654089153,
+    0.09429675565411125,
+    0.04878767602824758,
+    0.10642735324461312,
+    0.040284562187252314,
+    0.15583818747686032
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "b4ef341a4aefade9",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.004086313724306756,
+    0.8431325234569615,
+    0.10243139035236097,
+    0.04441411125557532,
+    0.005935661210795449
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "8f6e1343010c574c",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.916855940613624,
+    0.08314405938637603
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "86121792801344c3",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.02436320193754757,
+    0.1533588919674028,
+    0.4303720715094396,
+    0.1449706240834939,
+    0.021294406027692614,
+    0.22564080447442353
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "1f3e3a79c04ae925",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.5250695714318042,
+    0.041220419284056196,
+    0.07486379921160127,
+    0.2782746842433536,
+    0.08057152582918474
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "0b63584b4d0189e8",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.7243634903555134,
+    0.2756365096444866
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "f4a9fe3da505a1bc",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.43144370852923775,
+    0.2064677468615844,
+    0.10280985370653668,
+    0.01655110765152407,
+    0.134035341048654,
+    0.10869224220246317
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "fb14808c07c6a117",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.7390386865207741,
+    0.20087565181831968,
+    0.049443849959327865,
+    0.0058956191305342106,
+    0.004746192571044054
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "c4ce46bcf5f3db28",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.027594981516692374,
+    0.9724050184833076
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "5490aed1544d3deb",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.13251877799645295,
+    0.382263926262193,
+    0.3188535224112376,
+    0.04033926666283014,
+    0.01986861909370325,
+    0.10615588757358303
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "4553bf8928405419",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.2093462413785908,
+    0.03101051073766784,
+    0.5458126778697148,
+    0.024079320035662523,
+    0.18975124997836407
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "e74490aa35de58e9",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.17277899944394576,
+    0.8272210005560543
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "ff8e5487b32ea5b5",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.2812765344895498,
+    0.04236589604451161,
+    0.10625702206558037,
+    0.009888672032359007,
+    0.2561207844519487,
+    0.30409109091605063
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "eda2519499dec447",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.34631026073130683,
+    0.05135555245751623,
+    0.48800635812347565,
+    0.06606196781012019,
+    0.04826586087758119
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "8922021a7a296090",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.571259288740449,
+    0.42874071125955104
+   ],
+   "target": [
+    1.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "773453f37f8e2840",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.008208604444995313,
+    0.7788764510142462,
+    0.004618044656062546,
+    0.1448573065454724,
+    0.03019116498959377,
+    0.033248428349629676
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "70bb0ee70da75f8e",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.32073335829906247,
+    0.03227429772313516,
+    0.352249312669256,
+    0.23274284216768934,
+    0.06200018914085714
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "07eea14b1f87f8d2",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.6550697977665237,
+    0.34493020223347626
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "632724fd6d858193",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.02794893814417805,
+    0.014676928821682077,
+    0.9267925147477426,
+    0.002349313902836609,
+    0.0018324455705435762,
+    0.02639985881301698
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "e359d2cd2f0f6629",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.08460926268578485,
+    0.1184258044398394,
+    0.6423294231593543,
+    0.005973403865848717,
+    0.1486621058491728
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "0b58b5b3d333e40b",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.12499133523792043,
+    0.8750086647620796
+   ],
+   "target": [
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "ecce8280d04cbab8",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.10246644150469293,
+    0.2550987486415758,
+    0.04877548286987026,
+    0.02337608752578423,
+    0.1009384718122425,
+    0.4693447676458344
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "8b777f574a8987d0",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.6804224779615645,
+    0.024983846633127024,
+    0.10830914045400578,
+    0.025148032894299562,
+    0.16113650205700317
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "213bfd16a9bad616",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.03544159779102816,
+    0.9645584022089718
+   ],
+   "target": [
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "82ba4f641c538c8d",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.5590626893218112,
+    0.04390835076673139,
+    0.05161335378582648,
+    0.07213110708894524,
+    0.16924465517675572,
+    0.10403984385992997
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "1d51e2aea8c31fd2",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.04524533676191354,
+    0.2454798304648168,
+    0.09187157863001362,
+    0.43240288832218843,
+    0.18500036582106766
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "33fbb07dfd0f09cf",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.6126230818490368,
+    0.3873769181509632
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "16d72ecb8f84f176",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.3752760710476375,
+    0.4145261261036585,
+    0.013062089378404836,
+    0.03262696468526353,
+    0.12043085701140259,
+    0.04407789177363301
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "38b93d196f866656",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.08584232853305544,
+    0.06342323449254421,
+    0.7551953337775088,
+    0.010884144787645026,
+    0.08465495840924661
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "2110f5edced3a2bc",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.7674681765641602,
+    0.23253182343583978
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "4277039c34661757",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.11239036044022403,
+    0.044120551385727,
+    0.06363042701062464,
+    0.028879713169534,
+    0.6189304253902533,
+    0.13204852260363695
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "c1838b42fef9b559",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.7419466637014909,
+    0.043738028922281944,
+    0.11583094497496947,
+    0.005787388267814691,
+    0.09269697413344288
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "640f863be21447ae",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.18112307165028593,
+    0.818876928349714
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "326ceef32fb41f17",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.21146280696423891,
+    0.3490419240973149,
+    0.15051944373754675,
+    0.03962305458594122,
+    0.05388691614813735,
+    0.19546585446682083
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "db9074d77f48cade",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.9154425167699641,
+    0.06048195473426938,
+    0.01883232202350108,
+    0.0028236435486236177,
+    0.002419562923641862
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "e12e51b0eb10af25",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.8406793722841311,
+    0.15932062771586886
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "97c6edb1e1d99b3c",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.1707558501220098,
+    0.1121759808080331,
+    0.511899107253376,
+    0.14665245260684717,
+    0.017958436316732055,
+    0.04055817289300183
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "9161b994451d8910",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.9518693010433938,
+    0.004115749829144443,
+    0.022907308633574645,
+    0.0032886110219969254,
+    0.017819029471889982
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "8667975a41a5a2bb",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.3948296086099782,
+    0.6051703913900218
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "fea44a1ade415d7f",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.1397732714989382,
+    0.15395985216010719,
+    0.16211032100442826,
+    0.018350804035011582,
+    0.127568764851419,
+    0.3982369864500958
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "4fffa88424783cf6",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.5919878655346668,
+    0.019503123902007834,
+    0.04207137073080971,
+    0.15351175266264852,
+    0.19292588716986725
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "3530889dbce9f9ad",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.5287777216926237,
+    0.4712222783073763
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "f31f52adfaf50fd1",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.743916194928628,
+    0.04252703311632716,
+    0.11635435415770222,
+    0.046450028771745436,
+    0.010724106280763233,
+    0.04002828274483372
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "90172eb5fe3d7360",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.13591159510996645,
+    0.19531351924002952,
+    0.01688931356224694,
+    0.39711844765615656,
+    0.25476712443160054
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "bc012b61de3a7c60",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.8770725720331639,
+    0.12292742796683609
+   ],
+   "target": [
+    1.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "f2f34c8a997d4bc0",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.12888216501662347,
+    0.058301997415933504,
+    0.13825038823534846,
+    0.1021859666388924,
+    0.22514638777645346,
+    0.34723309491674875
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "db07d25a45603f27",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.09630112248065574,
+    0.005303914744895194,
+    0.6991260173883401,
+    0.034017064138136495,
+    0.16525188124797238
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "92ea1c59adffc428",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.9349653685604009,
+    0.06503463143959909
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "ba140513872a8410",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.021659554409911973,
+    0.13343709949052687,
+    0.032850145851788914,
+    0.21771994931752509,
+    0.029542960969281717,
+    0.5647902899609655
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "0903bc1d6d1c4e63",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.028740064407107923,
+    0.0012758981735404538,
+    0.1915681662361391,
+    0.004056514380003842,
+    0.7743593568032087
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "fd154f481a41ee43",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.9801432026535614,
+    0.019856797346438637
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "4860a6018922be66",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.0019570704099306645,
+    0.5227519596730559,
+    0.05942960313571288,
+    0.40955511460143745,
+    0.0046104108709941975,
+    0.0016958413088688173
+   ],
+   "target": [
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "5a694992c3909b2e",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.3333526488431185,
+    0.20506238836483498,
+    0.2470048959650222,
+    0.1522375872393477,
+    0.062342479587676726
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "9db15331d874b9b2",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.18551322821175312,
+    0.8144867717882469
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "fdd0dffe7bbe1a37",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.8924549225350276,
+    0.029270061520786667,
+    0.007847306650286342,
+    0.06166989811453263,
+    0.0018685875088479548,
+    0.006889223670518682
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": true
+  },
+  {
+   "id": "a8a36a2f5a35e1e0",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.9430250630298961,
+    0.030361652781851524,
+    0.0028123587372394852,
+    0.005591939228202488,
+    0.018208986222810086
+   ],
+   "target": [
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "598564441a26a95f",
+   "keys": [
+    "yes",
+    "no"
+   ],
+   "p": [
+    0.9718260183664653,
+    0.028173981633534684
+   ],
+   "target": [
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "2e12915720da2163",
+   "keys": [
+    "hygiene",
+    "restorative",
+    "orthodontics",
+    "surgery",
+    "billing",
+    "front_desk"
+   ],
+   "p": [
+    0.21716691288433607,
+    0.09404460934290279,
+    0.04607668408689123,
+    0.3520441203965752,
+    0.25308582708130023,
+    0.03758184620799442
+   ],
+   "target": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "hit": false
+  },
+  {
+   "id": "6aaceef450d7badc",
+   "keys": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+   ],
+   "p": [
+    0.29938634854809715,
+    0.009401415588482781,
+    0.5977744084226773,
+    0.024206691625363746,
+    0.06923113581537901
+   ],
+   "target": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "hit": false
+  }
+ ],
+ "eval_calibrated": {
+  "count": 90,
+  "accuracy": 0.4777777777777778,
+  "ece": 0.12394352644752779,
+  "brier": 0.6554400251046757,
+  "coverage_at_5pct": 0.044444444444444446,
+  "threshold_at_5pct": 0.6064631627470467,
+  "per_kind": {
+   "noul": {
+    "count": 30,
+    "accuracy": 0.8666666666666667
+   },
+   "choice": {
+    "count": 30,
+    "accuracy": 0.23333333333333334
+   },
+   "score": {
+    "count": 30,
+    "accuracy": 0.3333333333333333
+   }
+  },
+  "ms_per_example": 0.0,
+  "temperatures": {
+   "choice": 4.13311383024411,
+   "noul": 1.0,
+   "score": 20.0
+  },
+  "platt": {
+   "choice": null,
+   "noul": [
+    -0.01989208636369823,
+    -0.384720832468781
+   ],
+   "score": null
+  }
+ },
+ "maybe_json": [
+  {
+   "value": "{\"a\": 1}",
+   "out": {
+    "a": 1
+   }
+  },
+  {
+   "value": " [\"x\"] ",
+   "out": [
+    "x"
+   ]
+  },
+  {
+   "value": "\"quoted\"",
+   "out": "quoted"
+  },
+  {
+   "value": "plain",
+   "out": "plain"
+  },
+  {
+   "value": "{not json",
+   "out": "{not json"
+  },
+  {
+   "value": 5,
+   "out": 5
+  },
+  {
+   "value": {
+    "k": "v"
+   },
+   "out": {
+    "k": "v"
+   }
+  }
+ ]
+}

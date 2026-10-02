@@ -1,0 +1,8 @@
+/target/
+/fixtures/.reference/
+/fixtures/.venv/
+node_modules/
+bin/
+obj/
+*.gguf
+.DS_Store

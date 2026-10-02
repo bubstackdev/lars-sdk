@@ -1,0 +1,2 @@
+# Reference fixtures are compared byte for byte; never convert their line endings.
+fixtures/data/** -text

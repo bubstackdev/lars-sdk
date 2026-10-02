@@ -1,0 +1,15 @@
+[package]
+name = "lars-core"
+description = "LARS typed decisions: rendering, reduction and calibration, shared by every language binding"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
