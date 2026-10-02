@@ -1,0 +1,9 @@
+{
+ "state": "My card was charged twice for the same order and I want one refunded.",
+ "questions": {
+  "refund": {
+   "type": "noul",
+   "instructions": "The customer asks for money back"
+  }
+ }
+}

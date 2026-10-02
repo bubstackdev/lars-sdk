@@ -263,6 +263,14 @@ impl Engine {
         Ok((row.keys.clone(), scored.into_iter().next().unwrap().logits))
     }
 
+    /// Every planned row of a request with its raw label logits, for diagnostics.
+    pub fn raw_rows(&mut self, request: &Request) -> Result<Vec<(Row, Vec<f64>)>> {
+        let model_id = self.model_id();
+        let (rows, _) = self.plan(request, &model_id)?;
+        let scored = self.score(request, &rows)?;
+        Ok(rows.into_iter().zip(scored).map(|(row, s)| (row, s.logits)).collect())
+    }
+
     // ----------------------------------------------------------------- scoring
 
     fn score(&mut self, request: &Request, rows: &[Row]) -> Result<Vec<Scored>> {

@@ -1,0 +1,14 @@
+[package]
+name = "lars-dev"
+description = "Developer CLI: evaluate, calibrate, capture, benchmark and parity-check LARS backends"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+lars-core = { path = "../lars-core" }
+lars-llama = { path = "../lars-llama" }
+serde_json.workspace = true

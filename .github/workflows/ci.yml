@@ -17,6 +17,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p lars-core --all-targets -- -D warnings
+      - run: cargo test -p lars-core
+
+  llama:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy -p lars-llama -p lars-dev --all-targets -- -D warnings
+      - run: cargo build --release -p lars-dev
+      # Model tests need a GGUF (LARS_TEST_GGUF) and skip without one.
+      - run: cargo test --release -p lars-llama

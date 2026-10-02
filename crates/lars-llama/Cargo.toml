@@ -1,0 +1,15 @@
+[package]
+name = "lars-llama"
+description = "The llama.cpp backend for lars-core: GGUF models in-process, on CPU or Metal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lars-core = { path = "../lars-core" }
+lars-llama-sys = { path = "../lars-llama-sys" }
+
+[dev-dependencies]
+serde_json.workspace = true

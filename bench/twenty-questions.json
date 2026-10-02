@@ -1,0 +1,85 @@
+{
+ "state": "Hi team, since the update on Tuesday our checkout page times out for about a third of customers, mostly on mobile. We lost two big orders yesterday and our CFO is asking for a credit on this month's invoice. I have attached the error log. We are on the enterprise plan and our contract renews next month. Please call me today, this is urgent.",
+ "questions": {
+  "q00": {
+   "type": "noul",
+   "instructions": "The customer reports a bug"
+  },
+  "q01": {
+   "type": "noul",
+   "instructions": "The customer asks for a refund or credit"
+  },
+  "q02": {
+   "type": "noul",
+   "instructions": "The message mentions mobile"
+  },
+  "q03": {
+   "type": "noul",
+   "instructions": "The customer is on the enterprise plan"
+  },
+  "q04": {
+   "type": "noul",
+   "instructions": "The customer threatens to cancel"
+  },
+  "q05": {
+   "type": "noul",
+   "instructions": "An attachment is mentioned"
+  },
+  "q06": {
+   "type": "noul",
+   "instructions": "The customer asks for a phone call"
+  },
+  "q07": {
+   "type": "noul",
+   "instructions": "The issue started after an update"
+  },
+  "q08": {
+   "type": "noul",
+   "instructions": "Revenue was lost"
+  },
+  "q09": {
+   "type": "noul",
+   "instructions": "The message mentions a contract renewal"
+  },
+  "q10": {
+   "type": "noul",
+   "instructions": "The customer is angry"
+  },
+  "q11": {
+   "type": "noul",
+   "instructions": "The message is urgent"
+  },
+  "q12": {
+   "type": "noul",
+   "instructions": "A specific day of the week is mentioned"
+  },
+  "q13": {
+   "type": "noul",
+   "instructions": "The customer names a job title"
+  },
+  "q14": {
+   "type": "noul",
+   "instructions": "The message is in English"
+  },
+  "q15": {
+   "type": "noul",
+   "instructions": "The customer asks about pricing"
+  },
+  "q16": {
+   "type": "noul",
+   "instructions": "The customer reports a security incident"
+  },
+  "q17": {
+   "type": "noul",
+   "instructions": "The message is spam"
+  },
+  "q18": {
+   "type": "noul",
+   "instructions": "Legal action is mentioned"
+  },
+  "q19": {
+   "type": "noul",
+   "instructions": "The checkout page is affected"
+  }
+ }
+}
