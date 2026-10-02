@@ -201,3 +201,28 @@ calibrator):
 | twenty questions, batched | 65 ms |
 
 Peak RSS is 1.5 GB. Its CPU numbers that day are unusable: two 12-thread jobs on 18 cores.
+
+## 2026-10-02: the prototype's 4B LoRA survives conversion to GGUF
+
+`sweep/train.sh` fused the prototype's corpus-E 4B adapter (`lars/checkpoints/lora-4b-e-s0`,
+trained on the 4-bit MLX base) into the dequantized base. It then converted the result to
+GGUF and quantized it with the pinned llama.cpp, and captured it through the SDK on Metal,
+layout v1. The fuse-and-convert path is lossless: an identity adapter fused and converted the
+same way reproduces the base model's logits bit for bit on 60 rows.
+
+| 4B corpus-E LoRA | pooled acc | pooled Brier | pooled ECE | coverage at 5%, empirical (test error) | coverage at 5%, Wilson (test error) |
+|---|---|---|---|---|---|
+| prototype on MLX, as served (lars RESULTS, 2026-09-30) | 0.741–0.742 | 0.305 | 0.074–0.076 | | |
+| SDK, GGUF Q8_0 | **0.743** | **0.294** | 0.079 | 53.1% (6.4%) | 23.0% (2.4%) |
+| SDK, GGUF Q4_K_M (2.5 GB) | **0.736** | 0.304 | 0.081 | 48.8% (5.5%) | 17.5% (2.5%) |
+| SDK, zero-shot Q4_K_M | 0.655 | 0.434 | 0.147 | 26.0% (7.3%) | 7.7% (4.7%) |
+
+- **Q8_0 reproduces the published 4B tier,** and Q4_K_M keeps all but 0.7 points of it. On
+  MLX, 4-bit re-quantization dropped the same adapter from 0.740 to 0.703. Q4_K_M keeps
+  some tensors at higher precision, and that is enough.
+- **The adapter is worth 8.8 points over zero-shot,** and more than doubles conservative
+  coverage, from 7.7% to 17.5–23% at about 2.5% error.
+- **Where it gains:** clinc150 0.66 to 0.92, measuring_hate_speech 0.49 to 0.81,
+  civil_comments 0.67 to 0.94.
+- **Where it loses:** stsb 0.41 to 0.30, sst5 0.50 to 0.39, helpsteer2_helpfulness 0.37 to
+  0.29, the prototype's known weakness on score tasks.
