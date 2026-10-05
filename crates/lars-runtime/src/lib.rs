@@ -125,14 +125,58 @@ struct WorkerState {
     loads: AtomicUsize,
     cancelled: Mutex<HashSet<u64>>,
     model_id: Mutex<Option<String>>,
+    stopping: AtomicBool,
 }
 
 /// One loaded pack: the worker thread's queue and what it reports.
 struct Host {
-    sender: Mutex<Sender<Job>>,
+    sender: Mutex<Option<Sender<Job>>>,
+    worker: Mutex<Option<std::thread::JoinHandle<()>>>,
     state: Arc<WorkerState>,
     pack: Arc<Pack>,
 }
+
+impl Host {
+    /// Stop the worker: queued requests are replied to with `cancelled`, the model is freed, and
+    /// the thread is joined (unless this is the worker thread itself, closing from a callback).
+    fn stop(&self) {
+        self.state.stopping.store(true, Ordering::SeqCst);
+        self.sender.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let worker = self.worker.lock().unwrap_or_else(|e| e.into_inner()).take();
+        if let Some(worker) = worker {
+            if worker.thread().id() != std::thread::current().id() {
+                let _ = worker.join();
+            }
+        }
+    }
+}
+
+impl Drop for Host {
+    /// The last handle on a pack is gone: free its model before returning, so `close` is
+    /// deterministic and nothing of llama.cpp outlives it.
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+/// At process exit, stop every worker before llama.cpp's static destructors run: the Metal
+/// backend asserts if a model is still loaded when its device is torn down. Registered after the
+/// first model loads, so it runs before the destructors registered during that load.
+extern "C" fn stop_all_at_exit() {
+    let hosts: Vec<Arc<Host>> = match HOSTS.try_lock() {
+        Ok(hosts) => hosts.values().filter_map(Weak::upgrade).collect(),
+        Err(_) => return,
+    };
+    for host in &hosts {
+        host.stop();
+    }
+}
+
+unsafe extern "C" {
+    fn atexit(callback: extern "C" fn()) -> std::ffi::c_int;
+}
+
+static EXIT_HOOK: std::sync::Once = std::sync::Once::new();
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 static HOSTS: LazyLock<Mutex<HashMap<String, Weak<Host>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -196,6 +240,9 @@ fn run_worker(receiver: Receiver<Job>, state: Arc<WorkerState>, pack: Arc<Pack>,
     let mut engine: Option<Engine> = None;
     let idle = (options.idle_unload_s > 0.0).then(|| Duration::from_secs_f64(options.idle_unload_s));
     loop {
+        if state.stopping.load(Ordering::SeqCst) {
+            break;
+        }
         let job = match (idle, engine.is_some()) {
             (Some(limit), true) => match receiver.recv_timeout(limit) {
                 Ok(job) => job,
@@ -219,6 +266,9 @@ fn run_worker(receiver: Receiver<Job>, state: Arc<WorkerState>, pack: Arc<Pack>,
         let outcome = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
             if engine.is_none() {
                 let built = build_engine(&pack, &options)?;
+                EXIT_HOOK.call_once(|| unsafe {
+                    atexit(stop_all_at_exit);
+                });
                 *state.model_id.lock().unwrap() = Some(built.model_id());
                 state.loads.fetch_add(1, Ordering::SeqCst);
                 state.loaded.store(true, Ordering::SeqCst);
@@ -244,6 +294,13 @@ fn run_worker(receiver: Receiver<Job>, state: Arc<WorkerState>, pack: Arc<Pack>,
         state.cancelled.lock().unwrap().remove(&job.id);
         deliver(job.reply, job.id, result);
     }
+    // Stopping: every request still queued gets its one reply, then the model is freed.
+    while let Ok(job) = receiver.try_recv() {
+        state.queued.fetch_sub(1, Ordering::SeqCst);
+        deliver(job.reply, job.id, Err(Error::cancelled()));
+    }
+    drop(engine);
+    state.loaded.store(false, Ordering::SeqCst);
 }
 
 /// Run a reply callback; a panicking callback must not take the worker down with it.
@@ -263,11 +320,11 @@ fn host_for(dir: PathBuf, options: &OpenOptions) -> Result<Arc<Host>> {
     let (sender, receiver) = mpsc::channel();
     let state = Arc::new(WorkerState::default());
     let (worker_state, worker_pack, worker_options) = (state.clone(), pack.clone(), options.clone());
-    std::thread::Builder::new()
+    let worker = std::thread::Builder::new()
         .name(format!("lars-{}", pack.name))
         .spawn(move || run_worker(receiver, worker_state, worker_pack, worker_options))
         .map_err(|e| Error::internal(format!("could not start the worker thread: {e}")))?;
-    let host = Arc::new(Host { sender: Mutex::new(sender), state, pack });
+    let host = Arc::new(Host { sender: Mutex::new(Some(sender)), worker: Mutex::new(Some(worker)), state, pack });
     hosts.insert(key, Arc::downgrade(&host));
     Ok(host)
 }
@@ -312,9 +369,13 @@ impl Lars {
         let calibrators = self.calibrators.lock().unwrap().clone();
         let job = Job { id, work, calibrators, reply };
         self.host.state.queued.fetch_add(1, Ordering::SeqCst);
-        if let Err(mpsc::SendError(job)) = self.host.sender.lock().unwrap().send(job) {
+        let sent = match self.host.sender.lock().unwrap().as_ref() {
+            Some(sender) => sender.send(job).map_err(|mpsc::SendError(job)| job),
+            None => Err(job),
+        };
+        if let Err(job) = sent {
             self.host.state.queued.fetch_sub(1, Ordering::SeqCst);
-            deliver(job.reply, id, Err(Error::internal("the worker thread has stopped")));
+            deliver(job.reply, id, Err(Error::cancelled()));
         }
         id
     }

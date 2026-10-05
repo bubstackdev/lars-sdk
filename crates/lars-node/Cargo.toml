@@ -1,0 +1,21 @@
+[package]
+name = "lars-node"
+description = "The LARS SDK's Node addon (napi-rs), over lars-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+lars-runtime = { path = "../lars-runtime" }
+napi = { version = "3.4.0", features = ["napi9", "async", "tokio_rt"] }
+napi-derive = "3.3.0"
+tokio = { version = "1.53.2", features = ["sync"] }
+
+[build-dependencies]
+napi-build = "2.2.4"

@@ -1,0 +1,36 @@
+{
+  "state": "I knocked out my front tooth playing hockey twenty minutes ago and it's bleeding a lot.",
+  "questions": {
+    "in_pain": {
+      "type": "noul",
+      "instructions": "The sender says they are in pain right now."
+    },
+    "department": {
+      "type": "choice",
+      "instructions": "Which department should take this message?",
+      "criteria": {
+        "hygiene": "Cleanings, checkups, whitening, sensitivity advice",
+        "restorative": "Fillings, crowns, chipped or broken teeth, lost fillings",
+        "orthodontics": "Braces, aligners, retainers, wires",
+        "surgery": "Extractions, wisdom teeth, implants, post-operative care",
+        "billing": "Insurance, invoices, payment plans, estimates",
+        "front_desk": "Scheduling, forms, hours, directions, records requests"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgently does this message need attention?",
+      "criteria": [
+        "Routine: can wait for the next regular visit",
+        "Soon: book within a few weeks",
+        "This week: schedule in the next few days",
+        "Today: needs same-day attention",
+        "Emergency: go to the practice or an emergency room now"
+      ]
+    }
+  },
+  "lars": {
+    "explain": true,
+    "abstain_margin": 0.15
+  }
+}

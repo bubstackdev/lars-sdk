@@ -1,0 +1,35 @@
+{
+  "name": "@moedex/lars",
+  "version": "0.1.0",
+  "description": "Typed decisions as functions in your code: calibrated answers from a small model running in-process",
+  "license": "MIT",
+  "repository": "github:moedex/lars-sdk",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "native"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:native": "node scripts/build-native.mjs",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

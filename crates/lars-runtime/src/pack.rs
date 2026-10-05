@@ -349,3 +349,10 @@ fn text_of(manifest: &Value, key: &str, field: &str) -> Result<String> {
         .map(String::from)
         .ok_or_else(|| Error::pack(format!("pack.json has no {key}.{field}")))
 }
+
+/// JSON values, re-exported so bindings need no JSON crate of their own.
+pub type Json = Value;
+
+pub fn parse_json(text: &str) -> Result<Json> {
+    serde_json::from_str(text).map_err(|e| Error::invalid(format!("invalid JSON: {e}")))
+}

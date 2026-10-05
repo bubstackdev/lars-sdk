@@ -45,3 +45,33 @@ jobs:
           cargo install cbindgen --version 0.29.4 --locked
           cbindgen --config crates/lars-ffi/cbindgen.toml --crate lars-ffi --output /tmp/lars.h
           diff -u crates/lars-ffi/include/lars.h /tmp/lars.h
+
+  ts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: oven-sh/setup-bun@v2
+        if: matrix.node == 24
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/build-native.mjs
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: bun test/bun-smoke.ts
+        if: matrix.node == 24
