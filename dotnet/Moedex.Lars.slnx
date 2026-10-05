@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/MolarTriage/MolarTriage.csproj" />
+  </Folder>
+  <Project Path="Moedex.Lars.Tests/Moedex.Lars.Tests.csproj" />
+  <Project Path="Moedex.Lars/Moedex.Lars.csproj" />
+</Solution>

@@ -1,0 +1,201 @@
+// Moedex.Lars on a mock pack (no model: deterministic, keyword-driven answers that test the
+// plumbing, not judgment), and on a real pack when LARS_TEST_PACK names one. The native library is
+// found through LARS_NATIVE (CI sets it to the cargo build).
+
+using System.Text.Json.Nodes;
+
+using Moedex.Lars;
+
+namespace Moedex.Lars.Tests;
+
+public enum Team
+{
+    [Option("Payments, charges, refunds")] Billing,
+    [Option("Bugs, outages, errors")] Technical,
+    [Option("Scheduling, hours, records", Key = "desk")] FrontDesk,
+}
+
+public enum Tag
+{
+    [Option("Wants money back")] Refund,
+    [Option("Reports a defect")] Bug,
+}
+
+public sealed record Ticket(string Subject, string Body, string Email);
+
+public sealed class MockPack : IDisposable
+{
+    public MockPack()
+    {
+        Dir = Directory.CreateTempSubdirectory("lars-dotnet-").FullName;
+        File.WriteAllText(Path.Combine(Dir, "pack.json"),
+            """{"format": 1, "name": "dotnet", "version": "0.0.0", "backend": "mock", "template": "plain"}""");
+        Lars = Lars.Open(new LarsOptions { Pack = Dir, Threads = 2 });
+    }
+
+    public string Dir { get; }
+    public Lars Lars { get; }
+
+    public void Dispose() => Lars.Dispose();
+}
+
+public sealed class MockPackTests(MockPack mock) : IClassFixture<MockPack>
+{
+    private Lars Lars => mock.Lars;
+
+    [Fact]
+    public void OpensAndReports()
+    {
+        Assert.Equal("dotnet", Lars.Pack["name"]!.GetValue<string>());
+        Assert.Matches(@"^\d+\.\d+\.\d+", Lars.Version);
+        Assert.True(Lars.Status()["loaded"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public async Task NoulsAreBooleansEverywhere()
+    {
+        var isRefund = Lars.Noul("isRefund", "The customer asks for a refund");
+        bool blocking = isRefund.Check("Please refund my order");
+        NoulDecision d = await isRefund.AskAsync("Please refund my order");
+        Assert.Equal(blocking, (bool)d);
+        Assert.Equal(d.P >= 0.5, d.Value);
+        Assert.Equal(Math.Max(d.P, 1 - d.P), d.Confidence, 10);
+        if (await isRefund.AskAsync("Please refund my order")) Assert.True(d.Value);
+        Func<string, bool> asFunc = isRefund;
+        Assert.Equal(blocking, asFunc("Please refund my order"));
+    }
+
+    [Fact]
+    public async Task ChoicesAreEnums()
+    {
+        var team = Lars.Choice<Team>("team", "Which team should handle this?");
+        Team picked = team.Pick("I was charged twice for my payment");
+        Team awaited = await team.AskAsync("I was charged twice for my payment");
+        Assert.Equal(picked, awaited);
+        var d = await team.AskAsync("I was charged twice for my payment");
+        Assert.Equal([Team.Billing, Team.Technical, Team.FrontDesk], d.Probabilities.Keys.Order());
+        Assert.Equal(d.Probabilities.Values.Max(), d.Confidence);
+        var criteria = team.Question["criteria"]!.AsObject().Select(kv => kv.Key);
+        Assert.Equal(["billing", "technical", "desk"], criteria); // snake_case names, or the [Option] key
+    }
+
+    [Fact]
+    public async Task ScoresAndMultis()
+    {
+        var urgency = Lars.Score("urgency", "How urgent?", "routine", "soon", "today", "emergency");
+        var level = urgency.Rate("The server is down");
+        Assert.InRange(level, 0, 3);
+        var d = await urgency.AskAsync("The server is down");
+        Assert.Equal(4, d.Probabilities.Count);
+        var tags = Lars.Multi<Tag>("tags", "Which apply?");
+        var selected = tags.Select("refund my money, the app has a bug");
+        Assert.All(selected, t => Assert.True(t is Tag.Refund or Tag.Bug));
+    }
+
+    [Fact]
+    public async Task RecordsNeedAStateSelectorThatPicksFields()
+    {
+        JsonNode? seen = null;
+        var urgent = Lars.Noul("ticketUrgent", "The ticket is urgent", new NoulOptions<Ticket>
+        {
+            State = t => seen = new JsonObject { ["subject"] = t.Subject, ["body"] = t.Body },
+        });
+        await urgent.AskAsync(new Ticket("Down", "Everything is down", "someone@example.com"));
+        Assert.Equal("""{"subject":"Down","body":"Everything is down"}""", seen!.ToJsonString());
+        var noSelector = Lars.Noul("ticketNoSelector", "The ticket is urgent", new NoulOptions<Ticket>());
+        var error = await Assert.ThrowsAsync<LarsException>(() => noSelector.AskAsync(new Ticket("a", "b", "c")));
+        Assert.Equal("invalid_request", error.Type);
+    }
+
+    [Fact]
+    public async Task AskPutsSeveralPredicatesToOneRequest()
+    {
+        var angry = Lars.Noul("angry", "The customer is angry");
+        var team = Lars.Choice<Team>("askTeam", "Which team?");
+        var answers = await Lars.AskAsync("I was charged twice and I am furious", angry, team);
+        _ = answers.Of(angry).Value;
+        Assert.True(Enum.IsDefined(answers.Of(team).Value));
+    }
+
+    [Fact]
+    public async Task ManyConcurrentCallsAllComplete()
+    {
+        var isRefund = Lars.Noul("isRefund", "The customer asks for a refund");
+        var results = await Task.WhenAll(Enumerable.Range(0, 300).Select(i => isRefund.AskAsync($"message {i}: refund please")));
+        Assert.Equal(300, results.Length);
+        var blocking = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            Enumerable.Range(0, 25).Select(i => isRefund.Check($"thread call {i}")).Count())));
+        Assert.All(blocking, n => Assert.Equal(25, n));
+    }
+
+    [Fact]
+    public async Task CancellationCancelsQueuedCalls()
+    {
+        var isRefund = Lars.Noul("isRefund", "The customer asks for a refund");
+        using var cancel = new CancellationTokenSource();
+        var calls = Enumerable.Range(0, 400).Select(i => isRefund.AskAsync($"call {i}", cancel.Token)).ToList();
+        cancel.Cancel();
+        var outcomes = await Task.WhenAll(calls.Select(async c =>
+        {
+            try { await c; return "ok"; }
+            catch (OperationCanceledException) { return "cancelled"; }
+        }));
+        Assert.Equal(400, outcomes.Length);
+        Assert.All(outcomes, o => Assert.True(o is "ok" or "cancelled"));
+    }
+
+    [Fact]
+    public async Task CalibrationIsPerPredicateAndSavesAndLoads()
+    {
+        var isRefund = Lars.Noul("calibrated", "The customer asks for a refund");
+        var examples = Enumerable.Range(0, 40).Select(i => (i % 2 == 1 ? $"refund order {i}" : $"hello {i}", i % 2 == 1));
+        var fit = await isRefund.CalibrateAsync(examples, maxError: 0.05);
+        Assert.Equal(40, fit.Examples);
+        Assert.Null(fit.Certified!.Threshold);
+        Assert.Contains("cannot certify", fit.Certified.Reason);
+        var saved = Lars.Calibrations();
+        Assert.NotNull(saved["calibrators"]!["calibrated"]);
+
+        using var other = Lars.Open(mock.Dir);
+        other.LoadCalibrations(saved);
+        Assert.Contains("calibrated", other.Status()["calibrators"]!.AsArray().Select(n => n!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void ErrorsAreTyped()
+    {
+        Assert.Equal("pack_error", Assert.Throws<LarsException>(() => Lars.Open("./no/such/pack")).Type);
+        Lars.Noul("unique", "One question");
+        Lars.Noul("unique", "One question"); // the same question again is fine
+        Assert.Throws<LarsException>(() => Lars.Noul("unique", "Another question"));
+        var error = Assert.Throws<LarsException>(() => Lars.Evaluate(new JsonObject { ["state"] = "x", ["questions"] = new JsonObject() }));
+        Assert.Equal("invalid_request", error.Type);
+    }
+
+    [Fact]
+    public async Task CallsAfterDisposeFail()
+    {
+        var closing = Lars.Open(mock.Dir);
+        var p = closing.Noul("p", "Anything");
+        closing.Dispose();
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => p.AskAsync("x"));
+    }
+}
+
+public sealed class RealPackTests
+{
+    private static readonly string? Pack = Environment.GetEnvironmentVariable("LARS_TEST_PACK");
+
+    [Fact]
+    public async Task JudgesPlainCasesTheWayAPersonWould()
+    {
+        if (Pack is null) return; // set LARS_TEST_PACK to a real pack to run
+        using var lars = await Lars.OpenAsync(Pack);
+        var isPissed = lars.Noul("isPissed", "The customer is angry");
+        Assert.True(isPissed.Check("This is the third time your app ate my order. I am done with you people."));
+        Assert.False(await isPissed.AskAsync("Thanks so much, the new update works great!"));
+        var team = lars.Choice<Team>("team", "Which team should handle this message?");
+        Assert.Equal(Team.Billing, team.Pick("I was charged twice on my credit card this month"));
+        Assert.Equal(Team.Technical, (Team)await team.AskAsync("The app crashes every time I open settings"));
+    }
+}

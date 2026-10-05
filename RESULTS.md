@@ -308,3 +308,33 @@ latency is still to do.
 
 Per-config accuracy is identical on all 22 configs. Two independent implementations of
 calibration fitting and soft-target decoding agree end to end.
+
+## 2026-10-05: the three dev packs, and Molar Triage through both SDKs
+
+`lars-dev pack` built `lars-1.7b-dev` and `lars-0.6b-dev` (LoRA, Q4_K_M) like the 4B: pooled
+calibrator fitted and test evaluated through the core. Both match `sweep/analyze.py` exactly.
+
+| pack | file | jev-bench macro accuracy | Brier |
+|---|---|---|---|
+| lars-4b-dev | 2.5 GB | 0.7361 | 0.3042 |
+| lars-1.7b-dev | 1.3 GB | 0.6720 | 0.3701 |
+| lars-0.6b-dev | 0.5 GB | 0.6461 | 0.4213 |
+
+Molar Triage (`examples/molar_triage`, fictional, which no pack trained on), run through the C#
+example. The TypeScript example gives the same answers on the 4B. Out of 30 test messages:
+
+| pack | in pain | department | urgency (exact level) | knocked-out tooth |
+|---|---|---|---|---|
+| 4B | 28 | 28 | 14 | "call the patient now" |
+| 1.7B | 27 | 28 | 14 | queued for restorative |
+| 0.6B | 29 | 24 | 11 | "call the patient now" |
+
+- **Exact urgency level is weak at every size:** 11–14 of 30. Score tasks are the known gap.
+- **Calibrating on 30 labels is not always an improvement.** On the 1.7B it took "in pain"
+  from 27 to 24 of 30: a Platt fit on 30 rows moved the yes/no boundary the wrong way. On
+  the other packs and predicates it changed nothing.
+- **What this means for `calibrate`:** a per-predicate calibrator fitted on a handful of
+  labels should not silently replace the pack's. Options:
+  - compare the two on held-out labels
+  - shrink the fit toward the pack calibrator
+  - require a minimum number of labels before Platt moves the boundary
