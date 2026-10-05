@@ -383,32 +383,28 @@ No GPU training and no new work for Codex. The SDK's own harness answers the siz
 - [x] GGUFs for Qwen3-0.6B, Qwen3-1.7B and Qwen3-4B-Instruct-2507, at BF16, Q8_0 and
   Q4_K_M. All are built from the original weights with the pinned llama.cpp's converter and
   quantizer (`sweep/prepare.sh`), and each gets its captured template.
-- [ ] `lars-dev capture`: raw label logits for every jev-bench validation and test row
-  (`lars/evals/data`, read only), in render v1 and v2.
-- [ ] From the captures, on CPU with no model loaded:
-  - [ ] a pooled calibrator fitted on validation; macro accuracy, Brier and ECE on test
-  - [ ] coverage at 5% error: threshold chosen on validation, measured on test, with Wilson intervals
-  - [ ] few-label curves: Platt or temperature for each config on n = 10, 25, 50, 100 and 200
-    validation rows, against the pooled calibrator
-  - [ ] render v2 against v1, zero-shot
-- [ ] Latency on a quiet machine:
-  - [ ] p50 per row for a one-noul call, the Molar Triage request and twenty questions
-  - [ ] prefill tok/s and a thread sweep
-  - [ ] peak RSS
-  - [ ] CPU against Metal
-- [ ] The same metrics on the private TurnCommerce decisions, read from data outside this
-  repo. Nothing from them is committed here. Product-area routing is the informative task;
-  on CI failures every size measured so far is at chance.
-- [ ] One table in `RESULTS.md`: model × quantization × layout.
-- [ ] Calibrator transfer across compute paths: fit on Metal, serve on CPU and the reverse,
-  with and without batching. Report the change in accuracy, Brier and coverage at 5%. This
-  decides whether a pack carries one calibrator or one per path, and whether batching
-  becomes the default.
-- [ ] CPU memory with weight repacking off (`use_extra_bufts = false`): RSS, load time and
-  speed.
+- [x] `lars-dev capture`: raw label logits for every jev-bench validation and test row, in
+  render v1 and v2, on Metal and on CPU (`sweep/run.sh`, `sweep/queue.sh`).
+- [x] From the captures (`sweep/analyze.py`): pooled and per-config calibration, coverage at
+  5% (empirical and Wilson thresholds), few-label curves, v2 against v1.
+- [ ] Quiet-machine latency for the candidate packs (`bench/run.sh`): still to do.
+- [x] The private TurnCommerce decisions: dropped from Phase 2b. The jev-bench routing and
+  triage configs answered the size question.
+- [x] One table in `RESULTS.md` (2026-10-05).
+- [x] Calibrator transfer across compute paths: it transfers. Accuracy and Brier change by
+  ≤0.0004, so one calibrator per pack, and batching can be the default.
+- [ ] CPU memory with weight repacking off: not measured yet; part of the quiet latency run.
+- [x] Small-model LoRAs (`sweep/train.sh`): 0.6B 0.651 and 1.7B 0.683 at Q8_0, against the
+  4B LoRA's 0.743.
 
-Done when the table names the smallest model worth a LoRA. Accuracy runs can share the
-machine with Codex's GPU jobs; latency runs can't.
+**Done 2026-10-05 except latency.**
+- **v1 layout:** v2 loses at every size.
+- **Candidate packs:**
+  - 4B LoRA Q4_K_M: 2.5 GB, 0.736
+  - 1.7B LoRA Q4_K_M: 1.3 GB, 0.672
+  - 0.6B LoRA Q4_K_M: 0.5 GB, 0.646
+- **Still to decide:** which small tier ships for CPU, by quiet latency; and imatrix
+  quantization, which should close the remaining Q4_K_M gap.
 
 ### Phase 3: native library and lifecycle
 

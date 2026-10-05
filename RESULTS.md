@@ -226,3 +226,70 @@ same way reproduces the base model's logits bit for bit on 60 rows.
   civil_comments 0.67 to 0.94.
 - **Where it loses:** stsb 0.41 to 0.30, sst5 0.50 to 0.39, helpsteer2_helpfulness 0.37 to
   0.29, the prototype's known weakness on score tasks.
+
+## 2026-10-05: Phase 2b complete, small-model LoRAs and CPU/Metal transfer
+
+Everything in `HANDOFF.md` (2026-10-02) finished unattended, with no failures.
+`sweep/out/summary.md` has every row; the headline numbers are below. All are pooled
+calibrated, jev-bench test, layout v1, Metal unless a row says CPU.
+
+**LoRAs.** `sweep/train.sh` trained the 1.7B in 2 h 35 min and the 0.6B in 1 h 35 min on
+Metal: BF16 base, repaired corpus E, the 4B recipe. Both beat their untrained model at
+selection. Each was then fused, converted and quantized with the pinned llama.cpp.
+
+| model | zero-shot Q8_0 | LoRA Q8_0 | LoRA Q4_K_M | LoRA Brier (Q8_0) | LoRA coverage at 5%, Wilson (test error) | file (Q4_K_M) |
+|---|---|---|---|---|---|---|
+| Qwen3-0.6B | 0.409 | **0.651** | 0.646 | 0.411 | 6.6% (3.8%) | 0.5 GB |
+| Qwen3-1.7B | 0.469 | **0.683** | 0.672 | 0.356 | 10.5% (3.7%) | 1.3 GB |
+| Qwen3-4B-Instruct-2507 | 0.657 | **0.743** | 0.736 | 0.294 | 23.0% (2.4%) | 2.5 GB |
+
+- **The LoRA lifts the small models more than the 4B:** +24 points for the 0.6B, +21 for
+  the 1.7B, +9 for the 4B. The adapted 0.6B and 1.7B match or beat the zero-shot 4B on
+  accuracy, with better Brier.
+- **The gap to the 4B LoRA is knowledge and fine-grained scores; routing and triage nearly
+  close.** Per config, 0.6B / 1.7B / 4B LoRA:
+  - nearly closed: banking77 0.74 / 0.74 / 0.78, clinc150 0.80 / 0.89 / 0.91, massive
+    0.80 / 0.83 / 0.84, civil_comments 0.92 / 0.90 / 0.90, sms_spam 0.96 / 0.97 / 0.96
+  - still open: mmlu 0.42 / 0.53 / 0.70, arc_challenge 0.66 / 0.80 / 0.90, sst5
+    0.36 / 0.31 / 0.46
+- **Q4_K_M costs 0.5–1.1 points with a LoRA.**
+- **Few labels on an adapted model:** 100–200 labels a decision barely move Brier (−0.004 to
+  −0.013). The adapter already fixed what a per-decision Platt fit fixed on zero-shot
+  models. They still set a usable Wilson threshold: at 200 labels, 7–27% coverage at 2.4–4%
+  test error.
+
+**One calibrator per pack works across CPU and Metal.** A pooled calibrator fitted on one
+path and served on the other changes macro accuracy and Brier by at most 0.0004 at every
+size and quantization. Example: 4B Q4_K_M, fitted on Metal and served on CPU, Brier 0.4472
+against 0.4475. Coverage at the empirical threshold moves by up to 2 points, which is within
+that metric's noise. The row-level differences seen in 2026-10-02 (up to 0.25 in probability
+on near-tied rows) average out. So a pack ships one calibrator, and batching, whose drift
+was 0.009, can be on by default.
+
+**Question-first (v2) is dropped.** It loses at every size, the 4B included: 0.662 → 0.617
+per-config calibrated at Q4_K_M, and 0.673 → 0.625 at Q8_0.
+
+**Importance-matrix quantization recovers Q4_K_M.** The dev file in lars/models is
+Unsloth's Q4_K_M with an imatrix. On the zero-shot 4B (pooled accuracy / Brier):
+
+| quantization | pooled acc | Brier |
+|---|---|---|
+| Unsloth Q4_K_M, imatrix | 0.655 | 0.434 |
+| our plain Q4_K_M | 0.641 | 0.446 |
+| our Q8_0 | 0.657 | 0.429 |
+
+An imatrix computed on training-split prompts should make LoRA Q4_K_M packs as good as
+Q8_0 at about 60% of the size.
+
+**CPU time, indicative only:** the CPU Q8_0 captures ran Saturday 04:02–11:05, after every
+other job had finished. Median per jev-bench file at 12 threads, per row:
+
+| model | ms per row |
+|---|---|
+| 0.6B | 139 |
+| 1.7B | 345 |
+| 4B | 860 |
+
+jev-bench rows carry long passages and up to 151 options, heavier than a one-line predicate.
+The benches taken during the sweep were contended and are not reported. Quiet-machine
+latency is still to do.
