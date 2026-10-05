@@ -44,7 +44,11 @@ Log: `sweep/out/night.log`. Stop it with `launchctl bootout gui/$(id -u)/dev.lar
 1. Choose the default and the CPU tier. Tonight's run (`sweep/out/latency.md`) gives the quiet
    latency if it is still loaded.
 2. Phase 6: the published packs. They need your sign-off before anything goes to the Hub.
-3. Phase 7: per-platform npm and NuGet packaging, install tests, docs.
+3. Phase 7 is done except publishing:
+   - `package.yml` builds every platform, packs npm and NuGet, and install-tests on five runners
+     (run 37328585896: all green; the Linux libraries need glibc 2.28)
+   - docs: README, `docs/calibration.md`, `docs/packs.md`, package READMEs
+   - publishing waits for sign-off
 4. Smaller items:
    - cancellation in TypeScript
    - `lars pull`

@@ -352,3 +352,26 @@ Triage's "in pain" on 30 labels:
 
 A runtime test checks the other direction: 200 labels that contradict the model replace the
 pack's calibrator.
+
+## 2026-10-05: packages, installed from scratch on five platforms
+
+`package.yml` (run 37328585896) built the native library and the Node addon:
+- `osx-arm64`, and `osx-x64` cross-compiled
+- `linux-x64` and `linux-arm64`, in manylinux_2_28 containers, needing GLIBC_2.28 at most
+- `win-x64`
+
+It packed `@moedex/lars` with five optional platform packages, and `Moedex.Lars` with five
+`runtimes/<rid>/native` libraries. 44 MB in all.
+
+Each runner then installed the packages into an empty project, with nothing from the repository
+and no `LARS_NATIVE`, and answered a noul and a choice on a mock pack:
+
+| runner | npm (Node 22) | NuGet (.NET 10) |
+|---|---|---|
+| macOS arm64 | ok | ok |
+| macOS Intel (`macos-15-intel`) | ok | ok |
+| Linux x64 | ok | ok |
+| Linux arm64 | ok | ok |
+| Windows x64 | ok | ok |
+
+Locally, the `osx-x64` C library also ran the C smoke test under Rosetta on the real 0.6B pack.
