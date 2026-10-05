@@ -4,12 +4,15 @@
 //! suffix decoded after it, reading the next-token logits at the suffix's last token. Two ways
 //! to run the suffixes:
 //!
-//! - **one at a time** (the default): decode the suffix into sequence 0, read, then truncate
-//!   back to the prefix. Every row is computed the same way whatever else is in the request,
-//!   which is what the reference's llama.cpp backend does with save/restore.
-//! - **batched**: copy the prefix's cells to one sequence per suffix (the cache is unified, so
-//!   nothing is copied) and decode all suffixes in one pass. Faster, but a row's logits can then
-//!   depend on what it was batched with; measure before relying on it.
+//! - **batched** (the default, `batch_suffixes`): copy the prefix's cells to one sequence per
+//!   suffix (the cache is unified, so nothing is copied) and decode all suffixes in one pass.
+//!   Twenty questions over one state take about a third of the time. A row's logits can move by
+//!   up to 0.009 in probability with what it is batched with; a pooled calibrator absorbs far
+//!   larger differences than that (CPU against Metal, RESULTS.md 2026-10-05).
+//! - **one at a time**: decode the suffix into sequence 0, read, then truncate back to the
+//!   prefix, as the reference's llama.cpp backend does with save/restore. A prefix with a single
+//!   suffix always runs this way, so a one-question call (and so every eval and calibration
+//!   capture) is bit-identical to the reference whatever the setting.
 //!
 //! With `reuse_prefix` (the default), the tokens left in sequence 0 by the previous call are kept
 //! as far as they match the next prefix, so a constant head (system prompt, template), or a whole
@@ -72,7 +75,7 @@ impl Default for LlamaOptions {
             n_threads: 0,
             gpu_layers: -1,
             flash_attention: FlashAttention::Off,
-            batch_suffixes: false,
+            batch_suffixes: true,
             reuse_prefix: true,
             repack_cpu_weights: true,
         }
@@ -448,7 +451,7 @@ impl Backend for LlamaBackend {
         if !clean.is_empty() {
             let rows: Vec<Vec<i32>> = clean.iter().map(|(_, s)| s.clone()).collect();
             let row_labels: Vec<Vec<i32>> = clean.iter().map(|(i, _)| label_ids[*i].clone()).collect();
-            let logits = if self.options.batch_suffixes {
+            let logits = if self.options.batch_suffixes && rows.len() > 1 {
                 self.batched(&prefix_ids, &rows, &row_labels)?
             } else {
                 self.one_at_a_time(&prefix_ids, &rows, &row_labels)?

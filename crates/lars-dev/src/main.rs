@@ -6,13 +6,13 @@
 //!     lars-dev eval      --model M.gguf --data set.jsonl [--calibration c.json] [--dump rows.jsonl]
 //!     lars-dev calibrate --model M.gguf --data set.jsonl --out c.json
 //!     lars-dev capture   --model M.gguf --data set.jsonl --out logits.jsonl
-//!     lars-dev bench     --model M.gguf request.json [--repeat 20]
+//!     lars-dev bench     --model M.gguf request.json [--repeat 20] [--vary-state]
 //!     lars-dev parity    --model M.gguf --fixture fixtures/data/llama-<model>.json
 //!     lars-dev compare   a.jsonl b.jsonl          (two captures of the same examples)
 //!     lars-dev capture-requests --model M.gguf --requests requests.json --out rows.jsonl
 //!
 //! Backend flags: --template chatml|plain|gemma|llama3|<captured.json>, --cpu, --threads N,
-//! --layout v1|v2, --batch-suffixes, --no-reuse-prefix, --no-repack, --flash off|on|auto (default off), --n-ctx N. `--model mock` uses the
+//! --layout v1|v2, --no-batch-suffixes, --no-reuse-prefix, --no-repack, --flash off|on|auto (default off), --n-ctx N. `--model mock` uses the
 //! mock backend.
 
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ struct Args {
 
 impl Args {
     fn parse(raw: impl Iterator<Item = String>) -> Args {
-        let switches = ["cpu", "batch-suffixes", "no-reuse-prefix", "no-repack"];
+        let switches = ["cpu", "no-batch-suffixes", "no-reuse-prefix", "no-repack", "vary-state"];
         let (mut positional, mut flags) = (Vec::new(), HashMap::new());
         let mut raw = raw.peekable();
         while let Some(arg) = raw.next() {
@@ -94,7 +94,7 @@ fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
             "auto" => FlashAttention::Auto,
             _ => FlashAttention::Off,
         },
-        batch_suffixes: args.get("batch-suffixes").is_some(),
+        batch_suffixes: args.get("no-batch-suffixes").is_none(),
         reuse_prefix: args.get("no-reuse-prefix").is_none(),
         repack_cpu_weights: args.get("no-repack").is_none(),
         ..defaults
@@ -193,17 +193,24 @@ fn main() -> Result<(), Failure> {
             let started = Instant::now();
             let mut engine = engine(&args)?;
             let load_ms = started.elapsed().as_secs_f64() * 1000.0;
+            // --vary-state: a different state on every call (a new user each time), so only the
+            // constant head can be reused; without it the same request repeats.
+            let vary = args.get("vary-state").is_some();
             let mut times = Vec::with_capacity(repeat + 1);
-            for _ in 0..=repeat {
+            for i in 0..=repeat {
+                let mut call = request.clone();
+                if let (true, Value::String(state)) = (vary, &request.state) {
+                    call.state = Value::String(format!("Ticket {}. {state}", 1000 + i));
+                }
                 let t = Instant::now();
-                engine.evaluate(&request)?;
+                engine.evaluate(&call)?;
                 times.push(t.elapsed().as_secs_f64() * 1000.0);
             }
             let first = times.remove(0);
             times.sort_by(f64::total_cmp);
             print(&json!({
                 "load_ms": load_ms, "first_ms": first, "p50_ms": percentile(&times, 0.5),
-                "p90_ms": percentile(&times, 0.9), "min_ms": times[0], "repeat": repeat,
+                "p90_ms": percentile(&times, 0.9), "min_ms": times[0], "repeat": repeat, "vary_state": vary,
                 "llama_cpp": lars_llama::LLAMA_CPP_VERSION,
             }));
         }
