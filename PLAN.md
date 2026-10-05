@@ -434,30 +434,37 @@ No GPU training and no new work for Codex. The SDK's own harness answers the siz
 
 ### Phase 4: TypeScript
 
-- [ ] `lars-node` on napi-rs, with promises resolved from the worker.
-- [ ] `@moedex/lars`:
-  - [ ] `Lars.open`, plus `noul`, `choice`, `score` and `multi` with inferred return types
-  - [ ] `decide`, and `ask` for several questions with constraints
-  - [ ] options: threshold, abstain margin, explain, permutations, features, state selector
-  - [ ] calibrate and evaluate; save and load calibrations
+- [x] `lars-node` on napi-rs over `lars-runtime`, with promises resolved from the worker thread
+  (never libuv's pool).
+- [x] `@moedex/lars`:
+  - [x] `Lars.open`, plus `noul`, `choice`, `score` and `multi` with inferred return types
+  - [x] `decide`, and `ask` for several questions with constraints
+  - [x] options: threshold, abstain margin, explain, permutations, state selector, fallback
+  - [x] `calibrate` with a certified threshold that gates the boolean; save and load calibrations
+  - [ ] cancellation (`AbortSignal`)
   - [ ] `npx lars pull <pack>`
-- [ ] Tests:
-  - [ ] vitest on the mock backend, plus a real-model test behind a flag
-  - [ ] on Node 22, Node 24 and Bun
-- [ ] Molar Triage example in TypeScript.
+- [x] Tests:
+  - [x] vitest on the mock pack, and a real-pack test with `LARS_TEST_PACK`
+  - [x] in CI on Node 22 and 24, and Bun, on three OSes
+- [x] Molar Triage example in TypeScript.
+
+**Done 2026-10-05,** apart from cancellation and `lars pull`.
 
 ### Phase 5: C#
 
-- [ ] `Moedex.Lars`: `LibraryImport` over `lars-ffi`, `SafeHandle`, callbacks through
-  `UnmanagedCallersOnly`, targeting `net10.0`.
-- [ ] The TypeScript surface in C# idiom:
-  - [ ] `Check` and `AskAsync`
-  - [ ] `Decision` converting to `bool`
-  - [ ] `Choice<TEnum>` with `[Option]`
-  - [ ] the `Func<object, bool>` conversion
-  - [ ] cancellation
-- [ ] xUnit tests on the mock backend, plus a real-model test behind a flag.
-- [ ] Molar Triage example in C#.
+- [x] `Moedex.Lars`, targeting `net10.0`:
+  - [x] `LibraryImport` over `lars-ffi`, with a `SafeHandle`
+  - [x] callbacks through `UnmanagedCallersOnly`; continuations off the worker thread
+- [x] The TypeScript surface in C# idiom:
+  - [x] `Check` and `AskAsync`
+  - [x] `Decision` converting to `bool`
+  - [x] `Choice<TEnum>` with `[Option]`
+  - [x] the `Func<TInput, bool>` conversion
+  - [x] `CancellationToken` cancelling queued calls
+- [x] xUnit tests on the mock pack, plus a real-model test behind `LARS_TEST_PACK`; CI on three OSes.
+- [x] Molar Triage example in C#.
+
+**Done 2026-10-05.** Enum options are read by reflection; no source generator yet.
 
 ### Phase 6: the first real pack (needs Phase 2b and a LoRA from Codex)
 

@@ -31,12 +31,25 @@ Log: `sweep/out/night.log`. Stop it with `launchctl bootout gui/$(id -u)/dev.lar
   pack `models/packs/lars-4b-dev/0.0.1`. Its evaluation through the core, 0.7361 / 0.3042,
   equals the Python analysis exactly. CI is green on all three OSes.
 
+## Also done today
+
+- Phases 4 and 5: `@moedex/lars` (TypeScript) and `Moedex.Lars` (C#). Both are tested in CI
+  on three OSes, and both pass the real-pack tests on the 4B.
+- Dev packs for all three sizes in `models/packs/`: `lars-4b-dev`, `lars-1.7b-dev`,
+  `lars-0.6b-dev`.
+- `calibrate` keeps the pack's calibrator unless a fit is significantly better (RESULTS.md).
+
 ## Open
 
-1. Choose the CPU tier (0.6B or 1.7B) from tonight's latency, then build its pack.
-2. Phase 4: TypeScript (napi-rs over `lars-runtime`).
-3. Phase 5: C# (P/Invoke over `lars.h`).
-4. ASan on Linux in CI.
+1. Choose the default and the CPU tier. Tonight's run (`sweep/out/latency.md`) gives the quiet
+   latency if it is still loaded.
+2. Phase 6: the published packs. They need your sign-off before anything goes to the Hub.
+3. Phase 7: per-platform npm and NuGet packaging, install tests, docs.
+4. Smaller items:
+   - cancellation in TypeScript
+   - `lars pull`
+   - ASan on Linux in CI
+   - a source generator for C# enums
 
 ## Things to know
 
