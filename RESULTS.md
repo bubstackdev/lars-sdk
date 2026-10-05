@@ -375,3 +375,138 @@ and no `LARS_NATIVE`, and answered a noul and a choice on a mock pack:
 | Windows x64 | ok | ok |
 
 Locally, the `osx-x64` C library also ran the C smoke test under Rosetta on the real 0.6B pack.
+
+## 2026-10-05: better accuracy at the same memory, or a bigger model in it?
+
+jev-bench test, pooled calibrator, Metal (sweep/out/summary.md). Coverage is Wilson's at a 5%
+error budget, with the error on accepted test answers in brackets.
+
+| model | file | pooled acc | Brier | Wilson coverage |
+|---|---|---|---|---|
+| 4B pack (LoRA, Q4_K_M) | 2.5 GB | 0.736 | 0.304 | 17.5% (2.5%) |
+| 4B pack, imatrix Q4_K_M | 2.5 GB | 0.735 | 0.301 | 19.7% (2.2%) |
+| 1.7B pack, imatrix | 1.1 GB | 0.677 (from 0.672) | 0.362 | 11.6% |
+| 0.6B pack, imatrix | 0.4 GB | 0.650 (from 0.646) | 0.419 | 6.4% |
+| Qwen3-30B-A3B + LoRA, all 128 experts, Q4_K_M | 18.6 GB | 0.761 | 0.277 | 21.1% (1.5%) |
+| same, 64 most-used experts per layer | 9.8 GB | 0.712 | 0.340 | 14.6% |
+| Qwen3.5-9B zero-shot, Q3_K_M | 4.7 GB | 0.685 | 0.376 | 3.3% |
+| Qwen3.5-2B zero-shot, Q4_K_M | 1.3 GB | 0.493 | 0.548 | 4.0% |
+| (Qwen3-4B zero-shot, Q4_K_M) | 2.5 GB | 0.641 | 0.446 | 7.7% |
+
+**An importance matrix is a small, free gain.** Computed on 1,500 training-split prompts and
+rendered with each model's template, it gives +0.4 to +0.5 points at 0.6B and 1.7B. At 4B,
+accuracy is flat, Brier improves slightly, and coverage gains 2 points. The file size is
+unchanged. Packs should be rebuilt from these files.
+
+**The 30B is a larger tier, not a 4B replacement.**
+- The prototype's 30B LoRA, fused and converted, matches its reference (0.761 against 0.765)
+  and is the best model measured: Brier 0.277, and 21% of answers certified at 1.5% error.
+- Its gains over the 4B are knowledge: strategyqa_closed +11.5, mmlu +10, arc +5.5.
+  Classification configs barely move.
+- It needs about 20 GB resident. With mmap, resident size equals the file size, so there is
+  no saving there.
+
+**Pruning experts by routing frequency loses exactly that knowledge.** We kept the 64
+experts per layer that carry 87.5% of the routing weight on LARS prompts. The model lost 4.9
+points: arc −21.5, mmlu −13, hate speech −7. Frequency is the wrong criterion. REAP-style
+saliency, which weighs gate value by output norm, would be the next try, but the target
+(9.8 GB) is already four 4B packs.
+
+**Qwen3.5 zero-shot:**
+- The 9B is 4.4 points better than the 4B base at about twice the file size. It is still 5
+  points under the LoRA'd 4B, and its probabilities certify poorly.
+- The 2B beats Qwen3-1.7B zero-shot by 7 points.
+- Both are candidates for LoRA training, not replacements as they stand. Q4_K_M 9B numbers
+  are pending.
+- Qwen3.5 uses hybrid recurrent layers, which llama.cpp cannot truncate, so the backend
+  re-prefills the prefix instead (`lars-llama`). Prefix reuse on vs off gives identical logits
+  on 126 rows. Batched vs sequential differs by at most 0.0009 in probability
+  (sweep/out/qwen35-checks.txt).
+
+## 2026-10-05: typed-decisions transfer, and per-predicate heads on hidden states
+
+[LocalLLaMA/typed-decisions](https://huggingface.co/datasets/LocalLLaMA/typed-decisions)
+(Apache-2.0):
+- 4 business workflows (agent traces, customer service, invoices, security alerts), 5 typed
+  questions each, 400 test and 1,200 train cases.
+- Gold is the mean of three temperature-0.7 samples from an unnamed ~4B-class teacher. The
+  teacher is independent of TypeSafe and not Jev, so the data is usable under the lars policy.
+- `sweep/typed_decisions.py --convert` writes one eval row per question, with the gold
+  distribution as `soft_label`. The same script scores the captures.
+- Our KL (gold ‖ model) and Brier (summed over options) reproduce the published Uniform row
+  exactly (0.444 / 0.238).
+
+**Zero-shot, with each pack's own calibrator, one question per call:**
+
+| | acc | KL | Brier | noul / choice / score acc |
+|---|---|---|---|---|
+| Prior (ignores input) | 0.481 | 0.327 | 0.181 | |
+| lars-4b-dev | 0.607 | 0.321 | 0.167 | 0.738 / 0.617 / 0.501 |
+| lars-1.7b-dev | 0.532 | 0.502 | 0.235 | |
+| lars-0.6b-dev | 0.440 | 0.566 | 0.300 | |
+| Jev 1.13.0 (published) | 0.727 | 1.442 | 0.148 | |
+| meraGPT Decider 1 (published) | 0.768 | 0.096 | 0.052 | |
+
+Transfer is weak:
+- The packs were LoRA'd on classification benchmarks. These workflows want judgement about
+  agent runs and invoices.
+- Score questions (urgency, severity) are the weakest at 0.50.
+- The pooled calibrator matters: the 4B's KL is 0.618 raw and 0.321 calibrated.
+
+**A per-predicate head on the final hidden state fixes most of it.**
+- `lars-dev capture --hidden` reads the final hidden state at the answer position. It is
+  llama.cpp's embeddings output, switched on only for the suffix. With it on, probabilities
+  move by at most 0.002, because every suffix token becomes an output.
+- sweep/heads.py simulates a user who has labeled n examples of one predicate, with n drawn
+  from train, 5 draws, scored on test.
+- The head is `z = a·log p_pack + b + W h`:
+  - h is centered and projected onto the labeled rows' span.
+  - W is ridge-shrunk with λ from 5-fold CV. a and b get a unit prior.
+  - λ = ∞ ("recal") is a Platt/temperature refit with a per-option bias, on top of the pack.
+- Selection follows `lars calibrate`'s rule: step from pack to recal to heads with weaker
+  shrinkage, only when each step beats the current choice by mean + 1.96 SE < 0 on paired
+  CV log losses.
+- Macro over the 20 predicates (= micro: 100 test cases each). Fits take seconds on CPU.
+
+Hard labels (one answer per example, the usual case). Probabilities are scored against those
+labels, as accuracy / log loss / Brier / ECE:
+
+| labels per predicate | 4B recal | 4B head | 0.6B recal | 0.6B head |
+|---|---|---|---|---|
+| 0 (pack) | 0.607 / 0.901 / 0.512 / 0.129 | | 0.440 / 1.264 / 0.701 / 0.218 | |
+| 25 | 0.665 / 0.759 / 0.438 / 0.124 | 0.664 / 0.802 / 0.457 / 0.132 | 0.555 / 0.965 / 0.554 / 0.108 | 0.567 / 1.001 / 0.562 / 0.126 |
+| 50 | 0.669 / 0.734 / 0.425 / 0.112 | 0.701 / 0.697 / 0.402 / 0.111 | 0.559 / 0.935 / 0.541 / 0.098 | 0.606 / 0.891 / 0.506 / 0.104 |
+| 100 | 0.672 / 0.721 / 0.421 / 0.116 | 0.724 / 0.618 / 0.366 / 0.098 | 0.565 / 0.918 / 0.535 / 0.094 | 0.659 / 0.779 / 0.451 / 0.096 |
+| 300 | 0.681 / 0.711 / 0.416 / 0.100 | 0.755 / 0.537 / 0.319 / 0.084 | 0.576 / 0.907 / 0.528 / 0.090 | 0.716 / 0.657 / 0.383 / 0.078 |
+
+Soft labels (the gold distributions; the leaderboard's metrics), head only, as acc / KL /
+Brier:
+
+| labels per predicate | 4B head | 0.6B head |
+|---|---|---|
+| 25 | 0.692 / 0.161 / 0.086 | 0.597 / 0.253 / 0.134 |
+| 50 | 0.726 / 0.127 / 0.069 | 0.651 / 0.200 / 0.109 |
+| 100 | 0.747 / 0.106 / 0.057 | 0.692 / 0.163 / 0.089 |
+| 300 | 0.782 / 0.084 / 0.045 | 0.739 / 0.126 / 0.068 |
+| *OpenDecider-small-td, 4B + LoRA on all of train (published)* | *0.792 / 0.080 / 0.043* | |
+
+What this says:
+- **Recal is +6 points (4B) and +12 (0.6B) from 25 labels.** It adds a per-option bias to
+  the pack's output, which `calibrate` does not have today. That is why calibrate's refit
+  barely moves accuracy here (0.607 → 0.62).
+- **A head needs about 50 hard labels to beat recal.** At 25 the selection rule still admits
+  heads that do slightly worse. From 50 it gains steadily: the 4B goes 0.607 → 0.755 at 300.
+- **The head closes most of the gap between model sizes.** The 0.6B goes 0.440 → 0.716 at 300
+  hard labels, and the 4B reaches 0.755. The size gap falls from 17 points to 4, at a sixth of
+  the memory.
+- **With soft labels, a frozen 4B plus linear heads is within a point of a 4B LoRA
+  fine-tuned on the same train split.**
+- **Hard-label heads are sharper than the teacher's spread.** Against the soft gold, their KL
+  barely improves (0.32 → 0.30). That is a property of the gold being a sampling
+  distribution, not miscalibration: against the labels they were fitted on, ECE falls from
+  0.129 to 0.084.
+
+Caveats:
+- Gold is one teacher's judgement, and scores above its 0.735 self-agreement mean the head is
+  learning that teacher's habits. A user's own labels are exactly that, which is the point.
+- Below 50 labels, ship recal and not a head.

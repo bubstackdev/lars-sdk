@@ -12,7 +12,7 @@ shift 4
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DATA=${LARS_EVAL_DATA:-$HOME/Code/personal/lars/evals/data}
 BIN=$ROOT/target/release/lars-dev
-BASE=$(echo "$NAME" | sed -E 's/-dev$//; s/-(BF16|Q8_0|Q4_K_M)$//; s/-lora-.*$//')
+BASE=$(echo "$NAME" | sed -E 's/-dev$//; s/-lora-.*$//; s/(-imat)?-(BF16|I?Q[0-9]_[A-Z0-9_]+|IQ[0-9])$//')
 TEMPLATE=chatml
 [ -f "$ROOT/sweep/templates/$BASE.json" ] && TEMPLATE=$ROOT/sweep/templates/$BASE.json
 [ "$BASE" = "Qwen3-4B-Instruct-2507" ] && TEMPLATE=chatml

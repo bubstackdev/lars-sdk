@@ -30,7 +30,7 @@ use std::collections::HashMap;
 use std::ffi::{CString, c_char, c_void};
 use std::path::Path;
 use std::ptr::NonNull;
-use std::sync::Once;
+use std::sync::{Arc, Mutex, Once};
 
 use lars_core::backend::Backend;
 use lars_core::error::{Error, Result};
@@ -56,6 +56,9 @@ pub struct LlamaOptions {
     pub reuse_prefix: bool,
     /// Let llama.cpp repack weights for its CPU kernels (faster on CPU, but a second copy in memory).
     pub repack_cpu_weights: bool,
+    /// For experiments: when set, the final hidden state at each row's answer position is appended
+    /// here in decode order (row order for one-row calls). Rows then run one at a time.
+    pub hidden_states: Option<Arc<Mutex<Vec<Vec<f32>>>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,6 +81,7 @@ impl Default for LlamaOptions {
             batch_suffixes: true,
             reuse_prefix: true,
             repack_cpu_weights: true,
+            hidden_states: None,
         }
     }
 }
@@ -200,6 +204,9 @@ impl LlamaBackend {
         ctx_params.n_threads_batch = threads;
         ctx_params.kv_unified = true;
         ctx_params.no_perf = true;
+        if options.hidden_states.is_some() {
+            ctx_params.pooling_type = sys::llama_pooling_type_LLAMA_POOLING_TYPE_NONE;
+        }
         ctx_params.flash_attn_type = match options.flash_attention {
             FlashAttention::Auto => sys::llama_flash_attn_type_LLAMA_FLASH_ATTN_TYPE_AUTO,
             FlashAttention::On => sys::llama_flash_attn_type_LLAMA_FLASH_ATTN_TYPE_ENABLED,
@@ -335,8 +342,17 @@ impl LlamaBackend {
         self.set_prefix(prefix)?;
         let memory = self.memory();
         let mut results = Vec::with_capacity(suffixes.len());
-        for (suffix, label_ids) in suffixes.iter().zip(labels) {
+        for (row, (suffix, label_ids)) in suffixes.iter().zip(labels).enumerate() {
+            if row > 0 && self.cached.len() != prefix.len() {
+                // The previous row could not be truncated away (a recurrent model): prefill again.
+                self.set_prefix(prefix)?;
+            }
             self.check_fits(prefix.len() + suffix.len())?;
+            // Embeddings make every token in a decode an output, so they are on only for the suffix.
+            let hidden = self.options.hidden_states.is_some();
+            if hidden {
+                unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), true) };
+            }
             for chunk_start in (0..suffix.len()).step_by(self.options.n_batch as usize) {
                 let chunk = &suffix[chunk_start..suffix.len().min(chunk_start + self.options.n_batch as usize)];
                 self.batch.clear();
@@ -347,11 +363,21 @@ impl LlamaBackend {
                 self.decode()?;
             }
             results.push(self.logits_at(self.batch.len() - 1, label_ids)?);
+            if hidden {
+                let at = unsafe { sys::llama_get_embeddings_ith(self.ctx.as_ptr(), self.batch.len() as i32 - 1) };
+                unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), false) };
+                if at.is_null() {
+                    return Err(backend_error("llama.cpp returned no hidden state"));
+                }
+                let n = unsafe { sys::llama_model_n_embd_out(self.model.as_ptr()) } as usize;
+                let row = unsafe { std::slice::from_raw_parts(at, n) }.to_vec();
+                self.options.hidden_states.as_ref().unwrap().lock().unwrap().push(row);
+            }
             if !unsafe { sys::llama_memory_seq_rm(memory, 0, prefix.len() as i32, -1) } {
-                // The cache cannot drop a tail for this model; prefill again next time.
+                // The cache cannot drop a tail for this model (recurrent state): start over, and
+                // prefill the prefix again only if another row follows.
                 unsafe { sys::llama_memory_clear(memory, false) };
                 self.cached.clear();
-                self.set_prefix(prefix)?;
             }
         }
         Ok(results)
@@ -451,7 +477,7 @@ impl Backend for LlamaBackend {
         if !clean.is_empty() {
             let rows: Vec<Vec<i32>> = clean.iter().map(|(_, s)| s.clone()).collect();
             let row_labels: Vec<Vec<i32>> = clean.iter().map(|(i, _)| label_ids[*i].clone()).collect();
-            let logits = if self.options.batch_suffixes && rows.len() > 1 {
+            let logits = if self.options.batch_suffixes && rows.len() > 1 && self.options.hidden_states.is_none() {
                 self.batched(&prefix_ids, &rows, &row_labels)?
             } else {
                 self.one_at_a_time(&prefix_ids, &rows, &row_labels)?

@@ -5,7 +5,7 @@
 //!     lars-dev ask       --model M.gguf request.json
 //!     lars-dev eval      --model M.gguf --data set.jsonl [--calibration c.json] [--dump rows.jsonl]
 //!     lars-dev calibrate --model M.gguf --data set.jsonl --out c.json
-//!     lars-dev capture   --model M.gguf --data set.jsonl --out logits.jsonl
+//!     lars-dev capture   --model M.gguf --data set.jsonl --out logits.jsonl [--hidden states.f32]
 //!     lars-dev bench     --model M.gguf request.json [--repeat 20] [--vary-state]
 //!     lars-dev parity    --model M.gguf --fixture fixtures/data/llama-<model>.json
 //!     lars-dev compare   a.jsonl b.jsonl          (two captures of the same examples)
@@ -19,6 +19,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use lars_core::backend::{Backend, MockBackend};
@@ -85,6 +86,9 @@ fn template(spec: Option<&str>) -> Result<Template, Failure> {
     })
 }
 
+/// Final hidden states at each row's answer position, when `--hidden` asks for them.
+static HIDDEN: OnceLock<Arc<Mutex<Vec<Vec<f32>>>>> = OnceLock::new();
+
 fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
     let defaults = LlamaOptions::default();
     Ok(LlamaOptions {
@@ -99,6 +103,7 @@ fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
         batch_suffixes: args.get("no-batch-suffixes").is_none(),
         reuse_prefix: args.get("no-reuse-prefix").is_none(),
         repack_cpu_weights: args.get("no-repack").is_none(),
+        hidden_states: args.get("hidden").map(|_| HIDDEN.get_or_init(Default::default).clone()),
         ..defaults
     })
 }
@@ -188,6 +193,16 @@ fn main() -> Result<(), Failure> {
             }
             std::fs::write(args.need("out")?, lines.join("\n") + "\n")?;
             eprintln!("{} rows, {:.1} ms per example", lines.len(), collected.ms_per_example);
+            if let Some(path) = args.get("hidden") {
+                // Raw little-endian f32, one row of n_embd values per example, in example order.
+                let states = HIDDEN.get().ok_or("--hidden needs a llama.cpp model")?.lock().unwrap();
+                if states.len() != lines.len() {
+                    return Err(format!("{} hidden states for {} rows (multi-row examples?)", states.len(), lines.len()).into());
+                }
+                let bytes: Vec<u8> = states.iter().flatten().flat_map(|v| v.to_le_bytes()).collect();
+                std::fs::write(path, bytes)?;
+                eprintln!("hidden states: {} x {}", states.len(), states.first().map_or(0, Vec::len));
+            }
         }
         "bench" => {
             let request = read_request(args.positional.first().ok_or("give a request file")?)?;
