@@ -7,9 +7,18 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Build the C library (cargo test builds only the rlib) and return its directory.
 fn library_dir() -> PathBuf {
     // target/<profile>/deps/c_smoke-... -> target/<profile>
-    std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().to_path_buf()
+    let dir = std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().to_path_buf();
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    let mut build = Command::new(cargo);
+    build.args(["build", "-p", "lars-ffi", "--lib"]);
+    if dir.file_name().is_some_and(|n| n == "release") {
+        build.arg("--release");
+    }
+    assert!(build.status().unwrap().success(), "building liblars failed");
+    dir
 }
 
 #[test]

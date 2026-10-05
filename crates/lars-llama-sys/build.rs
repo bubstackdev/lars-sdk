@@ -51,6 +51,9 @@ fn main() {
         println!("cargo:rustc-link-lib=c++");
     } else if target.contains("linux") {
         println!("cargo:rustc-link-lib=stdc++");
+    } else if target.contains("windows") {
+        // ggml-cpu reads CPU features from the registry.
+        println!("cargo:rustc-link-lib=advapi32");
     }
 }
 

@@ -2,6 +2,7 @@
  * calibrators, concurrent callers, cancellation and close. Run by tests/c_smoke.rs:
  *     smoke <pack-dir> <calibration.jsonl>
  * Exits non-zero on the first failed check. */
+#define _DEFAULT_SOURCE /* usleep under -std=c11 on glibc */
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
