@@ -485,15 +485,23 @@ Done when the pack's manifest carries its own as-shipped accuracy, calibration a
 
 ### Phase 7: packaging and 1.0
 
-- [ ] CI builds the native library per platform: `osx-arm64`, `osx-x64`, `linux-x64` and
-  `linux-arm64` (on an old-glibc base image), and `win-x64`.
-- [ ] npm: a main package with optional per-platform packages. NuGet: `runtimes/{rid}/native`.
-- [ ] Install tests from the published packages on each OS, on a clean machine or container.
-- [ ] Docs:
-  - [ ] README and API reference
-  - [ ] calibration guide
-  - [ ] honest limits: weak on knowledge and fine-grained scores
-- [ ] Version 1.0.0, tag, release notes.
+- [x] CI builds the native library and the Node addon per platform (`package.yml`):
+  - `osx-arm64`, and `osx-x64` cross-compiled
+  - `linux-x64` and `linux-arm64`, in manylinux_2_28 containers (glibc 2.28)
+  - `win-x64`
+- [x] npm: `@moedex/lars`, with one optional `@moedex/lars-<platform>-<arch>` per platform
+  (os, cpu and libc fields). NuGet: `Moedex.Lars` with `runtimes/<rid>/native`.
+- [x] Install tests from the built packages, into fresh projects, on five runners (macOS arm64
+  and Intel, Linux x64 and arm64, Windows). Verified locally on macOS arm64 for npm (Node and
+  Bun) and NuGet; the x86_64 build was checked under Rosetta through the C ABI on a real pack.
+- [x] Docs:
+  - [x] README
+  - [x] package READMEs
+  - [x] `docs/calibration.md`
+  - [x] `docs/packs.md`
+  - [ ] an API reference generated from the doc comments
+- [ ] Publishing to npm, NuGet and the Hub: held until you sign off (2026-10-05).
+- [ ] Version 1.0.0, tag, release notes: with publishing.
 
 ## Codex's answers, and what's left for Codex
 
