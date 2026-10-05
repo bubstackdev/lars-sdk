@@ -293,3 +293,18 @@ other job had finished. Median per jev-bench file at 12 threads, per row:
 jev-bench rows carry long passages and up to 151 options, heavier than a one-line predicate.
 The benches taken during the sweep were contended and are not reported. Quiet-machine
 latency is still to do.
+
+## 2026-10-05: the first pack, evaluated through the SDK
+
+`lars-dev pack` built `lars-4b-dev@0.0.1` from the 4B corpus-E LoRA at Q4_K_M:
+- **Calibrator:** fitted pooled over all 4,120 jev-bench validation rows, through the Rust core
+  with the strict soft-target decoding. 12 minutes on a busy machine.
+- **Evaluation:** run on the 4,400 test rows with that calibrator.
+
+| | macro accuracy | macro Brier |
+|---|---|---|
+| the pack, evaluated by the core | 0.7361 | 0.3042 |
+| `sweep/analyze.py` on the same model's captures (Python, reference calibration functions) | 0.7361 | 0.3042 |
+
+Per-config accuracy is identical on all 22 configs. Two independent implementations of
+calibration fitting and soft-target decoding agree end to end.

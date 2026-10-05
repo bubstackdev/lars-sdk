@@ -1,4 +1,4 @@
-# Handoff, 2026-10-05 morning
+# Handoff, 2026-10-05
 
 Nothing is running. The Phase 2b sweep and small-model training finished over the weekend
 (sweep on Saturday at 11:12, training on Friday at 19:24) with no failures, and both launchd
@@ -13,12 +13,30 @@ Results are in `RESULTS.md` (2026-10-05) and every row is in `sweep/out/summary.
 | layout | v2 is dropped; v1 stays |
 | quantization | imatrix Q4_K_M should match Q8_0 |
 
+## Tonight (unattended)
+
+`dev.lars-sdk.night` (`sweep/night.sh`) is loaded and waiting under caffeinate. At 01:30 it:
+1. measures quiet-machine latency for the five candidate packs, on CPU and Metal, for a new
+   state and for the same state, at 6 and 12 threads, with CPU repacking on and off
+   (`sweep/out/latency.md`, load average per row)
+2. builds importance-matrix Q4_K_M versions of the three LoRA models from training-split
+   prompts, captures them, and adds them to `sweep/out/summary.md`
+
+Log: `sweep/out/night.log`. Stop it with `launchctl bootout gui/$(id -u)/dev.lars-sdk.night`.
+
+## Done today
+
+- Batching is on by default. Single-question calls stay bit-identical to the reference.
+- Phase 3: `lars-runtime`, the C ABI (`lars.h`), packs with verified downloads, and the first
+  pack `models/packs/lars-4b-dev/0.0.1`. Its evaluation through the core, 0.7361 / 0.3042,
+  equals the Python analysis exactly. CI is green on all three OSes.
+
 ## Open
 
-1. Quiet-machine latency for the candidate packs. The CPU tier choice, 0.6B or 1.7B, depends on it.
-2. imatrix quantization for the LoRA packs.
-3. Batching on by default in `LlamaOptions`.
-4. Phase 3: `lars-ffi`, the pack format, the downloader.
+1. Choose the CPU tier (0.6B or 1.7B) from tonight's latency, then build its pack.
+2. Phase 4: TypeScript (napi-rs over `lars-runtime`).
+3. Phase 5: C# (P/Invoke over `lars.h`).
+4. ASan on Linux in CI.
 
 ## Things to know
 
