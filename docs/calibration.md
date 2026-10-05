@@ -25,30 +25,53 @@ const fit = await isPissed.calibrate(
 var fit = await isPissed.CalibrateAsync([("This is the third time...", true), ("Thanks!", false) /* ... */]);
 ```
 
-This runs the model on each example once and fits a calibrator for this predicate alone:
-- **noul:** a Platt scaling, which can move the yes/no boundary
-- **choice and score:** a temperature, which changes confidence but never the answer
+This runs the model on each example once, then tries three things for this predicate alone,
+from simplest to richest, and keeps each only when it is clearly better than what it would
+replace:
 
-From then on, calls to this predicate use it. Other predicates keep the pack's.
+1. **A refit** of the pack's calibrator on your labels. For noul this is a Platt scaling, which
+   can move the yes/no boundary. For choice and score it is a temperature, which changes
+   confidence but never the answer.
+2. **A recalibration** on top: a rescaling plus a bias per option. This corrects a predicate
+   whose options the model over- or under-predicts, so it can change answers. On
+   typed-decisions it is worth 6 points of accuracy on the 4B pack, and 12 on the 0.6B, from 25
+   labels.
+3. **A head**, from 50 labels of one question (same type and options): a linear readout of the
+   model's internal state at the answer, learned from your labels. It is the largest gain when
+   the pack has never seen your kind of decision. See the table below.
 
-**A fit only replaces the pack's calibrator when it is clearly better.** The SDK cross-validates
-it against the pack's calibrator on your labels (5 folds, log loss per example). It keeps the
-fit only when the 95% upper bound on the improvement is still an improvement.
-- `fit.kept` (C#: `Kept`) says which one won.
+From then on, calls to this predicate use the result. Other predicates keep the pack's.
+
+**Each step is taken only when it is clearly better.** The SDK cross-validates on your labels
+(5 folds, log loss per example). It moves to the next model only when the 95% upper bound on
+the improvement over the current one is still an improvement.
+- `fit.kept` (C#: `Kept`) says where it stopped: `"pack"`, `"fitted"`, `"recal"` or `"head"`.
 - Without the guard, a fit on 30 Molar Triage labels moved the 1.7B pack's "in pain" boundary
   the wrong way, from 27 to 24 of 30 right on held-out messages. With it, the pack's
   calibrator stays and the score stays at 27.
+- For `"recal"` and `"head"`, `fit.accuracy` and the certified threshold come from the
+  cross-validated answers. Scored on the labels it learned from, a head would look better than
+  it is.
 
-How many labels:
+How many labels. Accuracy on typed-decisions (business workflows the packs were never trained
+on, 20 predicates, scored on held-out cases; `RESULTS.md`):
 
-| labels per predicate | what to expect |
-|---|---|
-| under 25 | usually changes nothing: the fit can't beat the pack's significantly |
-| 50–200 | Brier improves by 0.04–0.05 on zero-shot models, less on packs with a LoRA; Platt can fix a biased yes/no boundary |
-| any number | a temperature never changes which option a choice or score picks |
+| labels per predicate | 4B pack | 0.6B pack |
+|---|---|---|
+| none (the pack's calibrator) | 0.61 | 0.44 |
+| 25 (recalibration) | 0.67 | 0.56 |
+| 50 | 0.70 | 0.61 |
+| 100 | 0.72 | 0.66 |
+| 300 | 0.76 | 0.72 |
+
+On data like the packs' training (routing, sentiment, NLI) there is less to gain, and the
+guard keeps the pack's calibrator more often. A head costs no measurable latency, and a few
+tens of KB in saved calibrations (more for choices with many options).
 
 Label examples the way the predicate will see them: the same field selection (`state`), the same
-kind of input. A calibrator describes the inputs it was fitted on.
+kind of input. A calibrator describes the inputs it was fitted on. A head is bound to its
+question's options, so calibrate each question separately rather than sharing one calibrator
+across questions.
 
 ## Certified thresholds: automating at an error budget
 

@@ -98,12 +98,21 @@ pub fn read_examples(text: &str) -> Result<Vec<Example>> {
 /// Raw logits for each example's question, and how long the model took per example.
 pub struct Collected {
     pub rows: Vec<(Kind, Vec<String>, Vec<f64>)>,
+    /// The final hidden state per example, when asked for (or needed by the engine's calibrator)
+    /// and the backend can read it.
+    pub hidden: Option<Vec<Vec<f32>>>,
     pub ms_per_example: f64,
 }
 
 pub fn collect(engine: &mut Engine, examples: &[Example]) -> Result<Collected> {
+    collect_with(engine, examples, false)
+}
+
+/// `collect`, also reading hidden states when `want_hidden` and the backend can.
+pub fn collect_with(engine: &mut Engine, examples: &[Example], want_hidden: bool) -> Result<Collected> {
     let started = Instant::now();
     let mut rows = Vec::with_capacity(examples.len());
+    let mut hidden = Vec::with_capacity(examples.len());
     for example in examples {
         let request = Request::from_value(&json!({"state": example.state, "questions": {"q": example.question}}))?;
         let question = &request.questions["q"];
@@ -114,11 +123,13 @@ pub fn collect(engine: &mut Engine, examples: &[Example]) -> Result<Collected> {
                     .into(),
             ));
         }
-        let (keys, logits) = engine.raw_logits(&example.state, question)?;
+        let (keys, logits, h) = engine.raw_row(&example.state, question, want_hidden)?;
         rows.push((question.kind(), keys, logits));
+        hidden.push(h);
     }
     let ms = started.elapsed().as_secs_f64() * 1000.0 / examples.len().max(1) as f64;
-    Ok(Collected { rows, ms_per_example: ms })
+    let hidden = hidden.into_iter().collect::<Option<Vec<_>>>().filter(|h| !h.is_empty());
+    Ok(Collected { rows, hidden, ms_per_example: ms })
 }
 
 fn noul_label(label: &str) -> &'static str {
@@ -127,7 +138,7 @@ fn noul_label(label: &str) -> &'static str {
 
 /// A question's option keys, as targets are ordered: yes/no for binary questions, level
 /// indices for score, criteria keys for choice.
-fn option_keys(question: &Value) -> std::result::Result<Vec<String>, String> {
+pub fn option_keys(question: &Value) -> std::result::Result<Vec<String>, String> {
     let criteria = &question["criteria"];
     match question["type"].as_str() {
         Some("noul" | "multi") => Ok(vec!["yes".into(), "no".into()]),
@@ -150,7 +161,7 @@ fn binary_key(value: &str) -> std::result::Result<&'static str, String> {
     }
 }
 
-fn hard_index(keys: &[String], label: &str) -> std::result::Result<usize, String> {
+pub fn hard_index(keys: &[String], label: &str) -> std::result::Result<usize, String> {
     let label = if is_binary_keys(keys) { binary_key(label)?.to_string() } else { label.to_string() };
     keys.iter().position(|k| *k == label).ok_or_else(|| format!("hard label {label:?} is not a question option"))
 }
@@ -218,7 +229,7 @@ fn soft_target(keys: &[String], value: &Value) -> std::result::Result<Option<Vec
 }
 
 /// The target distribution in `keys` order: the soft label when there is one, else one-hot.
-fn target_vector(example: &Example, keys: &[String]) -> Vec<f64> {
+pub fn target_vector(example: &Example, keys: &[String]) -> Vec<f64> {
     if let Some(soft) = &example.soft_label {
         return soft.clone();
     }
@@ -235,36 +246,62 @@ fn is_binary(kind: Kind) -> bool {
     matches!(kind, Kind::Noul | Kind::Multi)
 }
 
+/// One example's calibrated distribution in `keys` order, through the calibrator's head if it
+/// has one.
+fn distribution(
+    cal: &Calibrator,
+    example: &Example,
+    (kind, keys, logits): &(Kind, Vec<String>, Vec<f64>),
+    hidden: Option<&[f32]>,
+) -> Result<Vec<f64>> {
+    let p = if is_binary(*kind) {
+        let p_yes = noul_prob(cal, logits[0] - logits[1], *kind, example.features.as_ref());
+        vec![p_yes, 1.0 - p_yes]
+    } else {
+        softmax(logits, cal.temperature_for(*kind))
+    };
+    match &cal.head {
+        None => Ok(p),
+        Some(head) if head.keys == *keys => head.apply(&p, hidden),
+        Some(head) => Err(Error::Invalid(format!(
+            "the calibrator's head was fitted for options [{}], not [{}]",
+            head.keys.join(", "),
+            keys.join(", ")
+        ))),
+    }
+}
+
 /// Each example's calibrated distribution, its confidence (the top probability) and whether the
 /// top option is the hard label, under `cal`, from logits already collected.
-pub fn score_examples(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Vec<(Vec<f64>, f64, bool)> {
+pub fn score_examples(
+    cal: &Calibrator,
+    examples: &[Example],
+    collected: &Collected,
+) -> Result<Vec<(Vec<f64>, f64, bool)>> {
     examples
         .iter()
         .zip(&collected.rows)
-        .map(|(example, (kind, keys, logits))| {
-            let p = if is_binary(*kind) {
-                let p_yes = noul_prob(cal, logits[0] - logits[1], *kind, example.features.as_ref());
-                vec![p_yes, 1.0 - p_yes]
-            } else {
-                softmax(logits, cal.temperature_for(*kind))
-            };
-            let hit = Some(argmax(&p)) == hard_index(keys, &example.label).ok();
+        .enumerate()
+        .map(|(i, (example, row))| {
+            let hidden = collected.hidden.as_ref().map(|h| h[i].as_slice());
+            let p = distribution(cal, example, row, hidden)?;
+            let hit = Some(argmax(&p)) == hard_index(&row.1, &example.label).ok();
             let confidence = max(&p);
-            (p, confidence, hit)
+            Ok((p, confidence, hit))
         })
         .collect()
 }
 
 /// Mean log loss of `cal` against each example's target (its soft label, else the hard label).
-pub fn log_loss(cal: &Calibrator, examples: &[Example], collected: &Collected) -> f64 {
-    let losses = log_losses(cal, examples, collected);
-    pairwise_sum(&losses) / losses.len().max(1) as f64
+pub fn log_loss(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Result<f64> {
+    let losses = log_losses(cal, examples, collected)?;
+    Ok(pairwise_sum(&losses) / losses.len().max(1) as f64)
 }
 
 /// Each example's log loss under `cal`.
-pub fn log_losses(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Vec<f64> {
-    let scored = score_examples(cal, examples, collected);
-    examples
+pub fn log_losses(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Result<Vec<f64>> {
+    let scored = score_examples(cal, examples, collected)?;
+    Ok(examples
         .iter()
         .zip(&collected.rows)
         .zip(&scored)
@@ -272,15 +309,16 @@ pub fn log_losses(cal: &Calibrator, examples: &[Example], collected: &Collected)
             let target = target_vector(example, keys);
             -target.iter().zip(p).map(|(t, p)| t * p.clamp(1e-12, 1.0).ln()).sum::<f64>()
         })
-        .collect()
+        .collect())
 }
 
 /// The examples and collected rows at `indices`, for fitting or scoring a subset.
 pub fn subset(examples: &[Example], collected: &Collected, indices: &[usize]) -> (Vec<Example>, Collected) {
     let rows = indices.iter().map(|&i| collected.rows[i].clone()).collect();
+    let hidden = collected.hidden.as_ref().map(|h| indices.iter().map(|&i| h[i].clone()).collect());
     (
         indices.iter().map(|&i| examples[i].clone()).collect(),
-        Collected { rows, ms_per_example: collected.ms_per_example },
+        Collected { rows, hidden, ms_per_example: collected.ms_per_example },
     )
 }
 
@@ -330,12 +368,13 @@ pub fn evaluate_collected(
     let cal = &engine.calibrator;
     let (mut confidences, mut correct, mut probs, mut targets) = (vec![], vec![], vec![], vec![]);
     let mut per_kind: IndexMap<String, Vec<bool>> = IndexMap::new();
-    for (example, (kind, keys, logits)) in examples.iter().zip(&collected.rows) {
-        let (p, label, target) = if is_binary(*kind) {
-            let p_yes = noul_prob(cal, logits[0] - logits[1], *kind, example.features.as_ref());
-            (vec![p_yes, 1.0 - p_yes], noul_label(&example.label).to_string(), noul_target(example))
+    for (i, (example, row)) in examples.iter().zip(&collected.rows).enumerate() {
+        let (kind, keys, _) = row;
+        let p = distribution(cal, example, row, collected.hidden.as_ref().map(|h| h[i].as_slice()))?;
+        let (label, target) = if is_binary(*kind) {
+            (noul_label(&example.label).to_string(), noul_target(example))
         } else {
-            (softmax(logits, cal.temperature_for(*kind)), example.label.clone(), target_vector(example, keys))
+            (example.label.clone(), target_vector(example, keys))
         };
         let hit = keys[argmax(&p)] == label;
         confidences.push(max(&p));

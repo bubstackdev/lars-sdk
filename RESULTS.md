@@ -510,3 +510,25 @@ Caveats:
 - Gold is one teacher's judgement, and scores above its 0.735 self-agreement mean the head is
   learning that teacher's habits. A user's own labels are exactly that, which is the point.
 - Below 50 labels, ship recal and not a head.
+
+**Built into the SDK the same day.** `calibrate` now steps pack/fitted → recal → head:
+- Implementation is in `lars-core/src/head.rs`: a Jacobi eigendecomposition for the span basis
+  and L-BFGS for the fit, with no new dependencies. Heads are tried from 50 labels of one
+  question shape.
+- It matches sweep/heads.py to 4 decimals of test log loss on three real predicates
+  (`lars-dev fit-head`).
+- Hidden states are read only for predicates whose head needs them. Each row's last token is
+  decoded alone with embeddings on, so no extra logits are materialized. All other rows stay
+  bit-identical to the reference (240/240).
+
+End to end through `@moedex/lars` on the 0.6B pack, calibrating on the first 100 train cases
+of a predicate and answering its 100 test cases:
+
+| predicate | labels | test accuracy | kept | calibrate | per call |
+|---|---|---|---|---|---|
+| customer_service/urgency (score) | 100 | 0.49 → 0.66 | head | 13 s | 121 → 117 ms |
+| invoice_processing/disposition (choice) | 100 | 0.38 → 0.71 | head | 11 s | 110 → 112 ms |
+| security_incidents/true_positive (noul) | 100 | 0.69 → 0.74 | fitted | 12 s | 95 → 108 ms |
+| customer_service/urgency (score) | 30 | 0.49 → 0.62 | recal | 4 s | 132 → 126 ms |
+
+Calibrate time is the model pass over the labels. Four saved calibrations take 45 KB.

@@ -185,12 +185,67 @@ fn a_fitted_calibrator_replaces_the_packs_only_when_it_is_significantly_better()
             .collect::<Vec<_>>()
             .join("\n")
     };
-    // 200 labels that always contradict the mock: a fit that flips its answers is clearly better.
+    // 200 labels that always contradict the mock: a fit that flips its answers is clearly better
+    // (and a recalibration on top of it can be better still).
     let fitted: Value =
         serde_json::from_str(&lars.calibrate("flip", &examples(200, &|i| !mock_says_yes(i)), None).unwrap()).unwrap();
-    assert_eq!(fitted["kept"], "fitted", "{}", fitted["cross_validated_log_loss"]);
-    // 20 labels agreeing with the mock: nothing significant to gain, so the pack's calibrator stays.
+    assert_ne!(fitted["kept"], "pack", "{}", fitted["cross_validated_log_loss"]);
+    let flip = r#"{"state": "message 7 about an order", "questions": {"q": {"type": "noul",
+                   "instructions": "The message asks for a refund"}}, "lars": {"calibrator": "flip"}}"#;
+    let flipped: Value = serde_json::from_str(&lars.evaluate(flip).unwrap()).unwrap();
+    assert_eq!(flipped["answers"]["q"]["noul"].as_f64().unwrap() >= 0.5, !mock_says_yes(7));
+    // 20 labels agreeing with the mock: a refit gains nothing significant, so the pack's calibrator
+    // stays the base (a recalibration may still sharpen it, since the labels are its own answers).
     let kept: Value =
         serde_json::from_str(&lars.calibrate("agree", &examples(20, &mock_says_yes), None).unwrap()).unwrap();
-    assert_eq!(kept["kept"], "pack", "{}", kept["cross_validated_log_loss"]);
+    assert_eq!(kept["base"], "pack", "{}", kept["cross_validated_log_loss"]);
+    assert_ne!(kept["kept"], "head");
+}
+
+#[test]
+fn a_head_learns_what_only_the_hidden_state_shows() {
+    // The mock's logits ignore the animal; its hidden state (hashed state words) does not. The
+    // label is "yes" for zebras, so only a head on the hidden state can learn it.
+    let lars = open("head", OpenOptions::default());
+    let question = r#"{"type": "noul", "instructions": "Is this one striped?"}"#;
+    let animal = |i: usize| if (i * 7 + 3) % 5 < 2 { "zebra" } else { "horse" };
+    let state = |i: usize| format!("sighting {i} of a {}", animal(i));
+    let examples: String = (0..150)
+        .map(|i| format!(r#"{{"state": "{}", "question": {question}, "label": "{}"}}"#, state(i), animal(i) == "zebra"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let fitted: Value = serde_json::from_str(&lars.calibrate("striped", &examples, Some(0.05)).unwrap()).unwrap();
+    assert_eq!(fitted["kept"], "head", "{}", fitted["cross_validated_log_loss"]);
+    assert_eq!(fitted["out_of_fold"], true);
+    assert!(fitted["accuracy"].as_f64().unwrap() > 0.9, "cross-validated accuracy {}", fitted["accuracy"]);
+    let head = &fitted["calibrator"]["head"];
+    assert_eq!(head["dim"], lars_core::backend::MOCK_HIDDEN);
+    assert_eq!(head["keys"], json!(["yes", "no"]));
+
+    // New sightings, through the head; and through a saved copy on another handle.
+    let other = Lars::open(lars.pack().dir.to_str().unwrap(), OpenOptions::default()).unwrap();
+    other.set_calibrator("striped", &fitted["calibrator"].to_string()).unwrap();
+    let mut hits = 0;
+    for i in 1000..1040 {
+        let request = format!(
+            r#"{{"state": "{}", "questions": {{"q": {question}}}, "lars": {{"calibrator": "striped"}}}}"#,
+            state(i)
+        );
+        let answer: Value = serde_json::from_str(&lars.evaluate(&request).unwrap()).unwrap();
+        let p = answer["answers"]["q"]["noul"].as_f64().unwrap();
+        hits += usize::from((p >= 0.5) == (animal(i) == "zebra"));
+        assert_eq!(other.evaluate(&request).unwrap(), lars.evaluate(&request).unwrap());
+    }
+    assert!(hits >= 36, "{hits}/40");
+
+    // A head answers only the options it was fitted for.
+    let choice = r#"{"state": "a zebra", "questions": {"q": {"type": "choice", "instructions": "Which?",
+                     "criteria": {"a": "A", "b": "B"}}}, "lars": {"calibrator": "striped"}}"#;
+    assert!(lars.evaluate(choice).unwrap_err().message.contains("fitted for [yes, no]"));
+
+    // Under MIN_HEAD_LABELS, no head is tried.
+    let few: String = examples.lines().take(30).collect::<Vec<_>>().join("\n");
+    let small: Value = serde_json::from_str(&lars.calibrate("few", &few, None).unwrap()).unwrap();
+    assert_ne!(small["kept"], "head");
+    assert!(small["cross_validated_log_loss"].get("head:3").is_none());
 }

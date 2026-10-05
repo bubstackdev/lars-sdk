@@ -64,8 +64,11 @@ public sealed record LarsOptions
 public sealed record Certified(double MaxError, double? Threshold, int? Accepted, int? Errors, double? Coverage,
                                double? ErrorUpper95, string? Reason);
 
-/// <summary>A calibration's outcome. <see cref="Kept"/> is "fitted", or "pack" when the fit was not significantly better
-/// than the pack's calibrator on held-out labels (5-fold cross-validated log loss).</summary>
+/// <summary>A calibration's outcome. <see cref="Kept"/> is what the predicate now uses: "pack" or "fitted" (a refit on
+/// these labels, when significantly better on held-out labels by 5-fold cross-validated log loss); "recal" (that,
+/// rescaled with a bias per option); or "head" (plus a readout of the model's hidden state, tried from 50 labels of
+/// one question). Each step is taken only when significantly better than the last. <see cref="Accuracy"/> is
+/// cross-validated for "recal" and "head", else in-sample.</summary>
 public sealed record CalibrationResult(int Examples, string Kept, double Accuracy, Certified? Certified);
 
 /// <summary>What every decision carries.</summary>

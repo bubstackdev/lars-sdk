@@ -19,7 +19,6 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use lars_core::backend::{Backend, MockBackend};
@@ -86,9 +85,6 @@ fn template(spec: Option<&str>) -> Result<Template, Failure> {
     })
 }
 
-/// Final hidden states at each row's answer position, when `--hidden` asks for them.
-static HIDDEN: OnceLock<Arc<Mutex<Vec<Vec<f32>>>>> = OnceLock::new();
-
 fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
     let defaults = LlamaOptions::default();
     Ok(LlamaOptions {
@@ -103,7 +99,6 @@ fn llama_options(args: &Args) -> Result<LlamaOptions, Failure> {
         batch_suffixes: args.get("no-batch-suffixes").is_none(),
         reuse_prefix: args.get("no-reuse-prefix").is_none(),
         repack_cpu_weights: args.get("no-repack").is_none(),
-        hidden_states: args.get("hidden").map(|_| HIDDEN.get_or_init(Default::default).clone()),
         ..defaults
     })
 }
@@ -182,7 +177,7 @@ fn main() -> Result<(), Failure> {
             // Raw logits per example, so calibrators and metrics can be recomputed on CPU later.
             let examples = examples(&args)?;
             let mut engine = engine(&args)?;
-            let collected = eval::collect(&mut engine, &examples)?;
+            let collected = eval::collect_with(&mut engine, &examples, args.get("hidden").is_some())?;
             let mut lines = Vec::with_capacity(examples.len());
             for (example, (kind, keys, logits)) in examples.iter().zip(&collected.rows) {
                 lines.push(
@@ -195,10 +190,7 @@ fn main() -> Result<(), Failure> {
             eprintln!("{} rows, {:.1} ms per example", lines.len(), collected.ms_per_example);
             if let Some(path) = args.get("hidden") {
                 // Raw little-endian f32, one row of n_embd values per example, in example order.
-                let states = HIDDEN.get().ok_or("--hidden needs a llama.cpp model")?.lock().unwrap();
-                if states.len() != lines.len() {
-                    return Err(format!("{} hidden states for {} rows (multi-row examples?)", states.len(), lines.len()).into());
-                }
+                let states = collected.hidden.as_ref().ok_or("this backend cannot read hidden states")?;
                 let bytes: Vec<u8> = states.iter().flatten().flat_map(|v| v.to_le_bytes()).collect();
                 std::fs::write(path, bytes)?;
                 eprintln!("hidden states: {} x {}", states.len(), states.first().map_or(0, Vec::len));
@@ -232,6 +224,7 @@ fn main() -> Result<(), Failure> {
             }));
         }
         "parity" => parity(&args)?,
+        "fit-head" => fit_head(&args)?,
         "pack" => build_pack(&args)?,
         "compare" => compare(&args)?,
         "capture-requests" => {
@@ -258,6 +251,60 @@ fn main() -> Result<(), Failure> {
             std::process::exit(2);
         }
     }
+    Ok(())
+}
+
+/// Fit heads on a fixture's train rows and score them on its test rows, to check the SDK's fit
+/// against sweep/heads.py: {"keys", "train"|"test": {"probs", "hidden", "targets"}}.
+fn fit_head(args: &Args) -> Result<(), Failure> {
+    use lars_core::head;
+    let fixture: Value = serde_json::from_str(&std::fs::read_to_string(args.need("fixture")?)?)?;
+    let matrix = |v: &Value| -> Vec<Vec<f64>> {
+        v.as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect())
+            .collect()
+    };
+    let keys: Vec<String> = serde_json::from_value(fixture["keys"].clone())?;
+    let split = |name: &str| {
+        let s = &fixture[name];
+        let hidden: Vec<Vec<f32>> =
+            matrix(&s["hidden"]).into_iter().map(|r| r.into_iter().map(|x| x as f32).collect()).collect();
+        (matrix(&s["probs"]), hidden, matrix(&s["targets"]))
+    };
+    let ((p, h, t), (tp, th, tt)) = (split("train"), split("test"));
+    let base: Vec<Vec<f64>> = p.iter().map(|r| r.iter().map(|v| v.max(1e-12).ln()).collect()).collect();
+    let rows: Vec<&[f32]> = h.iter().map(Vec::as_slice).collect();
+    let score = |name: String, q: Vec<Vec<f64>>| {
+        let n = q.len() as f64;
+        let ll = q
+            .iter()
+            .zip(&tt)
+            .map(|(q, t)| -t.iter().zip(q).map(|(t, q)| t * q.max(1e-12).ln()).sum::<f64>())
+            .sum::<f64>()
+            / n;
+        let acc = q.iter().zip(&tt).filter(|(q, t)| argmax(q) == argmax(t)).count() as f64 / n;
+        println!("{name:12} accuracy {acc:.3} log loss {ll:.4}");
+    };
+    score("calibrator".into(), tp.clone());
+    for lambda in [None, Some(30.0), Some(3.0), Some(0.3)] {
+        let fitted = head::fit_head(&base, lambda.map(|_| rows.as_slice()), &t, &keys, lambda);
+        let q = tp.iter().zip(&th).map(|(p, h)| fitted.apply(p, Some(h)).unwrap()).collect();
+        score(lambda.map_or("recal".into(), |l| format!("head@{l}")), q);
+    }
+    let started = Instant::now();
+    let choice = head::choose_head(&p, Some(&h), &t, &keys, 5);
+    let chosen = match &choice.head {
+        None => "calibrator".to_string(),
+        Some(c) => c.lambda.map_or("recal".to_string(), |l| format!("head@{l}")),
+    };
+    let q = match &choice.head {
+        Some(c) => tp.iter().zip(&th).map(|(p, h)| c.apply(p, Some(h)).unwrap()).collect(),
+        None => tp.clone(),
+    };
+    score(format!("chosen {chosen}"), q);
+    eprintln!("choose_head: {:.2} s, cv {:?}", started.elapsed().as_secs_f64(), choice.cv_log_loss);
     Ok(())
 }
 

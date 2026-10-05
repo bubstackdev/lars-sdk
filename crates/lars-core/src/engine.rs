@@ -138,7 +138,12 @@ impl Default for EngineOptions {
 struct Scored {
     probs: Vec<f64>,
     logits: Vec<f64>,
+    /// The final hidden state at the answer, for rows whose calibrator has a head that reads it.
+    hidden: Option<Vec<f32>>,
 }
+
+/// A base row's option keys, raw label logits, and hidden state when read.
+pub type RawRow = (Vec<String>, Vec<f64>, Option<Vec<f32>>);
 
 pub struct Engine {
     backend: Box<dyn Backend>,
@@ -177,7 +182,7 @@ impl Engine {
     pub fn evaluate(&mut self, request: &Request) -> Result<Response> {
         let model_id = self.model_id();
         let (rows, usage) = self.plan(request, &model_id)?;
-        let scored = self.score(request, &rows)?;
+        let scored = self.score(request, &rows, false)?;
         let mut answers = self.reduce(request, &rows, &scored)?;
         apply_constraints(&mut answers, &request.lars.constraints);
         Ok(Response { model: model_id, answers, usage })
@@ -254,6 +259,12 @@ impl Engine {
 
     /// Uncalibrated label logits for one question's base row, for evaluation and calibration.
     pub fn raw_logits(&mut self, state: &Value, question: &Question) -> Result<(Vec<String>, Vec<f64>)> {
+        self.raw_row(state, question, false).map(|(keys, logits, _)| (keys, logits))
+    }
+
+    /// As `raw_logits`, plus the hidden state when asked for (or when the default calibrator's
+    /// head reads it) and the backend can give it.
+    pub fn raw_row(&mut self, state: &Value, question: &Question, want_hidden: bool) -> Result<RawRow> {
         let request = Request {
             state: state.clone(),
             model: DEFAULT_MODEL.into(),
@@ -262,24 +273,30 @@ impl Engine {
         };
         let rows: Vec<Row> = plan_rows(&request, &self.labels).into_iter().filter(|r| r.variant == "base").collect();
         let row = rows.first().ok_or_else(|| Error::Invalid("this question has no single base row".into()))?;
-        let scored = self.score(&request, std::slice::from_ref(row))?;
-        Ok((row.keys.clone(), scored.into_iter().next().unwrap().logits))
+        let scored = self.score(&request, std::slice::from_ref(row), want_hidden)?.into_iter().next().unwrap();
+        Ok((row.keys.clone(), scored.logits, scored.hidden))
     }
 
     /// Every planned row of a request with its raw label logits, for diagnostics.
     pub fn raw_rows(&mut self, request: &Request) -> Result<Vec<(Row, Vec<f64>)>> {
         let model_id = self.model_id();
         let (rows, _) = self.plan(request, &model_id)?;
-        let scored = self.score(request, &rows)?;
+        let scored = self.score(request, &rows, false)?;
         Ok(rows.into_iter().zip(scored).map(|(row, s)| (row, s.logits)).collect())
     }
 
     // ----------------------------------------------------------------- scoring
 
-    fn score(&mut self, request: &Request, rows: &[Row]) -> Result<Vec<Scored>> {
-        let temperatures: Vec<f64> = {
+    fn score(&mut self, request: &Request, rows: &[Row], want_hidden: bool) -> Result<Vec<Scored>> {
+        let (temperatures, needs_hidden): (Vec<f64>, Vec<bool>) = {
             let calibrators = self.calibrators_for(request)?;
-            rows.iter().map(|row| calibrators[&row.question_id].temperature_for(row.kind)).collect()
+            rows.iter()
+                .map(|row| {
+                    let cal = calibrators[&row.question_id];
+                    let head = cal.head.as_ref().is_some_and(|h| h.uses_hidden());
+                    (cal.temperature_for(row.kind), want_hidden || head)
+                })
+                .unzip()
         };
         let base_state = render_content(&request.state);
         let template = self.backend.template().clone();
@@ -290,22 +307,63 @@ impl Engine {
             groups.entry(prefix).or_default().push((index, suffix));
         }
         let mut scored: Vec<Option<Scored>> = (0..rows.len()).map(|_| None).collect();
-        for (prefix, members) in &groups {
-            let suffixes: Vec<String> = members.iter().map(|(_, s)| s.clone()).collect();
-            let labels: Vec<Vec<String>> = members.iter().map(|(i, _)| rows[*i].labels.clone()).collect();
-            let logits = self.backend.label_logits(prefix, &suffixes, &labels)?;
-            if logits.len() != members.len() {
-                return Err(Error::Backend(format!("backend returned {} rows for {}", logits.len(), members.len())));
-            }
-            for ((index, _), row_logits) in members.iter().zip(logits) {
-                if row_logits.len() != rows[*index].labels.len() {
-                    return Err(Error::Backend("backend returned the wrong number of label logits".into()));
+        for (prefix, all_members) in &groups {
+            // Rows that need hidden states go through their own call, so the others' logits are
+            // exactly what they would be without heads.
+            let (with_hidden, plain): (Vec<_>, Vec<_>) = all_members.iter().partition(|(i, _)| needs_hidden[*i]);
+            for (members, hidden_wanted) in [(plain, false), (with_hidden, true)] {
+                if members.is_empty() {
+                    continue;
                 }
-                let probs = softmax(&row_logits, temperatures[*index]);
-                scored[*index] = Some(Scored { probs, logits: row_logits });
+                let suffixes: Vec<String> = members.iter().map(|(_, s)| s.clone()).collect();
+                let labels: Vec<Vec<String>> = members.iter().map(|(i, _)| rows[*i].labels.clone()).collect();
+                let (logits, hidden) = if hidden_wanted {
+                    match self.backend.label_logits_hidden(prefix, &suffixes, &labels)? {
+                        Some((logits, hidden)) if hidden.len() == logits.len() => (logits, Some(hidden)),
+                        Some(_) => {
+                            return Err(Error::Backend("backend returned hidden states for the wrong rows".into()));
+                        }
+                        // Asked for by a caller collecting data, not by a head: go without.
+                        None if want_hidden
+                            && members.iter().all(|(i, _)| !self.head_reads_hidden(request, &rows[*i])) =>
+                        {
+                            (self.backend.label_logits(prefix, &suffixes, &labels)?, None)
+                        }
+                        None => {
+                            return Err(Error::Invalid(format!(
+                                "the {} backend cannot read hidden states, which this calibrator's head needs",
+                                self.backend.name()
+                            )));
+                        }
+                    }
+                } else {
+                    (self.backend.label_logits(prefix, &suffixes, &labels)?, None)
+                };
+                if logits.len() != members.len() {
+                    return Err(Error::Backend(format!(
+                        "backend returned {} rows for {}",
+                        logits.len(),
+                        members.len()
+                    )));
+                }
+                let mut hidden = hidden.map(Vec::into_iter);
+                for ((index, _), row_logits) in members.iter().zip(logits) {
+                    if row_logits.len() != rows[*index].labels.len() {
+                        return Err(Error::Backend("backend returned the wrong number of label logits".into()));
+                    }
+                    let probs = softmax(&row_logits, temperatures[*index]);
+                    let hidden = hidden.as_mut().and_then(Iterator::next);
+                    scored[*index] = Some(Scored { probs, logits: row_logits, hidden });
+                }
             }
         }
         Ok(scored.into_iter().map(|s| s.expect("every row scored")).collect())
+    }
+
+    fn head_reads_hidden(&self, request: &Request, row: &Row) -> bool {
+        self.calibrators_for(request)
+            .map(|c| c[&row.question_id].head.as_ref().is_some_and(|h| h.uses_hidden()))
+            .unwrap_or(false)
     }
 
     // ----------------------------------------------------------------- reduction
@@ -330,11 +388,15 @@ impl Engine {
 
             let answer = match question {
                 Question::Noul { .. } => {
-                    let p_yes = noul_prob(cal, yes_logit(&scored[base[0]]), Kind::Noul, options.features.get(qid));
+                    let yes = |item: &Scored, features| -> Result<f64> {
+                        let p = noul_prob(cal, yes_logit(item), Kind::Noul, features);
+                        Ok(with_head(cal, qid, &["yes", "no"], vec![p, 1.0 - p], item)?[0])
+                    };
+                    let p_yes = yes(&scored[base[0]], options.features.get(qid))?;
                     let effects: Vec<(Option<String>, f64)> = ablations
                         .iter()
-                        .map(|&i| (span(i), (noul_prob(cal, yes_logit(&scored[i]), Kind::Noul, None) - p_yes).abs()))
-                        .collect();
+                        .map(|&i| Ok((span(i), (yes(&scored[i], None)? - p_yes).abs())))
+                        .collect::<Result<_>>()?;
                     Answer::Noul(NoulAnswer {
                         noul: py::round(p_yes, 4),
                         abstain: options.abstain_margin.map(|m| (p_yes - 0.5).abs() * 2.0 < m),
@@ -343,13 +405,14 @@ impl Engine {
                 }
                 Question::Choice { criteria, .. } => {
                     let keys: Vec<&String> = criteria.keys().collect();
-                    let dists: Vec<Vec<f64>> =
-                        base.iter().chain(&perms).map(|&i| realign(&rows[i], &scored[i], &keys)).collect();
+                    let names: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
+                    let dist = |i: usize| with_head(cal, qid, &names, realign(&rows[i], &scored[i], &keys), &scored[i]);
+                    let dists: Vec<Vec<f64>> = base.iter().chain(&perms).map(|&i| dist(i)).collect::<Result<_>>()?;
                     let mean = mean_rows(&dists);
                     let effects: Vec<(Option<String>, f64)> = ablations
                         .iter()
-                        .map(|&i| (span(i), total_variation(&realign(&rows[i], &scored[i], &keys), &mean)))
-                        .collect();
+                        .map(|&i| Ok((span(i), total_variation(&dist(i)?, &mean))))
+                        .collect::<Result<_>>()?;
                     Answer::Choice(ChoiceAnswer {
                         choice: keys[argmax(&mean)].clone(),
                         probabilities: round_probs(keys.iter().map(|k| k.as_str()), &mean),
@@ -360,7 +423,9 @@ impl Engine {
                     })
                 }
                 Question::Score { criteria, .. } => {
-                    let probs = &scored[base[0]].probs;
+                    let levels: Vec<&str> = rows[base[0]].keys.iter().map(String::as_str).collect();
+                    let dist = |i: usize| with_head(cal, qid, &levels, scored[i].probs.clone(), &scored[i]);
+                    let probs = &dist(base[0])?;
                     let legend = criteria
                         .iter()
                         .enumerate()
@@ -368,8 +433,10 @@ impl Engine {
                             (i.to_string(), if c.is_null() { Value::from(format!("level {i}")) } else { c.clone() })
                         })
                         .collect();
-                    let effects: Vec<(Option<String>, f64)> =
-                        ablations.iter().map(|&i| (span(i), total_variation(&scored[i].probs, probs))).collect();
+                    let effects: Vec<(Option<String>, f64)> = ablations
+                        .iter()
+                        .map(|&i| Ok((span(i), total_variation(&dist(i)?, probs))))
+                        .collect::<Result<_>>()?;
                     Answer::Score(ScoreAnswer {
                         score: py::round(expected_score(probs), 4),
                         legend,
@@ -380,6 +447,11 @@ impl Engine {
                     })
                 }
                 Question::Multi { .. } => {
+                    if cal.head.is_some() {
+                        return Err(Error::Invalid(format!(
+                            "question {qid:?} is multi, which a calibrator with a head cannot answer"
+                        )));
+                    }
                     // One yes/no row per option: variants "base:<key>" and "ablate:<i>:<key>".
                     let mut per_option: IndexMap<String, f64> = IndexMap::new();
                     for &i in &base {
@@ -461,6 +533,20 @@ pub fn noul_prob(cal: &Calibrator, yes_logit: f64, kind: Kind, features: Option<
 }
 
 /// A row's distribution (in presented order) mapped back to canonical key order.
+/// A row's distribution (in `keys` order) through the calibrator's head, when it has one.
+fn with_head(cal: &Calibrator, qid: &str, keys: &[&str], probs: Vec<f64>, item: &Scored) -> Result<Vec<f64>> {
+    let Some(head) = &cal.head else { return Ok(probs) };
+    if !head.keys.iter().map(String::as_str).eq(keys.iter().copied()) {
+        return Err(Error::Invalid(format!(
+            "question {qid:?} has options [{}], but its calibrator's head was fitted for [{}]; \
+             name a calibrator per question with lars.calibrators",
+            keys.join(", "),
+            head.keys.join(", ")
+        )));
+    }
+    head.apply(&probs, item.hidden.as_deref())
+}
+
 fn realign(row: &Row, item: &Scored, canonical: &[&String]) -> Vec<f64> {
     let by_key: IndexMap<&str, f64> = row.keys.iter().map(String::as_str).zip(item.probs.iter().copied()).collect();
     canonical.iter().map(|k| by_key[k.as_str()]).collect()

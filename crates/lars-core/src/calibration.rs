@@ -10,6 +10,7 @@ use indexmap::IndexMap;
 use serde_json::{Map, Value, json};
 
 use crate::error::{Error, Result};
+use crate::head::Head;
 use crate::primitives::{pairwise_sum, softmax};
 use crate::schema::Kind;
 
@@ -29,6 +30,9 @@ pub struct Calibrator {
     pub fitted_on: Option<String>,
     /// Carried through for compatibility with the reference's files; the SDK never escalates.
     pub escalate: Option<Value>,
+    /// A per-decision head on top of the rest, fitted by `calibrate` (SDK only; the reference
+    /// engine does not read it).
+    pub head: Option<Head>,
 }
 
 impl Default for Calibrator {
@@ -39,6 +43,7 @@ impl Default for Calibrator {
             fusion: IndexMap::new(),
             fitted_on: None,
             escalate: None,
+            head: None,
         }
     }
 }
@@ -67,13 +72,17 @@ impl Calibrator {
             .iter()
             .map(|(k, f)| (k.clone(), json!({"features": f.features, "weights": f.weights, "bias": f.bias})))
             .collect();
-        json!({
+        let mut value = json!({
             "temperatures": self.temperatures,
             "platt": platt,
             "fusion": fusion,
             "fitted_on": self.fitted_on,
             "escalate": self.escalate,
-        })
+        });
+        if let Some(head) = &self.head {
+            value["head"] = head.to_json();
+        }
+        value
     }
 
     /// Load the reference's calibrator JSON (`Calibrator.load`). Missing temperatures default to 1.
@@ -120,6 +129,7 @@ impl Calibrator {
         }
         calibrator.fitted_on = raw.get("fitted_on").and_then(Value::as_str).map(String::from);
         calibrator.escalate = raw.get("escalate").filter(|v| !v.is_null()).cloned();
+        calibrator.head = raw.get("head").filter(|v| !v.is_null()).map(Head::from_json).transpose()?;
         Ok(calibrator)
     }
 }

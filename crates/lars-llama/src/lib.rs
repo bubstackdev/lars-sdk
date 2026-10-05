@@ -30,9 +30,9 @@ use std::collections::HashMap;
 use std::ffi::{CString, c_char, c_void};
 use std::path::Path;
 use std::ptr::NonNull;
-use std::sync::{Arc, Mutex, Once};
+use std::sync::Once;
 
-use lars_core::backend::Backend;
+use lars_core::backend::{Backend, LogitsAndHidden};
 use lars_core::error::{Error, Result};
 use lars_core::render::Template;
 use lars_llama_sys as sys;
@@ -56,9 +56,6 @@ pub struct LlamaOptions {
     pub reuse_prefix: bool,
     /// Let llama.cpp repack weights for its CPU kernels (faster on CPU, but a second copy in memory).
     pub repack_cpu_weights: bool,
-    /// For experiments: when set, the final hidden state at each row's answer position is appended
-    /// here in decode order (row order for one-row calls). Rows then run one at a time.
-    pub hidden_states: Option<Arc<Mutex<Vec<Vec<f32>>>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,7 +78,6 @@ impl Default for LlamaOptions {
             batch_suffixes: true,
             reuse_prefix: true,
             repack_cpu_weights: true,
-            hidden_states: None,
         }
     }
 }
@@ -164,7 +160,12 @@ pub struct LlamaBackend {
     /// Tokens currently held in sequence 0.
     cached: Vec<sys::llama_token>,
     batch: Batch,
+    /// Read the final hidden state with each row's logits (`label_logits_hidden`).
+    want_hidden: bool,
 }
+
+/// A row's label logits, and its hidden state when asked for.
+type RowOut = (Vec<f64>, Option<Vec<f32>>);
 
 // The model and context are only touched through `&mut self` or immutable queries.
 unsafe impl Send for LlamaBackend {}
@@ -204,9 +205,9 @@ impl LlamaBackend {
         ctx_params.n_threads_batch = threads;
         ctx_params.kv_unified = true;
         ctx_params.no_perf = true;
-        if options.hidden_states.is_some() {
-            ctx_params.pooling_type = sys::llama_pooling_type_LLAMA_POOLING_TYPE_NONE;
-        }
+        // Per-token hidden states when a head asks for them (what an unspecified pooling resolves
+        // to for these models anyway).
+        ctx_params.pooling_type = sys::llama_pooling_type_LLAMA_POOLING_TYPE_NONE;
         ctx_params.flash_attn_type = match options.flash_attention {
             FlashAttention::Auto => sys::llama_flash_attn_type_LLAMA_FLASH_ATTN_TYPE_AUTO,
             FlashAttention::On => sys::llama_flash_attn_type_LLAMA_FLASH_ATTN_TYPE_ENABLED,
@@ -230,6 +231,7 @@ impl LlamaBackend {
             labels: HashMap::new(),
             cached: Vec::new(),
             batch,
+            want_hidden: false,
         })
     }
 
@@ -279,7 +281,7 @@ impl LlamaBackend {
         unsafe { sys::llama_get_memory(self.ctx.as_ptr()) }
     }
 
-    /// Decode the batch; outputs are read with `logits_at`.
+    /// Decode the batch; outputs are read with `read_row`.
     fn decode(&mut self) -> Result<()> {
         match unsafe { sys::llama_decode(self.ctx.as_ptr(), self.batch.raw) } {
             0 => Ok(()),
@@ -288,13 +290,32 @@ impl LlamaBackend {
         }
     }
 
-    fn logits_at(&self, batch_index: usize, label_ids: &[sys::llama_token]) -> Result<Vec<f64>> {
+    /// The label logits at a batch index, and the hidden state there when `want_hidden`.
+    fn read_row(&self, batch_index: usize, label_ids: &[sys::llama_token]) -> Result<RowOut> {
         let row = unsafe { sys::llama_get_logits_ith(self.ctx.as_ptr(), batch_index as i32) };
         if row.is_null() {
             return Err(backend_error("llama.cpp returned no logits"));
         }
         let row = unsafe { std::slice::from_raw_parts(row, self.n_vocab) };
-        Ok(label_ids.iter().map(|&id| row[id as usize] as f64).collect())
+        let logits = label_ids.iter().map(|&id| row[id as usize] as f64).collect();
+        if !self.want_hidden {
+            return Ok((logits, None));
+        }
+        let at = unsafe { sys::llama_get_embeddings_ith(self.ctx.as_ptr(), batch_index as i32) };
+        if at.is_null() {
+            return Err(backend_error("llama.cpp returned no hidden state"));
+        }
+        let n = unsafe { sys::llama_model_n_embd_out(self.model.as_ptr()) } as usize;
+        Ok((logits, Some(unsafe { std::slice::from_raw_parts(at, n) }.to_vec())))
+    }
+
+    /// Decode the batch with embeddings on. They make every token of a decode an output (logits
+    /// included), so callers decode only the tokens they read this way.
+    fn decode_with_hidden(&mut self) -> Result<()> {
+        unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), true) };
+        let decoded = self.decode();
+        unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), false) };
+        decoded
     }
 
     /// Make sequence 0 hold exactly `tokens`, keeping what matches from the previous call when
@@ -338,23 +359,23 @@ impl LlamaBackend {
     }
 
     /// Logits after `prefix + suffix` for each suffix decoded alone after the prefix.
-    fn one_at_a_time(&mut self, prefix: &[i32], suffixes: &[Vec<i32>], labels: &[Vec<i32>]) -> Result<Vec<Vec<f64>>> {
+    fn one_at_a_time(&mut self, prefix: &[i32], suffixes: &[Vec<i32>], labels: &[Vec<i32>]) -> Result<Vec<RowOut>> {
         self.set_prefix(prefix)?;
         let memory = self.memory();
         let mut results = Vec::with_capacity(suffixes.len());
         for (row, (suffix, label_ids)) in suffixes.iter().zip(labels).enumerate() {
+            if suffix.is_empty() {
+                return Err(backend_error("a row has no tokens after its prefix"));
+            }
             if row > 0 && self.cached.len() != prefix.len() {
                 // The previous row could not be truncated away (a recurrent model): prefill again.
                 self.set_prefix(prefix)?;
             }
             self.check_fits(prefix.len() + suffix.len())?;
-            // Embeddings make every token in a decode an output, so they are on only for the suffix.
-            let hidden = self.options.hidden_states.is_some();
-            if hidden {
-                unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), true) };
-            }
-            for chunk_start in (0..suffix.len()).step_by(self.options.n_batch as usize) {
-                let chunk = &suffix[chunk_start..suffix.len().min(chunk_start + self.options.n_batch as usize)];
+            // With hidden states, the last token is decoded on its own (see decode_with_hidden).
+            let body = if self.want_hidden { suffix.len() - 1 } else { suffix.len() };
+            for chunk_start in (0..body).step_by(self.options.n_batch as usize) {
+                let chunk = &suffix[chunk_start..body.min(chunk_start + self.options.n_batch as usize)];
                 self.batch.clear();
                 for (i, &token) in chunk.iter().enumerate() {
                     let at = chunk_start + i;
@@ -362,17 +383,12 @@ impl LlamaBackend {
                 }
                 self.decode()?;
             }
-            results.push(self.logits_at(self.batch.len() - 1, label_ids)?);
-            if hidden {
-                let at = unsafe { sys::llama_get_embeddings_ith(self.ctx.as_ptr(), self.batch.len() as i32 - 1) };
-                unsafe { sys::llama_set_embeddings(self.ctx.as_ptr(), false) };
-                if at.is_null() {
-                    return Err(backend_error("llama.cpp returned no hidden state"));
-                }
-                let n = unsafe { sys::llama_model_n_embd_out(self.model.as_ptr()) } as usize;
-                let row = unsafe { std::slice::from_raw_parts(at, n) }.to_vec();
-                self.options.hidden_states.as_ref().unwrap().lock().unwrap().push(row);
+            if self.want_hidden {
+                self.batch.clear();
+                self.batch.push(suffix[body], (prefix.len() + body) as i32, 0, true);
+                self.decode_with_hidden()?;
             }
+            results.push(self.read_row(self.batch.len() - 1, label_ids)?);
             if !unsafe { sys::llama_memory_seq_rm(memory, 0, prefix.len() as i32, -1) } {
                 // The cache cannot drop a tail for this model (recurrent state): start over, and
                 // prefill the prefix again only if another row follows.
@@ -384,10 +400,10 @@ impl LlamaBackend {
     }
 
     /// Logits for every suffix, decoded together in passes of up to n_seq_max - 1 sequences.
-    fn batched(&mut self, prefix: &[i32], suffixes: &[Vec<i32>], labels: &[Vec<i32>]) -> Result<Vec<Vec<f64>>> {
+    fn batched(&mut self, prefix: &[i32], suffixes: &[Vec<i32>], labels: &[Vec<i32>]) -> Result<Vec<RowOut>> {
         self.set_prefix(prefix)?;
         let memory = self.memory();
-        let mut results = vec![Vec::new(); suffixes.len()];
+        let mut results = vec![(Vec::new(), None); suffixes.len()];
         let lanes = (self.options.n_seq_max as usize - 1).max(1);
         let mut start = 0;
         while start < suffixes.len() {
@@ -401,31 +417,89 @@ impl LlamaBackend {
                 cells += suffixes[end].len();
                 end += 1;
             }
-            if end == start {
+            if end == start || suffixes[start..end].iter().any(Vec::is_empty) {
                 return self.one_at_a_time(prefix, &suffixes[start..], &labels[start..]).map(|rest| {
                     results.truncate(start);
                     results.extend(rest);
                     results
                 });
             }
+            // With hidden states, each lane's last token goes in a second decode of its own.
+            let held_back = usize::from(self.want_hidden);
             self.batch.clear();
             let mut outputs = Vec::with_capacity(end - start);
             for (lane, suffix) in suffixes[start..end].iter().enumerate() {
                 let seq = lane as i32 + 1;
                 unsafe { sys::llama_memory_seq_cp(memory, 0, seq, -1, -1) };
-                for (i, &token) in suffix.iter().enumerate() {
+                for (i, &token) in suffix[..suffix.len() - held_back].iter().enumerate() {
                     self.batch.push(token, (prefix.len() + i) as i32, seq, i + 1 == suffix.len());
                 }
-                outputs.push(self.batch.len() - 1);
+                outputs.push(self.batch.len().wrapping_sub(1));
             }
-            self.decode()?;
+            if self.batch.len() > 0 {
+                self.decode()?;
+            }
+            if self.want_hidden {
+                self.batch.clear();
+                outputs.clear();
+                for (lane, suffix) in suffixes[start..end].iter().enumerate() {
+                    let last = suffix.len() - 1;
+                    self.batch.push(suffix[last], (prefix.len() + last) as i32, lane as i32 + 1, true);
+                    outputs.push(self.batch.len() - 1);
+                }
+                self.decode_with_hidden()?;
+            }
             for (offset, &index) in outputs.iter().enumerate() {
-                results[start + offset] = self.logits_at(index, &labels[start + offset])?;
+                results[start + offset] = self.read_row(index, &labels[start + offset])?;
             }
             for lane in 0..end - start {
                 unsafe { sys::llama_memory_seq_rm(memory, lane as i32 + 1, -1, -1) };
             }
             start = end;
+        }
+        Ok(results)
+    }
+
+    /// Every row's logits (and hidden state when `want_hidden`), in row order.
+    fn rows(&mut self, prefix: &str, suffixes: &[String], labels: &[Vec<String>]) -> Result<Vec<RowOut>> {
+        let label_ids: Vec<Vec<i32>> = labels
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|l| self.label_id(l).ok_or_else(|| backend_error(format!("label {l:?} is not one token"))))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .collect::<Result<_>>()?;
+        let prefix_ids = self.tokenize(prefix, true, true);
+        self.check_fits(prefix_ids.len())?;
+        let mut clean: Vec<(usize, Vec<i32>)> = Vec::new();
+        let mut split: Vec<(usize, Vec<i32>)> = Vec::new();
+        for (i, suffix) in suffixes.iter().enumerate() {
+            let full = self.tokenize(&format!("{prefix}{suffix}"), true, true);
+            if full.starts_with(&prefix_ids) {
+                clean.push((i, full[prefix_ids.len()..].to_vec()));
+            } else {
+                split.push((i, full));
+            }
+        }
+        let mut results = vec![(Vec::new(), None); suffixes.len()];
+        if !clean.is_empty() {
+            let rows: Vec<Vec<i32>> = clean.iter().map(|(_, s)| s.clone()).collect();
+            let row_labels: Vec<Vec<i32>> = clean.iter().map(|(i, _)| label_ids[*i].clone()).collect();
+            let out = if self.options.batch_suffixes && rows.len() > 1 {
+                self.batched(&prefix_ids, &rows, &row_labels)?
+            } else {
+                self.one_at_a_time(&prefix_ids, &rows, &row_labels)?
+            };
+            for ((i, _), row) in clean.iter().zip(out) {
+                results[*i] = row;
+            }
+        }
+        // Rows whose tokens merge across the prefix boundary: the full prompt, prefilled alone.
+        for (i, full) in split {
+            let (head, last) = full.split_at(full.len() - 1);
+            let row = self.one_at_a_time(head, &[last.to_vec()], std::slice::from_ref(&label_ids[i]))?;
+            results[i] = row.into_iter().next().unwrap();
         }
         Ok(results)
     }
@@ -453,45 +527,19 @@ impl Backend for LlamaBackend {
     }
 
     fn label_logits(&mut self, prefix: &str, suffixes: &[String], labels: &[Vec<String>]) -> Result<Vec<Vec<f64>>> {
-        let label_ids: Vec<Vec<i32>> = labels
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .map(|l| self.label_id(l).ok_or_else(|| backend_error(format!("label {l:?} is not one token"))))
-                    .collect::<Result<Vec<_>>>()
-            })
-            .collect::<Result<_>>()?;
-        let prefix_ids = self.tokenize(prefix, true, true);
-        self.check_fits(prefix_ids.len())?;
-        let mut clean: Vec<(usize, Vec<i32>)> = Vec::new();
-        let mut split: Vec<(usize, Vec<i32>)> = Vec::new();
-        for (i, suffix) in suffixes.iter().enumerate() {
-            let full = self.tokenize(&format!("{prefix}{suffix}"), true, true);
-            if full.starts_with(&prefix_ids) {
-                clean.push((i, full[prefix_ids.len()..].to_vec()));
-            } else {
-                split.push((i, full));
-            }
-        }
-        let mut results = vec![Vec::new(); suffixes.len()];
-        if !clean.is_empty() {
-            let rows: Vec<Vec<i32>> = clean.iter().map(|(_, s)| s.clone()).collect();
-            let row_labels: Vec<Vec<i32>> = clean.iter().map(|(i, _)| label_ids[*i].clone()).collect();
-            let logits = if self.options.batch_suffixes && rows.len() > 1 && self.options.hidden_states.is_none() {
-                self.batched(&prefix_ids, &rows, &row_labels)?
-            } else {
-                self.one_at_a_time(&prefix_ids, &rows, &row_labels)?
-            };
-            for ((i, _), z) in clean.iter().zip(logits) {
-                results[*i] = z;
-            }
-        }
-        // Rows whose tokens merge across the prefix boundary: the full prompt, prefilled alone.
-        for (i, full) in split {
-            let (head, last) = full.split_at(full.len() - 1);
-            let z = self.one_at_a_time(head, &[last.to_vec()], std::slice::from_ref(&label_ids[i]))?;
-            results[i] = z.into_iter().next().unwrap();
-        }
-        Ok(results)
+        Ok(self.rows(prefix, suffixes, labels)?.into_iter().map(|(logits, _)| logits).collect())
+    }
+
+    fn label_logits_hidden(
+        &mut self,
+        prefix: &str,
+        suffixes: &[String],
+        labels: &[Vec<String>],
+    ) -> Result<Option<LogitsAndHidden>> {
+        self.want_hidden = true;
+        let rows = self.rows(prefix, suffixes, labels);
+        self.want_hidden = false;
+        let (logits, hidden): (Vec<_>, Vec<_>) = rows?.into_iter().unzip();
+        Ok(Some((logits, hidden.into_iter().map(|h| h.expect("hidden state read")).collect())))
     }
 }

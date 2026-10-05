@@ -27,6 +27,8 @@ use lars_core::backend::{Backend, MockBackend};
 use lars_core::calibration::{Calibrator, certified_threshold};
 use lars_core::engine::{Engine, EngineOptions};
 use lars_core::eval::{self, Example};
+use lars_core::head;
+use lars_core::primitives::argmax;
 use lars_core::schema::Request;
 use lars_llama::{FlashAttention, LlamaBackend, LlamaOptions};
 use serde_json::{Value, json};
@@ -217,7 +219,12 @@ fn calibrate(
     if examples.is_empty() {
         return Err(Error::invalid("calibrate needs at least one labeled example"));
     }
-    let collected = eval::collect(engine, examples)?;
+    // A head is tried only from MIN_HEAD_LABELS examples that all ask the same question (same
+    // type and options); only then are hidden states read, so smaller fits score exactly as before.
+    let shapes: Vec<(Option<&str>, Option<Vec<String>>)> =
+        examples.iter().map(|e| (e.question["type"].as_str(), eval::option_keys(&e.question).ok())).collect();
+    let one_shape = shapes.iter().all(|s| *s == shapes[0]) && shapes[0].0 != Some("multi");
+    let collected = eval::collect_with(engine, examples, one_shape && examples.len() >= head::MIN_HEAD_LABELS)?;
     let fitted = eval::calibrate_collected(examples, &collected, source);
     // A fit on a handful of labels can be worse than the pack's own calibrator: a Platt fit on 30
     // rows can move a yes/no boundary the wrong way. Keep it only if, cross-validated on the same
@@ -232,8 +239,8 @@ fn calibrate(
         let (train_examples, train_rows) = eval::subset(examples, &collected, &train);
         let (held_examples, held_rows) = eval::subset(examples, &collected, &held);
         let candidate = eval::calibrate_collected(&train_examples, &train_rows, source);
-        let with_fit = eval::log_losses(&candidate, &held_examples, &held_rows);
-        let with_pack = eval::log_losses(&pack.calibrator, &held_examples, &held_rows);
+        let with_fit = eval::log_losses(&candidate, &held_examples, &held_rows)?;
+        let with_pack = eval::log_losses(&pack.calibrator, &held_examples, &held_rows)?;
         fitted_loss += with_fit.iter().sum::<f64>();
         pack_loss += with_pack.iter().sum::<f64>();
         differences.extend(with_fit.iter().zip(&with_pack).map(|(f, p)| f - p));
@@ -243,10 +250,35 @@ fn calibrate(
     let mean = differences.iter().sum::<f64>() / n;
     let variance = differences.iter().map(|d| (d - mean) * (d - mean)).sum::<f64>() / (n - 1.0).max(1.0);
     let use_fitted = folds >= 2 && mean + 1.96 * (variance / n).sqrt() < 0.0;
-    let calibrator = if use_fitted { fitted } else { pack.calibrator.clone() };
-    let scored = eval::score_examples(&calibrator, examples, &collected);
-    let confidences: Vec<f64> = scored.iter().map(|(_, c, _)| *c).collect();
-    let correct: Vec<f64> = scored.iter().map(|(_, _, hit)| if *hit { 1.0 } else { 0.0 }).collect();
+    let mut calibrator = if use_fitted { fitted } else { pack.calibrator.clone() };
+    let mut kept = if use_fitted { "fitted" } else { "pack" };
+    let mut cv_log_loss = json!({"fitted": fitted_loss, "pack": pack_loss});
+    let mut probs: Vec<Vec<f64>> =
+        eval::score_examples(&calibrator, examples, &collected)?.into_iter().map(|(p, _, _)| p).collect();
+    // Then a recalibration or a head on top, chosen the same way, for one repeated question.
+    let keys = collected.rows[0].1.clone();
+    let mut out_of_fold = false;
+    if one_shape {
+        let targets: Vec<Vec<f64>> = examples.iter().map(|e| eval::target_vector(e, &keys)).collect();
+        let choice = head::choose_head(&probs, collected.hidden.as_deref(), &targets, &keys, folds);
+        for (name, loss) in &choice.cv_log_loss[1..] {
+            cv_log_loss[name] = json!(loss);
+        }
+        if let Some(chosen) = choice.head {
+            kept = if chosen.uses_hidden() { "head" } else { "recal" };
+            calibrator.head = Some(chosen);
+            // Scored in-sample, a head looks better than it is: report and certify on the
+            // cross-validated answers instead.
+            probs = choice.out_of_fold;
+            out_of_fold = true;
+        }
+    }
+    let confidences: Vec<f64> = probs.iter().map(|p| p.iter().copied().fold(0.0, f64::max)).collect();
+    let correct: Vec<f64> = probs
+        .iter()
+        .zip(examples)
+        .map(|(p, e)| if Some(argmax(p)) == eval::hard_index(&keys, &e.label).ok() { 1.0 } else { 0.0 })
+        .collect();
     let accuracy = correct.iter().sum::<f64>() / correct.len() as f64;
     let certified = max_error.map(|budget| match certified_threshold(&confidences, &correct, budget) {
         Some(c) => json!({"max_error": budget, "threshold": c.threshold, "accepted": c.accepted, "errors": c.errors,
@@ -257,8 +289,9 @@ fn calibrate(
                                          examples.len())}),
     });
     Ok(json!({"calibrator": pack.bind(&calibrator), "examples": examples.len(), "accuracy": accuracy,
-              "certified": certified, "kept": if use_fitted { "fitted" } else { "pack" },
-              "cross_validated_log_loss": {"fitted": fitted_loss, "pack": pack_loss}})
+              "certified": certified, "kept": kept, "base": if use_fitted { "fitted" } else { "pack" },
+              "out_of_fold": out_of_fold,
+              "cross_validated_log_loss": cv_log_loss})
     .to_string())
 }
 

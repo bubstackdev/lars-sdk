@@ -10,6 +10,9 @@ use crate::error::Result;
 use crate::py;
 use crate::render::Template;
 
+/// Label logits per row, and each row's final hidden state.
+pub type LogitsAndHidden = (Vec<Vec<f64>>, Vec<Vec<f32>>);
+
 /// A model that can prefill a prefix once and score many suffixes against label tokens.
 ///
 /// Implementations own tokenization, KV-cache reuse and batching; the engine never sees token
@@ -23,7 +26,20 @@ pub trait Backend: Send {
     fn is_single_token(&self, label: &str) -> bool;
     fn count_tokens(&self, text: &str) -> usize;
     fn label_logits(&mut self, prefix: &str, suffixes: &[String], labels: &[Vec<String>]) -> Result<Vec<Vec<f64>>>;
+    /// As `label_logits`, plus the model's final hidden state at each row's answer position, for
+    /// calibrators with a head. None when the backend cannot read hidden states.
+    fn label_logits_hidden(
+        &mut self,
+        _prefix: &str,
+        _suffixes: &[String],
+        _labels: &[Vec<String>],
+    ) -> Result<Option<LogitsAndHidden>> {
+        Ok(None)
+    }
 }
+
+/// Size of the mock's hidden states.
+pub const MOCK_HIDDEN: usize = 32;
 
 static OPTION_LINE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^([A-Z]{1,2})\) (.+)$").unwrap());
 static STATE_BLOCK: LazyLock<Regex> =
@@ -106,5 +122,22 @@ impl Backend for MockBackend {
             results.push(logits);
         }
         Ok(results)
+    }
+
+    /// Hidden states are the state's words hashed into `MOCK_HIDDEN` counts, so a label that
+    /// depends on a word the logits ignore can be read back by a head.
+    fn label_logits_hidden(
+        &mut self,
+        prefix: &str,
+        suffixes: &[String],
+        labels: &[Vec<String>],
+    ) -> Result<Option<LogitsAndHidden>> {
+        let logits = self.label_logits(prefix, suffixes, labels)?;
+        let state_text = STATE_BLOCK.captures(prefix).map_or(prefix, |c| c.get(1).unwrap().as_str()).to_lowercase();
+        let mut hidden = vec![0f32; MOCK_HIDDEN];
+        for word in words(&state_text) {
+            hidden[(hash_unit(&[word]) * MOCK_HIDDEN as f64) as usize] += 1.0;
+        }
+        Ok(Some((logits, vec![hidden; suffixes.len()])))
     }
 }

@@ -156,10 +156,12 @@ export interface CalibrateOptions {
 
 export interface CalibrationResult {
   examples: number;
-  /** Which calibrator this predicate now uses: the fit on these labels, or the pack's when the fit was
-   *  not significantly better on held-out labels (5-fold cross-validated log loss). */
-  kept: "fitted" | "pack";
-  /** Accuracy on the labeled examples themselves, with the fitted calibrator. */
+  /** What this predicate now uses. "pack" or "fitted": the pack's calibrator, or a refit on these labels
+   *  when it was significantly better on held-out labels (5-fold cross-validated log loss). "recal": that,
+   *  rescaled with a bias per option. "head": that, plus a readout of the model's hidden state (tried from
+   *  50 labels of one question). Each step is taken only when it is significantly better than the last. */
+  kept: "pack" | "fitted" | "recal" | "head";
+  /** Accuracy on the labeled examples: cross-validated for "recal" and "head", else in-sample. */
   accuracy: number;
   certified: Certified | null;
 }

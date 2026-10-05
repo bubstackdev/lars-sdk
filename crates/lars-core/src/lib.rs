@@ -10,6 +10,7 @@ pub mod calibration;
 pub mod engine;
 pub mod error;
 pub mod eval;
+pub mod head;
 pub mod labels;
 pub mod primitives;
 pub mod py;
