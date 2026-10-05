@@ -1,0 +1,137 @@
+name: package
+
+# Native libraries for every platform, the npm and NuGet packages built from them, and install
+# tests of those packages on each platform. Produces artifacts only: nothing is published.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths: [".github/workflows/package.yml", "ts/scripts/package-npm.mjs", "packaging/**", "dotnet/Moedex.Lars/Moedex.Lars.csproj"]
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: osx-arm64, node: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin, lib: liblars.dylib, addon: liblars_node.dylib }
+          - { rid: osx-x64, node: darwin-x64, os: macos-latest, target: x86_64-apple-darwin, lib: liblars.dylib, addon: liblars_node.dylib }
+          - { rid: win-x64, node: win32-x64, os: windows-latest, target: x86_64-pc-windows-msvc, lib: lars.dll, addon: lars_node.dll }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }} -p lars-ffi -p lars-node
+      - name: collect
+        shell: bash
+        run: |
+          mkdir -p out/runtimes/${{ matrix.rid }}/native out/node/${{ matrix.node }}
+          cp target/${{ matrix.target }}/release/${{ matrix.lib }} out/runtimes/${{ matrix.rid }}/native/
+          cp target/${{ matrix.target }}/release/${{ matrix.addon }} out/node/${{ matrix.node }}/lars.node
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: out
+
+  native-linux:
+    # manylinux_2_28 images: the libraries need glibc 2.28 or newer (Debian 10, Ubuntu 18.10, RHEL 8).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { rid: linux-x64, node: linux-x64, os: ubuntu-latest, image: quay.io/pypa/manylinux_2_28_x86_64 }
+          - { rid: linux-arm64, node: linux-arm64, os: ubuntu-24.04-arm, image: quay.io/pypa/manylinux_2_28_aarch64 }
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: cargo build --release -p lars-ffi -p lars-node
+      - name: collect
+        run: |
+          mkdir -p out/runtimes/${{ matrix.rid }}/native out/node/${{ matrix.node }}
+          cp target/release/liblars.so out/runtimes/${{ matrix.rid }}/native/
+          cp target/release/liblars_node.so out/node/${{ matrix.node }}/lars.node
+          echo "newest glibc symbol needed:"
+          objdump -T out/runtimes/${{ matrix.rid }}/native/liblars.so | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: out
+
+  packages:
+    needs: [native, native-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: native
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: npm
+        working-directory: ts
+        run: |
+          pnpm install --frozen-lockfile
+          node scripts/package-npm.mjs --native ../native/node --out ../dist/npm
+      - name: nuget
+        run: |
+          cp -r native/runtimes dotnet/Moedex.Lars/
+          dotnet pack dotnet/Moedex.Lars -c Release -o dist/nuget
+          unzip -l dist/nuget/*.nupkg | grep runtimes
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+  install-test:
+    needs: packages
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: npm package, installed into a fresh project
+        shell: bash
+        run: |
+          triple=$(node -p 'process.platform + "-" + process.arch')
+          dist="$PWD/dist/npm"
+          mkdir -p "$RUNNER_TEMP/npm-smoke" && cd "$RUNNER_TEMP/npm-smoke"
+          npm init -y > /dev/null && npm pkg set type=module
+          npm install --omit=optional "$dist"/moedex-lars-0.1.0.tgz "$dist/moedex-lars-$triple-0.1.0.tgz"
+          cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
+      - name: NuGet package, restored from a local feed
+        shell: bash
+        run: dotnet run -c Release --project packaging/smoke/dotnet -p:LarsFeed="$PWD/dist/nuget"

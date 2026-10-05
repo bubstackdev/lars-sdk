@@ -13,5 +13,14 @@
     <Description>Typed decisions as functions in your code: calibrated answers from a small model running in-process.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/moedex/lars-sdk</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>llm;classification;calibration;decisions;local</PackageTags>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- The native library per runtime identifier, placed here by the package workflow:
+         runtimes/{osx-arm64,osx-x64,linux-x64,linux-arm64,win-x64}/native/. .NET resolves it from
+         the package on its own; LARS_NATIVE overrides it during development. -->
+    <None Include="runtimes/**/*" Pack="true" PackagePath="runtimes/" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>

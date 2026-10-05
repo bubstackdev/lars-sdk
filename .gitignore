@@ -9,3 +9,6 @@ obj/
 __pycache__/
 models/
 sweep/out/
+dist/
+ts/npm-dist/
+ts/native-dist/
