@@ -218,7 +218,32 @@ fn calibrate(
         return Err(Error::invalid("calibrate needs at least one labeled example"));
     }
     let collected = eval::collect(engine, examples)?;
-    let calibrator = eval::calibrate_collected(examples, &collected, source);
+    let fitted = eval::calibrate_collected(examples, &collected, source);
+    // A fit on a handful of labels can be worse than the pack's own calibrator: a Platt fit on 30
+    // rows can move a yes/no boundary the wrong way. Keep it only if, cross-validated on the same
+    // labels, it predicts held-out labels significantly better than the pack's: the 95% upper
+    // bound on the paired per-example log-loss difference must be below zero.
+    let folds = examples.len().min(5);
+    let mut differences = Vec::with_capacity(examples.len());
+    let (mut fitted_loss, mut pack_loss) = (0.0, 0.0);
+    for fold in 0..folds {
+        let held: Vec<usize> = (0..examples.len()).filter(|i| i % folds == fold).collect();
+        let train: Vec<usize> = (0..examples.len()).filter(|i| i % folds != fold).collect();
+        let (train_examples, train_rows) = eval::subset(examples, &collected, &train);
+        let (held_examples, held_rows) = eval::subset(examples, &collected, &held);
+        let candidate = eval::calibrate_collected(&train_examples, &train_rows, source);
+        let with_fit = eval::log_losses(&candidate, &held_examples, &held_rows);
+        let with_pack = eval::log_losses(&pack.calibrator, &held_examples, &held_rows);
+        fitted_loss += with_fit.iter().sum::<f64>();
+        pack_loss += with_pack.iter().sum::<f64>();
+        differences.extend(with_fit.iter().zip(&with_pack).map(|(f, p)| f - p));
+    }
+    let n = differences.len().max(1) as f64;
+    let (fitted_loss, pack_loss) = (fitted_loss / n, pack_loss / n);
+    let mean = differences.iter().sum::<f64>() / n;
+    let variance = differences.iter().map(|d| (d - mean) * (d - mean)).sum::<f64>() / (n - 1.0).max(1.0);
+    let use_fitted = folds >= 2 && mean + 1.96 * (variance / n).sqrt() < 0.0;
+    let calibrator = if use_fitted { fitted } else { pack.calibrator.clone() };
     let scored = eval::score_examples(&calibrator, examples, &collected);
     let confidences: Vec<f64> = scored.iter().map(|(_, c, _)| *c).collect();
     let correct: Vec<f64> = scored.iter().map(|(_, _, hit)| if *hit { 1.0 } else { 0.0 }).collect();
@@ -232,7 +257,8 @@ fn calibrate(
                                          examples.len())}),
     });
     Ok(json!({"calibrator": pack.bind(&calibrator), "examples": examples.len(), "accuracy": accuracy,
-              "certified": certified})
+              "certified": certified, "kept": if use_fitted { "fitted" } else { "pack" },
+              "cross_validated_log_loss": {"fitted": fitted_loss, "pack": pack_loss}})
     .to_string())
 }
 

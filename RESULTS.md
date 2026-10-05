@@ -334,7 +334,21 @@ example. The TypeScript example gives the same answers on the 4B. Out of 30 test
   from 27 to 24 of 30: a Platt fit on 30 rows moved the yes/no boundary the wrong way. On
   the other packs and predicates it changed nothing.
 - **What this means for `calibrate`:** a per-predicate calibrator fitted on a handful of
-  labels should not silently replace the pack's. Options:
-  - compare the two on held-out labels
-  - shrink the fit toward the pack calibrator
-  - require a minimum number of labels before Platt moves the boundary
+  labels should not silently replace the pack's.
+
+**Fixed the same day.** `calibrate` now cross-validates the fit against the pack's calibrator
+on the same labels (5-fold, by log loss). It keeps the fit only when the 95% upper bound on the
+paired per-example log-loss difference is below zero, and the result says which one it kept.
+
+Choosing on the cross-validated mean alone was not enough. On the 1.7B it kept a fit that was
+worse on test: 27 → 24 of 30, log loss 0.342 → 0.366. With the significance rule, Molar
+Triage's "in pain" on 30 labels:
+
+| pack | calibrator kept | test before | test after |
+|---|---|---|---|
+| 4B | pack | 28/30, log loss 0.166 | 28/30, 0.166 |
+| 1.7B | pack | 27/30, 0.342 | 27/30, 0.342 |
+| 0.6B | pack | 29/30, 0.169 | 29/30, 0.169 |
+
+A runtime test checks the other direction: 200 labels that contradict the model replace the
+pack's calibrator.

@@ -255,6 +255,35 @@ pub fn score_examples(cal: &Calibrator, examples: &[Example], collected: &Collec
         .collect()
 }
 
+/// Mean log loss of `cal` against each example's target (its soft label, else the hard label).
+pub fn log_loss(cal: &Calibrator, examples: &[Example], collected: &Collected) -> f64 {
+    let losses = log_losses(cal, examples, collected);
+    pairwise_sum(&losses) / losses.len().max(1) as f64
+}
+
+/// Each example's log loss under `cal`.
+pub fn log_losses(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Vec<f64> {
+    let scored = score_examples(cal, examples, collected);
+    examples
+        .iter()
+        .zip(&collected.rows)
+        .zip(&scored)
+        .map(|((example, (_, keys, _)), (p, _, _))| {
+            let target = target_vector(example, keys);
+            -target.iter().zip(p).map(|(t, p)| t * p.clamp(1e-12, 1.0).ln()).sum::<f64>()
+        })
+        .collect()
+}
+
+/// The examples and collected rows at `indices`, for fitting or scoring a subset.
+pub fn subset(examples: &[Example], collected: &Collected, indices: &[usize]) -> (Vec<Example>, Collected) {
+    let rows = indices.iter().map(|&i| collected.rows[i].clone()).collect();
+    (
+        indices.iter().map(|&i| examples[i].clone()).collect(),
+        Collected { rows, ms_per_example: collected.ms_per_example },
+    )
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvalResult {
     pub count: usize,

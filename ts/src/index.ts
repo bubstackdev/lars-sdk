@@ -156,6 +156,9 @@ export interface CalibrateOptions {
 
 export interface CalibrationResult {
   examples: number;
+  /** Which calibrator this predicate now uses: the fit on these labels, or the pack's when the fit was
+   *  not significantly better on held-out labels (5-fold cross-validated log loss). */
+  kept: "fitted" | "pack";
   /** Accuracy on the labeled examples themselves, with the fitted calibrator. */
   accuracy: number;
   certified: Certified | null;
@@ -477,7 +480,7 @@ export class Lars {
         : null;
       if (certified) this.#certified.set(name, certified);
       else this.#certified.delete(name);
-      return { examples: raw.examples, accuracy: raw.accuracy, certified };
+      return { examples: raw.examples, kept: raw.kept, accuracy: raw.accuracy, certified };
     };
   }
 }

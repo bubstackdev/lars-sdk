@@ -64,7 +64,9 @@ public sealed record LarsOptions
 public sealed record Certified(double MaxError, double? Threshold, int? Accepted, int? Errors, double? Coverage,
                                double? ErrorUpper95, string? Reason);
 
-public sealed record CalibrationResult(int Examples, double Accuracy, Certified? Certified);
+/// <summary>A calibration's outcome. <see cref="Kept"/> is "fitted", or "pack" when the fit was not significantly better
+/// than the pack's calibrator on held-out labels (5-fold cross-validated log loss).</summary>
+public sealed record CalibrationResult(int Examples, string Kept, double Accuracy, Certified? Certified);
 
 /// <summary>What every decision carries.</summary>
 public abstract record Decision
@@ -503,7 +505,8 @@ public sealed class Lars : IDisposable, IAsyncDisposable
             if (certified is null) _certified.Remove(name);
             else _certified[name] = certified;
         }
-        return new CalibrationResult(raw["examples"]!.GetValue<int>(), raw["accuracy"]!.GetValue<double>(), certified);
+        return new CalibrationResult(raw["examples"]!.GetValue<int>(), raw["kept"]!.GetValue<string>(), raw["accuracy"]!.GetValue<double>(),
+            certified);
     }
 
     // ------------------------------------------------------------------ calibrations

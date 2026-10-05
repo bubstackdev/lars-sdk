@@ -162,3 +162,35 @@ fn bad_packs_and_options_are_clear_errors() {
     std::fs::write(dir.join("pack.json"), r#"{"format": 9}"#).unwrap();
     assert!(Lars::open(dir.to_str().unwrap(), OpenOptions::default()).err().unwrap().message.contains("format"));
 }
+
+#[test]
+fn a_fitted_calibrator_replaces_the_packs_only_when_it_is_significantly_better() {
+    let lars = open("keep", OpenOptions::default());
+    let question = r#"{"type": "noul", "instructions": "The message asks for a refund"}"#;
+    let state = |i: usize| format!("message {i} about an order");
+    let mock_says_yes = |i: usize| -> bool {
+        let request = format!(r#"{{"state": "{}", "questions": {{"q": {question}}}}}"#, state(i));
+        let answer: Value = serde_json::from_str(&lars.evaluate(&request).unwrap()).unwrap();
+        answer["answers"]["q"]["noul"].as_f64().unwrap() >= 0.5
+    };
+    let examples = |n: usize, label: &dyn Fn(usize) -> bool| -> String {
+        (0..n)
+            .map(|i| {
+                format!(
+                    r#"{{"state": "{}", "question": {question}, "label": "{}"}}"#,
+                    state(i),
+                    if label(i) { "yes" } else { "no" }
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    // 200 labels that always contradict the mock: a fit that flips its answers is clearly better.
+    let fitted: Value =
+        serde_json::from_str(&lars.calibrate("flip", &examples(200, &|i| !mock_says_yes(i)), None).unwrap()).unwrap();
+    assert_eq!(fitted["kept"], "fitted", "{}", fitted["cross_validated_log_loss"]);
+    // 20 labels agreeing with the mock: nothing significant to gain, so the pack's calibrator stays.
+    let kept: Value =
+        serde_json::from_str(&lars.calibrate("agree", &examples(20, &mock_says_yes), None).unwrap()).unwrap();
+    assert_eq!(kept["kept"], "pack", "{}", kept["cross_validated_log_loss"]);
+}
