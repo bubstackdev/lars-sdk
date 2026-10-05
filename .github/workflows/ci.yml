@@ -34,7 +34,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: cargo clippy -p lars-llama -p lars-dev --all-targets -- -D warnings
+      - run: cargo clippy -p lars-llama -p lars-dev -p lars-runtime -p lars-ffi --all-targets -- -D warnings
       - run: cargo build --release -p lars-dev
-      # Model tests need a GGUF (LARS_TEST_GGUF) and skip without one.
-      - run: cargo test --release -p lars-llama
+      # Model tests need a GGUF (LARS_TEST_GGUF) and skip without one; the runtime and the C ABI
+      # are tested on mock packs (the C smoke test runs on Unix, under leaks on macOS).
+      - run: cargo test --release -p lars-llama -p lars-runtime -p lars-ffi
+      - name: lars.h is up to date
+        if: runner.os == 'Linux'
+        run: |
+          cargo install cbindgen --version 0.29.4 --locked
+          cbindgen --config crates/lars-ffi/cbindgen.toml --crate lars-ffi --output /tmp/lars.h
+          diff -u crates/lars-ffi/include/lars.h /tmp/lars.h

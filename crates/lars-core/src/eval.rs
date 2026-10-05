@@ -23,7 +23,8 @@ pub struct Example {
     pub state: Value,
     pub question: Value,
     pub label: String,
-    pub soft_label: Option<Map<String, Value>>,
+    /// The human target as a normalized distribution in option order, when the row has one.
+    pub soft_label: Option<Vec<f64>>,
     /// Named numeric evidence for a noul, fused with the model when a calibration is fitted with it.
     pub features: Option<IndexMap<String, f64>>,
 }
@@ -71,7 +72,10 @@ pub fn read_examples(text: &str) -> Result<Vec<Example>> {
         if !question.is_object() {
             return Err(bad("question must be a JSON object"));
         }
-        let soft = raw.get("soft_label").map(maybe_json);
+        let keys = option_keys(&question).map_err(|e| bad(&e))?;
+        let label = py::str_of(raw.get("label").ok_or_else(|| bad("no label"))?);
+        let soft = soft_target(&keys, raw.get("soft_label").unwrap_or(&Value::Null)).map_err(|e| bad(&e))?;
+        hard_index(&keys, &label).map_err(|e| bad(&e))?;
         let features = match raw.get("features") {
             Some(Value::Object(map)) => Some(
                 map.iter()
@@ -83,11 +87,8 @@ pub fn read_examples(text: &str) -> Result<Vec<Example>> {
         examples.push(Example {
             state: maybe_json(raw.get("state").ok_or_else(|| bad("no state"))?),
             question,
-            label: py::str_of(raw.get("label").ok_or_else(|| bad("no label"))?),
-            soft_label: match soft {
-                Some(Value::Object(map)) => Some(map),
-                _ => None,
-            },
+            label,
+            soft_label: soft,
             features,
         });
     }
@@ -124,35 +125,134 @@ fn noul_label(label: &str) -> &'static str {
     if matches!(label, "1" | "true" | "yes") { "yes" } else { "no" }
 }
 
-fn target_vector(example: &Example, keys: &[String]) -> Vec<f64> {
-    if let Some(soft) = example.soft_label.as_ref().filter(|s| !s.is_empty()) {
-        let vec: Vec<f64> = keys.iter().map(|k| soft.get(k).and_then(as_float).unwrap_or(0.0)).collect();
-        let total = pairwise_sum(&vec);
-        return if total > 0.0 { vec.iter().map(|v| v / total).collect() } else { vec };
+/// A question's option keys, as targets are ordered: yes/no for binary questions, level
+/// indices for score, criteria keys for choice.
+fn option_keys(question: &Value) -> std::result::Result<Vec<String>, String> {
+    let criteria = &question["criteria"];
+    match question["type"].as_str() {
+        Some("noul" | "multi") => Ok(vec!["yes".into(), "no".into()]),
+        Some("score") => Ok((0..criteria.as_array().map_or(0, Vec::len)).map(|i| i.to_string()).collect()),
+        Some("choice") => Ok(criteria.as_object().map(|m| m.keys().cloned().collect()).unwrap_or_default()),
+        _ => Err("question has no known type".into()),
     }
-    keys.iter().map(|k| if *k == example.label { 1.0 } else { 0.0 }).collect()
 }
 
-/// [P(yes), P(no)]: the normalized soft label when there is one, else the hard label.
-fn noul_target(example: &Example) -> Vec<f64> {
-    if let Some(soft) = example.soft_label.as_ref().filter(|s| !s.is_empty()) {
-        let (mut yes, mut total) = (0.0, 0.0);
-        for (k, v) in soft {
-            let v = as_float(v).unwrap_or(0.0);
-            if noul_label(&k.to_lowercase()) == "yes" {
-                yes += v;
-            }
-            total += v;
-        }
-        if total > 0.0 {
-            return vec![yes / total, 1.0 - yes / total];
-        }
+fn is_binary_keys(keys: &[String]) -> bool {
+    keys == ["yes", "no"]
+}
+
+/// yes/1/true or no/0/false, case-insensitive; anything else is an error.
+fn binary_key(value: &str) -> std::result::Result<&'static str, String> {
+    match value.to_lowercase().as_str() {
+        "yes" | "1" | "true" => Ok("yes"),
+        "no" | "0" | "false" => Ok("no"),
+        _ => Err(format!("unknown binary label {}", crate::schema::py_repr(value))),
     }
-    if noul_label(&example.label) == "yes" { vec![1.0, 0.0] } else { vec![0.0, 1.0] }
+}
+
+fn hard_index(keys: &[String], label: &str) -> std::result::Result<usize, String> {
+    let label = if is_binary_keys(keys) { binary_key(label)?.to_string() } else { label.to_string() };
+    keys.iter().position(|k| *k == label).ok_or_else(|| format!("hard label {label:?} is not a question option"))
+}
+
+/// Finite, nonnegative weights with positive mass, normalized.
+fn normalize(weights: Vec<f64>) -> std::result::Result<Vec<f64>, String> {
+    if weights.is_empty() || weights.iter().any(|w| !w.is_finite() || *w < 0.0) {
+        return Err("target weights must be finite, nonnegative numbers".into());
+    }
+    let total: f64 = weights.iter().sum();
+    if !total.is_finite() || total <= 0.0 {
+        return Err("target must have finite positive mass".into());
+    }
+    Ok(weights.iter().map(|w| w / total).collect())
+}
+
+/// A soft target, decoded and validated as the corrected lars loader does (`lars.targets`):
+/// a JSON-encoded string is decoded first; a scalar is P(yes) for a binary question; a list is
+/// in option order (binary order is [yes, no]); a map is by option key (binary keys accept
+/// yes/1/true and no/0/false) and may omit zero-mass options. Malformed targets are errors,
+/// never a silent fall back to the hard label.
+fn soft_target(keys: &[String], value: &Value) -> std::result::Result<Option<Vec<f64>>, String> {
+    let decoded;
+    let value = match value {
+        Value::String(text) => {
+            decoded = serde_json::from_str::<Value>(text).map_err(|_| "soft_label must be valid JSON".to_string())?;
+            &decoded
+        }
+        other => other,
+    };
+    let binary = is_binary_keys(keys);
+    let number = |v: &Value| v.as_f64().filter(|_| v.is_number()).ok_or("soft_label weights must be numbers");
+    let weights = match value {
+        Value::Null => return Ok(None),
+        Value::Number(_) => {
+            let p = number(value)?;
+            if !binary || !(0.0..=1.0).contains(&p) {
+                return Err("scalar soft_label must be a binary probability in [0, 1]".into());
+            }
+            vec![p, 1.0 - p]
+        }
+        Value::Object(map) => {
+            let mut weights = vec![0.0; keys.len()];
+            let mut seen = vec![false; keys.len()];
+            for (key, weight) in map {
+                let key = if binary { binary_key(key)?.to_string() } else { key.clone() };
+                let i = keys.iter().position(|k| *k == key).ok_or(format!("soft_label has unknown option {key:?}"))?;
+                if seen[i] {
+                    return Err(format!("soft_label repeats option {key:?} through aliases"));
+                }
+                seen[i] = true;
+                weights[i] = number(weight)?;
+            }
+            weights
+        }
+        Value::Array(items) => {
+            if items.len() != keys.len() {
+                return Err(format!("soft_label has {} values, expected {}", items.len(), keys.len()));
+            }
+            items.iter().map(number).collect::<std::result::Result<_, _>>()?
+        }
+        _ => return Err("soft_label must be a probability, vector, or option map".into()),
+    };
+    normalize(weights).map(Some)
+}
+
+/// The target distribution in `keys` order: the soft label when there is one, else one-hot.
+fn target_vector(example: &Example, keys: &[String]) -> Vec<f64> {
+    if let Some(soft) = &example.soft_label {
+        return soft.clone();
+    }
+    let hot = hard_index(keys, &example.label).unwrap_or(usize::MAX);
+    (0..keys.len()).map(|i| if i == hot { 1.0 } else { 0.0 }).collect()
+}
+
+/// [P(yes), P(no)].
+fn noul_target(example: &Example) -> Vec<f64> {
+    target_vector(example, &["yes".to_string(), "no".to_string()])
 }
 
 fn is_binary(kind: Kind) -> bool {
     matches!(kind, Kind::Noul | Kind::Multi)
+}
+
+/// Each example's calibrated distribution, its confidence (the top probability) and whether the
+/// top option is the hard label, under `cal`, from logits already collected.
+pub fn score_examples(cal: &Calibrator, examples: &[Example], collected: &Collected) -> Vec<(Vec<f64>, f64, bool)> {
+    examples
+        .iter()
+        .zip(&collected.rows)
+        .map(|(example, (kind, keys, logits))| {
+            let p = if is_binary(*kind) {
+                let p_yes = noul_prob(cal, logits[0] - logits[1], *kind, example.features.as_ref());
+                vec![p_yes, 1.0 - p_yes]
+            } else {
+                softmax(logits, cal.temperature_for(*kind))
+            };
+            let hit = Some(argmax(&p)) == hard_index(keys, &example.label).ok();
+            let confidence = max(&p);
+            (p, confidence, hit)
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -278,4 +378,41 @@ pub fn calibrate_collected(examples: &[Example], collected: &Collected, source: 
         }
     }
     calibrator
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn keys(names: &[&str]) -> Vec<String> {
+        names.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn soft_targets_decode_as_the_corrected_lars_loader() {
+        let binary = keys(&["yes", "no"]);
+        let three = keys(&["a", "b", "c"]);
+        let decode = |k: &[String], v: Value| soft_target(k, &v);
+        assert_eq!(decode(&binary, json!("0.25")), Ok(Some(vec![0.25, 0.75])));
+        assert_eq!(decode(&binary, json!(1)), Ok(Some(vec![1.0, 0.0])));
+        assert_eq!(decode(&binary, json!({"1": 3, "0": 1})), Ok(Some(vec![0.75, 0.25])));
+        assert_eq!(decode(&three, json!("[0.0, 0.0, 2.0]")), Ok(Some(vec![0.0, 0.0, 1.0])));
+        assert_eq!(decode(&three, json!({"b": 1})), Ok(Some(vec![0.0, 1.0, 0.0])));
+        assert_eq!(decode(&three, Value::Null), Ok(None));
+        for bad in [
+            json!("not json"),
+            json!(1.5),
+            json!([1, 2]),
+            json!({"z": 1}),
+            json!([0, 0, 0]),
+            json!([-1, 1, 1]),
+            json!({"a": "x"}),
+        ] {
+            assert!(decode(&three, bad.clone()).is_err() || decode(&binary, bad.clone()).is_err(), "{bad}");
+        }
+        assert!(decode(&three, json!(0.5)).is_err(), "a scalar is only for binary questions");
+        assert!(decode(&binary, json!({"yes": 1, "true": 1})).is_err(), "aliases repeat an option");
+        assert!(hard_index(&binary, "maybe").is_err());
+        assert_eq!(hard_index(&binary, "True"), Ok(0));
+    }
 }

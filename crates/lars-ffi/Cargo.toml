@@ -1,0 +1,19 @@
+[package]
+name = "lars-ffi"
+description = "The LARS SDK's C ABI (include/lars.h), over lars-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "lars"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+lars-runtime = { path = "../lars-runtime" }
+serde_json.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

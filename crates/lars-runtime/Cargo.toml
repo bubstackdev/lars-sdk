@@ -1,0 +1,20 @@
+[package]
+name = "lars-runtime"
+description = "The LARS SDK runtime: packs, a worker thread per loaded model, per-handle calibrators"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+lars-core = { path = "../lars-core" }
+lars-llama = { path = "../lars-llama" }
+serde_json.workspace = true
+sha2.workspace = true
+ureq = "3"
+
+[dev-dependencies]
+lars-core = { path = "../lars-core" }
+sha2.workspace = true

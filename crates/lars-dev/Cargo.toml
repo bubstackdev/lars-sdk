@@ -11,4 +11,5 @@ publish = false
 [dependencies]
 lars-core = { path = "../lars-core" }
 lars-llama = { path = "../lars-llama" }
+lars-runtime = { path = "../lars-runtime" }
 serde_json.workspace = true

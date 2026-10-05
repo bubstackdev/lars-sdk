@@ -9,6 +9,8 @@
 //!     lars-dev bench     --model M.gguf request.json [--repeat 20] [--vary-state]
 //!     lars-dev parity    --model M.gguf --fixture fixtures/data/llama-<model>.json
 //!     lars-dev compare   a.jsonl b.jsonl          (two captures of the same examples)
+//!     lars-dev pack      --model M.gguf --name N --version V --data-dir evals/data --out DIR
+//!                        [--template T] [--base B --license L --quantization Q]
 //!     lars-dev capture-requests --model M.gguf --requests requests.json --out rows.jsonl
 //!
 //! Backend flags: --template chatml|plain|gemma|llama3|<captured.json>, --cpu, --threads N,
@@ -215,6 +217,7 @@ fn main() -> Result<(), Failure> {
             }));
         }
         "parity" => parity(&args)?,
+        "pack" => build_pack(&args)?,
         "compare" => compare(&args)?,
         "capture-requests" => {
             // Every row of every request in a JSON array, so multi-row batching can be compared.
@@ -306,5 +309,89 @@ fn compare(args: &Args) -> Result<(), Failure> {
     }
     print(&json!({"rows": a.len(), "identical": identical, "same_top_label": same_top,
                   "max_abs_logit_diff": max_logit, "max_abs_prob_diff": max_prob}));
+    Ok(())
+}
+
+/// Build a pack: the model (hard-linked when possible), pack.json with hashes, and a pooled
+/// calibrator fitted through the core on every `*.validation.jsonl` in --data-dir, bound to the
+/// pack. Every `*.test.jsonl` there is then evaluated with it, per file and as a macro average.
+fn build_pack(args: &Args) -> Result<(), Failure> {
+    let model = PathBuf::from(args.need("model")?);
+    let out = PathBuf::from(args.need("out")?);
+    let data_dir = PathBuf::from(args.need("data-dir")?);
+    std::fs::create_dir_all(&out)?;
+    let target = out.join("model.gguf");
+    if !target.exists() && std::fs::hard_link(&model, &target).is_err() {
+        std::fs::copy(&model, &target)?;
+    }
+    let template_spec = args.get("template").unwrap_or("chatml");
+    let template_json: Value = match Template::named(template_spec) {
+        Some(_) => json!(template_spec),
+        None => serde_json::from_str(&std::fs::read_to_string(template_spec)?)?,
+    };
+    let mut manifest = json!({
+        "format": 1, "name": args.need("name")?, "version": args.need("version")?, "backend": "llamacpp",
+        "model": {"file": "model.gguf", "bytes": std::fs::metadata(&target)?.len(),
+                  "sha256": lars_runtime::pack::sha256_file(&target)?, "source": model.file_name().map(|n| n.to_string_lossy().into_owned()),
+                  "base": args.get("base"), "license": args.get("license"), "quantization": args.get("quantization")},
+        "template": {"before_system": template_json["before_system"], "between": template_json["between"],
+                     "after_user": template_json["after_user"], "trims_content": template_json["trims_content"]},
+        "layout": "v1",
+        "runtime": {"llama_cpp": lars_llama::LLAMA_CPP_VERSION, "flash_attention": "off"},
+    });
+    if template_json.is_string() {
+        manifest["template"] = template_json;
+    }
+    std::fs::write(out.join("pack.json"), serde_json::to_string_pretty(&manifest)? + "\n")?;
+    let pack = lars_runtime::Pack::load(&out, false)?;
+
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&data_dir)?.flatten().map(|e| e.path()).collect();
+    files.sort();
+    let named = |suffix: &'static str| -> Vec<PathBuf> {
+        files.iter().filter(|p| p.to_string_lossy().ends_with(suffix)).cloned().collect()
+    };
+    let read =
+        |path: &Path| -> Result<Vec<eval::Example>, Failure> { Ok(read_examples(&std::fs::read_to_string(path)?)?) };
+    let backend = LlamaBackend::load(
+        &target,
+        pack.template.clone(),
+        &format!("{}@{}", pack.name, pack.version),
+        LlamaOptions::default(),
+    )?;
+    let options = EngineOptions { version: lars_runtime::VERSION.into(), ..EngineOptions::default() };
+    let mut engine = Engine::new(Box::new(backend), Calibrator::default(), options)?;
+    let started = Instant::now();
+    let mut validation = Vec::new();
+    for path in named(".validation.jsonl") {
+        validation.extend(read(&path)?);
+    }
+    let fitted = eval::calibrate(&mut engine, &validation, Some("pooled jev-bench validation"))?;
+    std::fs::write(out.join("calibration.json"), serde_json::to_string_pretty(&pack.bind(&fitted))? + "\n")?;
+    eprintln!("calibrator fitted on {} validation rows in {:.0} s", validation.len(), started.elapsed().as_secs_f64());
+
+    engine.calibrator = fitted;
+    let mut per_file = serde_json::Map::new();
+    let (mut accuracy, mut brier) = (Vec::new(), Vec::new());
+    for path in named(".test.jsonl") {
+        let result = eval::evaluate(&mut engine, &read(&path)?, None)?;
+        let config = path.file_name().unwrap().to_string_lossy().replace(".test.jsonl", "");
+        accuracy.push(result.accuracy);
+        brier.push(result.brier);
+        per_file.insert(
+            config,
+            json!({"count": result.count, "accuracy": result.accuracy, "brier": result.brier,
+                                       "ece": result.ece}),
+        );
+    }
+    let mean = |v: &[f64]| v.iter().sum::<f64>() / v.len().max(1) as f64;
+    manifest["calibration"] = json!({"file": "calibration.json",
+                                     "sha256": lars_runtime::pack::sha256_file(&out.join("calibration.json"))?,
+                                     "fitted_on": format!("{} jev-bench validation rows, pooled", validation.len())});
+    manifest["evaluation"] = json!({"benchmark": "jev-bench test, through this pack", "configs": per_file.len(),
+                                    "macro_accuracy": mean(&accuracy), "macro_brier": mean(&brier), "per_config": per_file});
+    std::fs::write(out.join("pack.json"), serde_json::to_string_pretty(&manifest)? + "\n")?;
+    lars_runtime::Pack::load(&out, true)?;
+    print(&json!({"pack": out, "macro_accuracy": mean(&accuracy), "macro_brier": mean(&brier),
+                  "minutes": started.elapsed().as_secs_f64() / 60.0}));
     Ok(())
 }

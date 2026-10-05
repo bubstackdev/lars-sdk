@@ -183,7 +183,7 @@ calibrator):
 - **Calibrating on a few dozen of your own labels helps every model** more than the pooled
   calibrator does: Brier improves by 0.04–0.05, and Platt moves binary decisions.
 - **Those labels cannot certify an error budget.** A threshold whose error on the labels is
-  at most 5% runs at 10–20% on test. Certifying 5% at 95% confidence takes about 60
+  at most 5% runs at 10–20% on test. Certifying 5% at 95% confidence takes 73
   accepted rows with no errors, so below about 100 labels the conservative policy accepts
   nothing.
 - **What this means for the SDK:** `calibrate(examples, { maxError })` uses the
