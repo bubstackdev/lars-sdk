@@ -1,63 +1,63 @@
-# Handoff, 2026-10-05
+# Handoff, 2026-10-05 evening
 
-Nothing is running. The Phase 2b sweep and small-model training finished over the weekend
-(sweep on Saturday at 11:12, training on Friday at 19:24) with no failures, and both launchd
-jobs unloaded themselves. The launchd plists stay in `~/Library/LaunchAgents` for a re-run.
+## Running overnight (unattended)
 
-Results are in `RESULTS.md` (2026-10-05) and every row is in `sweep/out/summary.md`.
+`dev.lars-sdk.overnight` (`sweep/overnight.sh`, under launchd and caffeinate) started at 15:08.
+Log: `sweep/out/overnight.log`; results summary: `sweep/out/overnight-results.txt`. It unloads
+itself when done. Stop it with `launchctl bootout gui/$(id -u)/dev.lars-sdk.overnight`.
 
-| finding | detail |
-|---|---|
-| LoRAs rescue the small models | pooled at Q8_0: 0.6B 0.651, 1.7B 0.683, 4B 0.743 |
-| one calibrator per pack | it transfers between CPU and Metal; batching can be the default |
-| layout | v2 is dropped; v1 stays |
-| quantization | imatrix Q4_K_M should match Q8_0 |
+| step | what | expected |
+|---|---|---|
+| 1 | LoRA on **Qwen3-8B**, corpus E + 1,000 typed-decisions train cases, the corpus-E recipe, 4,948 steps (`sweep/out/train-Qwen3-8B-lora-etd-s0.log`) | done about 00:15 |
+| 2 | fuse, convert, imatrix Q4_K_M (5.0 GB) and Q3_K_M; jev-bench capture and report for each | about 02:00 |
+| 3 | pack `models/packs/lars-8b-dev/0.0.1`; typed-decisions test and train through it, with hidden states; zero-shot score and per-predicate heads into `overnight-results.txt` | about 03:30 |
+| 4 | the untrained Qwen3-8B at Q4_K_M, captured as the zero-shot reference | about 04:30 |
+| 5 | LoRA on **Qwen3.5-2B**, same data (about 10 h), then fuse, convert, capture | into the afternoon; stopping it loses nothing earlier |
 
-## Tonight (unattended)
+Training cannot resume. If the machine reboots, launchd restarts the script, finished steps
+are skipped, and an unfinished training starts over.
 
-`dev.lars-sdk.night` (`sweep/night.sh`) is loaded and waiting under caffeinate. At 01:30 it:
-1. measures quiet-machine latency for the five candidate packs, on CPU and Metal, for a new
-   state and for the same state, at 6 and 12 threads, with CPU repacking on and off
-   (`sweep/out/latency.md`, load average per row)
-2. builds importance-matrix Q4_K_M versions of the three LoRA models from training-split
-   prompts, captures them, and adds them to `sweep/out/summary.md`
+**What to compare in the morning:**
+- `Qwen3-8B-lora-etd-s0-Q4_K_M` against the 4B pack: jev-bench 0.736 pooled, Wilson coverage
+  17.5%; and against the 30B anchor: 0.761, 21.1%.
+- On typed-decisions: the 4B pack scored 0.607 zero-shot. The 8B trained on typed-decisions
+  train, so its number belongs in the leaderboard's "fitted" table (OpenDecider-small-td 0.792).
+- The 8B's own zero-shot row, to separate the size gain from the LoRA gain.
 
-Log: `sweep/out/night.log`. Stop it with `launchctl bootout gui/$(id -u)/dev.lars-sdk.night`.
+## Decided today
 
-## Done today
-
-- Batching is on by default. Single-question calls stay bit-identical to the reference.
-- Phase 3: `lars-runtime`, the C ABI (`lars.h`), packs with verified downloads, and the first
-  pack `models/packs/lars-4b-dev/0.0.1`. Its evaluation through the core, 0.7361 / 0.3042,
-  equals the Python analysis exactly. CI is green on all three OSes.
-
-## Also done today
-
-- Phases 4 and 5: `@moedex/lars` (TypeScript) and `Moedex.Lars` (C#). Both are tested in CI
-  on three OSes, and both pass the real-pack tests on the 4B.
-- Dev packs for all three sizes in `models/packs/`: `lars-4b-dev`, `lars-1.7b-dev`,
-  `lars-0.6b-dev`.
-- `calibrate` keeps the pack's calibrator unless a fit is significantly better (RESULTS.md).
+- **Per-predicate heads are in the SDK** (`calibrate`: pack/fitted → recal → head, each step
+  significant on 5-fold CV). typed-decisions with 100 labels: 0.6B 0.44 → 0.66, 4B 0.61 → 0.72.
+  In-domain (jev-bench), they add 0.5–1 point and do no net harm. RESULTS.md has the tables.
+- **Training on typed-decisions train is approved.** The test split stays held out.
+- **The Qwen3.5-9B LoRA is infeasible on this machine for now.** mlx_lm's gated-delta kernel
+  has no gradient. lars now has a chunked, differentiable version (`f42781a`, exact against the
+  reference loop), but the 9B trains at about 23 s per step at 2,048-token batches, 89 GB peak:
+  about 73 hours for one epoch. The 2B is about 6.75 s per step, about 10 hours.
+- **Default tier:** still open. Suggestion in the conversation: lead with labels, so the 0.6B or
+  1.7B plus `calibrate` is the default, and the 4B is the "no labels" tier.
 
 ## Open
 
-1. Choose the default and the CPU tier. Tonight's run (`sweep/out/latency.md`) gives the quiet
-   latency if it is still loaded.
-2. Phase 6: the published packs. They need your sign-off before anything goes to the Hub.
-3. Phase 7 is done except publishing:
-   - `package.yml` builds every platform, packs npm and NuGet, and install-tests on five runners
-     (run 37328585896: all green; the Linux libraries need glibc 2.28)
-   - docs: README, `docs/calibration.md`, `docs/packs.md`, package READMEs
-   - publishing waits for sign-off
-4. Smaller items:
-   - cancellation in TypeScript
-   - `lars pull`
-   - ASan on Linux in CI
-   - a source generator for C# enums
+1. Morning: read `overnight-results.txt` and `summary.md`; decide whether the 8B becomes a tier
+   (rule: at least 2 points over the tier it would replace, Wilson coverage no worse).
+2. Rebuild the three packs from the imatrix Q4_K_M files (a small, free gain).
+3. If the 8B with typed-decisions helps, retrain the 4B the same way to separate data from size.
+4. Phase 6: the published packs need your sign-off before anything goes to the Hub.
+5. Quiet-machine latency (never measured), `lars pull`, an API reference, TS cancellation,
+   ASan on Linux, a C# enum source generator.
 
 ## Things to know
 
-- **lars repo:** still on local branch `codex-wip-2026-10-02` (`b4a1180`, not pushed). The
-  small-model adapters are `checkpoints/lora-1.7b-sdk-e-s0` and `lora-0.6b-sdk-e-s0`.
-- **`models/`:** about 50 GB of GGUFs and fused models, gitignored. The candidate packs are
-  `models/Qwen3-{0.6B,1.7B,4B-Instruct-2507}-lora-e-s0-{Q8_0,Q4_K_M}.gguf`.
+- **lars repo:** local branch `codex-wip-2026-10-02`, not pushed. Today's commits there:
+  `3485841` (training records keep noul yes/no criteria) and `f42781a` (chunked gated delta rule).
+  Adapters in `checkpoints/`: `lora-{1.7b,0.6b}-sdk-e-s0`, tonight `lora-8b-sdk-etd-s0` and
+  `lora-qwen3.5-2b-sdk-etd-s0`.
+- **typed-decisions:** `sweep/typed_decisions.py --convert` (eval JSONL), `--records` (training
+  records: 1,000 train cases + 200 for checkpoint selection), and scoring. Data in
+  `sweep/out/typed-decisions/`.
+- **Heads offline:** `sweep/heads_capture.sh` (hidden states through a pack) and `sweep/heads.py`.
+  Hidden states for the 4B and 0.6B packs are in `sweep/out/heads/`.
+- **`models/`:** large and gitignored. The 30B GGUFs (k128 18.6 GB, k64 9.8 GB, k64-IQ3 7.7 GB)
+  and the Qwen3.5 BF16 files can be deleted if space is needed.
+- Disabled launchd plists are in `~/Library/LaunchAgents/lars-sdk-disabled/`.

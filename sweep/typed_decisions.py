@@ -5,6 +5,7 @@ the converter) and `lars-dev capture` outputs on the test rows. Each capture is 
 calibrator (the pack's calibration.json, or none), like a user gets it. CPU only.
 
     python sweep/typed_decisions.py --convert      (download and write the JSONL; needs pyarrow, huggingface_hub)
+    python sweep/typed_decisions.py --records      (lars training records from the converted train split)
     python sweep/typed_decisions.py NAME=capture.jsonl[:calibration.json] ... [--detail]
 
 Metrics: accuracy against the gold argmax, KL(gold || model) in nats, Brier and top-label ECE (10 bins),
@@ -14,6 +15,7 @@ recomputed first, so the definitions can be checked against the published table.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from collections import defaultdict
@@ -114,9 +116,40 @@ def convert() -> None:
         print(split, len(lines), "rows")
 
 
+def records() -> None:
+    """The train split as lars.train records: 1,000 cases to train on and 200 (50 per workflow) to
+    select checkpoints with. Sources are typed-decisions/<workflow>. The test split is never used."""
+    rows = [json.loads(l) for l in (D / "typed-decisions.train.jsonl").read_text().splitlines() if l.strip()]
+    cases: dict[str, list[str]] = defaultdict(list)
+    for r in rows:
+        if r["case"] not in cases[r["workflow"]]:
+            cases[r["workflow"]].append(r["case"])
+    select = {c for wf in cases.values() for c in sorted(wf, key=lambda c: hashlib.sha256(c.encode()).hexdigest())[:50]}
+    out = {"train": [], "select": []}
+    for r in rows:
+        q, gold = r["question"], gold_vector(r)
+        record = {"id": f"{r['case']}:{r['qid']}", "source": f"typed-decisions/{r['workflow']}", "kind": q["type"],
+                  "state": r["state"], "question": q["instructions"], "target": [float(x) for x in gold]}
+        if q["type"] == "noul":
+            crit = q.get("criteria") or {}
+            record |= {"options": ["yes", "no"], "descriptions": [crit.get("true"), crit.get("false")] if crit else []}
+        elif q["type"] == "choice":
+            record |= {"options": list(q["criteria"]), "descriptions": list(q["criteria"].values())}
+        else:
+            record |= {"options": list(q["criteria"]), "descriptions": []}
+        out["select" if r["case"] in select else "train"].append(json.dumps(record))
+    (D / "records").mkdir(exist_ok=True)
+    for name, lines in out.items():
+        (D / "records" / f"typed-decisions.{name}.jsonl").write_text("\n".join(lines) + "\n")
+        print(name, len(lines), "records")
+
+
 def main() -> int:
     if "--convert" in sys.argv:
         convert()
+        return 0
+    if "--records" in sys.argv:
+        records()
         return 0
     test, train = load("test"), load("train")
     results = {}

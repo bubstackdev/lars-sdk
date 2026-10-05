@@ -390,6 +390,7 @@ error budget, with the error on accepted test answers in brackets.
 | Qwen3-30B-A3B + LoRA, all 128 experts, Q4_K_M | 18.6 GB | 0.761 | 0.277 | 21.1% (1.5%) |
 | same, 64 most-used experts per layer | 9.8 GB | 0.712 | 0.340 | 14.6% |
 | Qwen3.5-9B zero-shot, Q3_K_M | 4.7 GB | 0.685 | 0.376 | 3.3% |
+| Qwen3.5-9B zero-shot, Q4_K_M | 5.8 GB | 0.693 | 0.366 | 6.9% |
 | Qwen3.5-2B zero-shot, Q4_K_M | 1.3 GB | 0.493 | 0.548 | 4.0% |
 | (Qwen3-4B zero-shot, Q4_K_M) | 2.5 GB | 0.641 | 0.446 | 7.7% |
 
@@ -416,8 +417,19 @@ saliency, which weighs gate value by output norm, would be the next try, but the
 - The 9B is 4.4 points better than the 4B base at about twice the file size. It is still 5
   points under the LoRA'd 4B, and its probabilities certify poorly.
 - The 2B beats Qwen3-1.7B zero-shot by 7 points.
-- Both are candidates for LoRA training, not replacements as they stand. Q4_K_M 9B numbers
-  are pending.
+- Both are candidates for LoRA training, not replacements as they stand. At Q4_K_M the 9B
+  gains another 0.8 points.
+- Training them here is slow:
+  - mlx_lm's Metal kernel for the gated delta rule has no gradient. In training mode it falls
+    back to a per-token loop that keeps a state per token per layer, and the process was
+    OOM-killed at one 4,096-token batch.
+  - lars `f42781a` adds a chunked, differentiable version: forward substitution within 64-token
+    chunks, one state per chunk. It matches the loop to 6e-7 on CPU, gradients included.
+  - A power-series inverse was tried first and is numerically unstable: NaN on correlated keys.
+  - With it, the 2B trains at 6.75 s per step (61 GB peak), against 2.1 s for Qwen3-1.7B:
+    about 10 hours per epoch. The 9B takes 23 s per step at 2,048-token batches (89 GB peak):
+    about 73 hours. So the overnight bigger-model run is Qwen3-8B (dense, 6.5 s per step,
+    about 9 hours).
 - Qwen3.5 uses hybrid recurrent layers, which llama.cpp cannot truncate, so the backend
   re-prefills the prefix instead (`lars-llama`). Prefix reuse on vs off gives identical logits
   on 126 rows. Batched vs sequential differs by at most 0.0009 in probability
@@ -532,3 +544,19 @@ of a predicate and answering its 100 test cases:
 | customer_service/urgency (score) | 30 | 0.49 → 0.62 | recal | 4 s | 132 → 126 ms |
 
 Calibrate time is the model pass over the labels. Four saved calibrations take 45 KB.
+
+**In-domain, heads add little and do no net harm.** jev-bench, with labels drawn from
+validation and scored on test, hard labels. Macro over the 20 configs with fixed options, as
+accuracy / log loss:
+
+| labels | 4B pack | 0.6B pack |
+|---|---|---|
+| 0 | 0.734 / 0.740 | 0.653 / 1.039 |
+| 25 | 0.738 / 0.745 | 0.656 / 1.032 |
+| 50 | 0.737 / 0.737 | 0.664 / 1.011 |
+| 100 | 0.739 / 0.725 | 0.661 / 0.996 |
+
+The packs were trained on these tasks, so there is little left to learn. The gains come where
+the pack's answer format misfits: stsb goes 0.37 → 0.43 and yelp5 0.57 → 0.65 (4B, 200
+labels). One case got slightly worse: sms_spam's log loss rose from 0.118 to 0.15 on the 4B at
+25–100 labels, with accuracy unchanged.
