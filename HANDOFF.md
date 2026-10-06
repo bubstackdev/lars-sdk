@@ -14,7 +14,11 @@ Two launchd jobs, one after the other; each unloads itself. Stop one with
 2. `dev.lars-sdk.train35` (`sweep/train35.sh`, log `sweep/out/train35.log`) waits for it, then
    trains Qwen3.5-2B the same way (from scratch: the overnight run was stopped at step 2,300 to
    let the 4B go first), converts with `--no-mtp` (mlx_lm drops the MTP block when it fuses), and
-   captures.
+   captures. With lars `585ffae` (a blocked inverse in the chunked gated delta rule, 2.9x faster,
+   23 GB instead of 64 GB peak) training should take about 2.5 hours instead of 7.
+
+Overlapping GPU jobs costs a lot: the old rule ran at 16.2 s per step next to the 4B training,
+against 4.7 s alone. Run one GPU job at a time.
 
 The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37:
 - `lars-8b-dev`: jev-bench 0.749 (Q4_K_M, 5.0 GB) and 0.748 (Q3_K_M, 4.1 GB), Brier 0.285,
