@@ -230,6 +230,10 @@ fn calibration_fits_a_calibrator_and_refuses_to_certify_on_too_few_labels() {
     assert_eq!(certified.threshold, None);
     assert!(certified.reason.unwrap().contains("cannot certify"));
     assert!(lars.status()["calibrators"].as_array().unwrap().contains(&json!("calibrated")));
+    // Certification was asked for and failed: the gate stays shut.
+    let d = is_refund.decide("Please refund my order").wait().unwrap();
+    assert!(!d.accepted);
+    assert!(!is_refund.ask("Please refund my order").wait().unwrap());
 
     let saved = lars.calibrations();
     assert!(saved["calibrators"].get("calibrated").is_some());
@@ -262,7 +266,75 @@ fn a_certified_threshold_gates_the_value_and_an_unaccepted_choice_falls_back() {
     let labels: Vec<Team> = inputs.iter().map(|x| team.decide(x).wait().unwrap().value).collect();
     let fit = team.calibrate(inputs.iter().map(String::as_str).zip(labels), 0.0001).wait().unwrap();
     assert_eq!(fit.certified.unwrap().threshold, None);
-    team.ask("anything").wait().unwrap();
+    assert!(!team.decide("anything").wait().unwrap().accepted);
+    assert_eq!(team.ask("anything").wait().unwrap(), Team::FrontDesk);
+}
+
+#[test]
+fn saved_calibrations_carry_their_question_and_certificate() {
+    let lars = open("saved");
+    let refund = lars.noul("refund", "The customer asks for a refund");
+    let examples: Vec<(String, bool)> = (0..40).map(|i| (format!("refund order {i}"), i % 3 != 0)).collect();
+    refund.calibrate(examples.clone(), 0.05).wait().unwrap();
+    let saved = lars.calibrations();
+    assert_eq!(saved["format"], 2);
+    assert_eq!(saved["questions"]["refund"], *refund.question());
+
+    // Loaded elsewhere, the calibration is bound to its question: the same name asking the
+    // opposite is refused, and the failed certificate still shuts the gate.
+    let dir = lars.status()["pack"]["dir"].as_str().unwrap().to_string();
+    let other = Lars::open(&dir).wait().unwrap();
+    other.load_calibrations(&saved).unwrap();
+    let flipped = other.noul("refund", "The customer is NOT asking for a refund");
+    assert_eq!(flipped.ask("refund me").wait().unwrap_err().error_type, "invalid_request");
+    let same = other.noul("refund", "The customer asks for a refund");
+    assert!(!same.decide("refund me").wait().unwrap().accepted);
+
+    // Defined first, the other question makes the load fail, and nothing changes.
+    let third = Lars::open(&dir).wait().unwrap();
+    third.noul("refund", "The customer is NOT asking for a refund").ask("x").wait().unwrap();
+    assert_eq!(third.load_calibrations(&saved).unwrap_err().error_type, "invalid_request");
+    assert!(third.status()["calibrators"].as_array().unwrap().is_empty());
+
+    // Options count as the question: same keys, different descriptions, refused.
+    let team = lars.choice_keys("desk", "Which desk?", [("a", "Charges"), ("b", "Bugs")]);
+    let labels: Vec<(String, String)> = (0..10).map(|i| (format!("m{i}"), "a".to_string())).collect();
+    team.calibrate(labels, None).wait().unwrap();
+    let fourth = Lars::open(&dir).wait().unwrap();
+    fourth.load_calibrations(&lars.calibrations()).unwrap();
+    let renamed = fourth.choice_keys("desk", "Which desk?", [("a", "Refunds"), ("b", "Bugs")]);
+    assert_eq!(renamed.ask("x").wait().unwrap_err().error_type, "invalid_request");
+
+    // A replacement without a certificate clears the old one.
+    let mut certified = saved.clone();
+    certified["certified"]["refund"] = json!({"maxError": 0.05, "threshold": 0.5});
+    other.load_calibrations(&certified).unwrap();
+    assert_eq!(other.calibrations()["certified"]["refund"]["threshold"], 0.5);
+    let mut uncertified = saved.clone();
+    uncertified["certified"] = json!({});
+    other.load_calibrations(&uncertified).unwrap();
+    assert!(other.calibrations()["certified"].get("refund").is_none());
+    assert!(same.decide("refund me").wait().unwrap().accepted);
+
+    // A bad entry anywhere in the file changes nothing.
+    let mut bad = certified.clone();
+    bad["calibrators"]["broken"] = json!({"kind": "nonsense"});
+    bad["questions"]["broken"] = json!({"type": "noul", "instructions": "x"});
+    assert!(other.load_calibrations(&bad).is_err());
+    assert!(other.calibrations()["certified"].get("refund").is_none());
+    assert!(other.calibrations()["calibrators"].get("broken").is_none());
+    let mut bad_certificate = certified.clone();
+    bad_certificate["certified"]["refund"]["threshold"] = json!("high");
+    assert!(other.load_calibrations(&bad_certificate).is_err());
+    assert!(other.calibrations()["certified"].get("refund").is_none());
+
+    // Older files and other packs are refused.
+    let mut old = saved.clone();
+    old["format"] = json!(1);
+    assert!(other.load_calibrations(&old).is_err());
+    let mut elsewhere = saved;
+    elsewhere["pack"]["name"] = json!("another");
+    assert!(other.load_calibrations(&elsewhere).is_err());
 }
 
 #[test]

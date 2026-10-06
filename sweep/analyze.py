@@ -165,7 +165,10 @@ def threshold(cal: dict, rows: list[Row], policy: str = "empirical") -> float | 
 
     `empirical`: the largest coverage whose error on these rows is at most 5% (the reference's
     coverage_at_error). `wilson`: the largest coverage whose Wilson 95% upper bound on error is
-    at most 5%, which accounts for how few rows the threshold was chosen on. None accepts nothing.
+    at most 5%, which accounts for how few rows the threshold was chosen on. `fixed`: the SDK's
+    certified_threshold, a fixed sequence that stops at the first threshold failing that bound,
+    starting where the confidences predict the budget is met; picking the best of all thresholds
+    (`wilson`) overstates its 95%. None accepts nothing.
     """
     s = scores(cal, rows)
     if policy == "empirical":
@@ -173,13 +176,31 @@ def threshold(cal: dict, rows: list[Row], policy: str = "empirical") -> float | 
         return thr if coverage > 0 else None
     order = np.argsort(-s["conf"], kind="stable")
     ranked, errors = s["conf"][order], np.cumsum(1.0 - s["hit"][order])
+    n = len(ranked)
+    ends = [k for k in range(1, n + 1) if k == n or ranked[k] != ranked[k - 1]]
+    if policy == "wilson":
+        passing = [k for k in ends if wilson(int(errors[k - 1]), k)[1] <= 0.05]
+        return float(ranked[passing[-1] - 1]) if passing else None
+    fewest = next((k for k in range(1, n + 1) if wilson(0, k)[1] <= 0.05), None)
+    if fewest is None:
+        return None
+    predicted = np.cumsum(1.0 - ranked)
+    start = max([k for k in ends if k >= fewest and wilson_upper(predicted[k - 1], k) <= 0.8 * 0.05], default=fewest)
     best = None
-    for k in range(1, len(ranked) + 1):
-        if k < len(ranked) and ranked[k] == ranked[k - 1]:
+    for k in ends:
+        if k < start:
             continue
-        if wilson(int(errors[k - 1]), k)[1] <= 0.05:
-            best = float(ranked[k - 1])
+        if wilson(int(errors[k - 1]), k)[1] > 0.05:
+            break
+        best = float(ranked[k - 1])
     return best
+
+
+def wilson_upper(errors: float, n: int) -> float:
+    """The Wilson upper bound for a fractional error count (the errors the confidences predict)."""
+    z, p = 1.96, errors / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    return min(1.0, centre + z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n))
 
 
 def accepted(cal: dict, thr: float | None, rows: list[Row]) -> tuple[int, int]:
@@ -211,7 +232,7 @@ def summarize(data: dict, pooled: dict | None = None, thresholds_from: dict | No
     pooled = pooled or fit(pooled_rows)
     thresholds_from = thresholds_from or data
     out = {"raw": [], "per_config": [], "pooled": []}
-    policies = {"empirical": [0, 0, []], "wilson": [0, 0, []]}
+    policies = {"empirical": [0, 0, []], "wilson": [0, 0, []], "fixed": [0, 0, []]}
     for config in data:
         test = data[config]["test"]
         out["raw"].append(scores(IDENTITY, test))
@@ -225,7 +246,7 @@ def summarize(data: dict, pooled: dict | None = None, thresholds_from: dict | No
     macro: dict = {name: {m: float(np.mean([s[m] for s in values])) for m in ("accuracy", "brier", "ece")}
                    for name, values in out.items()}
     for policy, (n, errors, coverages) in policies.items():
-        key = "coverage_at_5pct" if policy == "empirical" else "coverage_at_5pct_wilson"
+        key = {"empirical": "coverage_at_5pct", "wilson": "coverage_at_5pct_wilson", "fixed": "coverage_at_5pct_fixed"}[policy]
         low, high = wilson(errors, n)
         macro[key] = {"macro_coverage": float(np.mean(coverages)), "accepted": n,
                       "accepted_error": errors / n if n else 0.0, "accepted_error_95ci": [low, high]}
@@ -270,7 +291,7 @@ def cached(run: Path, with_few_label: bool) -> dict:
     newest = max(p.stat().st_mtime for p in run.glob("*.jsonl"))
     if cache.exists() and cache.stat().st_mtime >= newest:
         summary = json.loads(cache.read_text())
-        if "coverage_at_5pct_wilson" in summary and (not with_few_label or "few_label" in summary):
+        if "coverage_at_5pct_fixed" in summary and (not with_few_label or "few_label" in summary):
             return summary
     data = load_run(run)
     summary = summarize(data)

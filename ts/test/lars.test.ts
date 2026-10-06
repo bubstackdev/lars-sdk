@@ -106,6 +106,9 @@ describe("on a mock pack", () => {
     expect(fit.certified?.threshold).toBeNull();
     expect(fit.certified?.reason).toMatch(/cannot certify/);
     expect(lars.status().calibrators).toContain("calibrated");
+    // Certification was asked for and failed: the gate stays shut.
+    expect((await isRefund.decide("Please refund my order")).accepted).toBe(false);
+    expect(await isRefund("Please refund my order")).toBe(false);
     const saved = lars.calibrations();
     expect(Object.keys(saved.calibrators)).toContain("calibrated");
 
@@ -127,6 +130,66 @@ describe("on a mock pack", () => {
       expect(d.accepted).toBe(d.confidence >= fit.certified.threshold);
       expect(await isRefund(inputs[0]!)).toBe(d.value && d.accepted);
     }
+  });
+
+  it("an uncertified choice falls back", async () => {
+    const team = lars.choice<"billing" | "technical" | "other">("fallbackTeam", "Which team?", { billing: "Charges", technical: "Bugs", other: "Anything else" },
+                             { fallback: "other" });
+    const inputs = Array.from({ length: 100 }, (_, i) => `message ${i} about something`);
+    const labels = await Promise.all(inputs.map(async (x) => (await team.decide(x)).value));
+    const fit = await team.calibrate(inputs.map((input, i) => ({ input, label: labels[i]! })), { maxError: 0.0001 });
+    expect(fit.certified?.threshold).toBeNull();
+    expect((await team.decide("anything")).accepted).toBe(false);
+    expect(await team("anything")).toBe("other");
+  });
+
+  it("saved calibrations carry their question and certificate", async () => {
+    const dir = (lars.status().pack as { dir: string }).dir;
+    const refund = lars.noul("savedRefund", "The customer asks for a refund");
+    await refund.calibrate(Array.from({ length: 40 }, (_, i) => ({ input: `refund order ${i}`, label: i % 3 !== 0 })), { maxError: 0.05 });
+    const saved = lars.calibrations();
+    expect(saved.format).toBe(2);
+    expect(saved.questions.savedRefund).toEqual(refund.question);
+
+    // Loaded elsewhere, the calibration is bound to its question.
+    const other = await Lars.open(dir);
+    await other.loadCalibrations(saved);
+    expect(() => other.noul("savedRefund", "The customer is NOT asking for a refund")).toThrow(LarsError);
+    const same = other.noul("savedRefund", "The customer asks for a refund");
+    expect((await same.decide("refund me")).accepted).toBe(false);
+
+    // Defined first, the other question makes the load fail, and nothing changes.
+    const third = await Lars.open(dir);
+    third.noul("savedRefund", "The customer is NOT asking for a refund");
+    await expect(third.loadCalibrations(saved)).rejects.toBeInstanceOf(LarsError);
+    expect(third.status().calibrators).toEqual([]);
+    third.close();
+
+    // A replacement without a certificate clears the old one.
+    const certified = structuredClone(saved);
+    certified.certified = { savedRefund: { maxError: 0.05, threshold: 0.5 } };
+    await other.loadCalibrations(certified);
+    expect(other.calibrations().certified.savedRefund?.threshold).toBe(0.5);
+    await other.loadCalibrations({ ...structuredClone(saved), certified: {} });
+    expect(other.calibrations().certified.savedRefund).toBeUndefined();
+    expect((await same.decide("refund me")).accepted).toBe(true);
+
+    // A bad entry anywhere in the file changes nothing.
+    const bad = structuredClone(certified);
+    bad.calibrators.broken = { kind: "nonsense" };
+    bad.questions.broken = { type: "noul", instructions: "x" };
+    await expect(other.loadCalibrations(bad)).rejects.toBeInstanceOf(LarsError);
+    expect(other.calibrations().certified.savedRefund).toBeUndefined();
+    expect(Object.keys(other.calibrations().calibrators)).not.toContain("broken");
+    const badCertificate = structuredClone(certified) as unknown as { certified: { savedRefund: { threshold: unknown } } };
+    badCertificate.certified.savedRefund.threshold = "high";
+    await expect(other.loadCalibrations(badCertificate as unknown as typeof saved)).rejects.toBeInstanceOf(LarsError);
+    expect(other.calibrations().certified.savedRefund).toBeUndefined();
+
+    // Older files and other packs are refused.
+    await expect(other.loadCalibrations({ ...saved, format: 1 } as unknown as typeof saved)).rejects.toBeInstanceOf(LarsError);
+    await expect(other.loadCalibrations({ ...saved, pack: { name: "another", version: "0" } })).rejects.toBeInstanceOf(LarsError);
+    other.close();
   });
 
   it("names are unique per question", () => {

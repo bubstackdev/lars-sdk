@@ -131,11 +131,12 @@ knowledge (`RESULTS.md`, 2026-10-05).
 
 The pack's calibrator is a good default. Calibrating a predicate on your own labels adapts it
 to your data. With an error budget, it also certifies a threshold: answers the threshold doesn't
-accept make the boolean `false`, and `decide().accepted` says why.
+accept make the boolean `false`, and `decide().accepted` says why. If the labels can't certify
+the budget, nothing is accepted until they can.
 
 ```ts
 const fit = await isPissed.calibrate(labeled, { maxError: 0.05 });
-// fit.kept: "fitted" or "pack"; fit.certified: threshold, coverage, error bound, or why not
+// fit.kept: "pack", "fitted", "recal" or "head"; fit.certified: threshold, coverage, error bound, or why not
 ```
 
 How many labels it takes, and what the numbers mean: [docs/calibration.md](docs/calibration.md).

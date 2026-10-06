@@ -61,6 +61,9 @@ internal static unsafe partial class Native
     [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
     internal static partial int lars_set_calibrator(EngineHandle engine, string name, string calibratorJson, out IntPtr errorJson);
 
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int lars_set_calibrators(EngineHandle engine, string calibratorsJson, out IntPtr errorJson);
+
     [LibraryImport(Library)]
     internal static partial IntPtr lars_calibrators(EngineHandle engine);
 

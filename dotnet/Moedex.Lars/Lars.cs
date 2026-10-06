@@ -60,7 +60,9 @@ public sealed record LarsOptions
     }
 }
 
-/// <summary>An acceptance threshold certified on labeled examples: the Wilson 95% bound on the error rate.</summary>
+/// <summary>An acceptance threshold certified on labeled examples: the Wilson 95% bound on the error rate. A null
+/// <see cref="Threshold"/> means the labels could not certify <see cref="MaxError"/> (<see cref="Reason"/> says why); then
+/// no answer is accepted until a calibration that certifies replaces it.</summary>
 public sealed record Certified(double MaxError, double? Threshold, int? Accepted, int? Errors, double? Coverage,
                                double? ErrorUpper95, string? Reason);
 
@@ -76,7 +78,8 @@ public abstract record Decision
 {
     /// <summary>The top probability: how likely the answer is right, once calibrated. Thresholds compare to it.</summary>
     public double Confidence { get; init; }
-    /// <summary>False when a certified threshold exists for this predicate and the confidence is below it.</summary>
+    /// <summary>False when this predicate has a certificate and the confidence is below its threshold, or certification was
+    /// asked for and failed (no threshold): then nothing is accepted.</summary>
     public bool Accepted { get; init; } = true;
     public bool? Abstain { get; init; }
     public IReadOnlyList<(string Span, double Effect)>? Evidence { get; init; }
@@ -514,12 +517,19 @@ public sealed class Lars : IDisposable, IAsyncDisposable
 
     // ------------------------------------------------------------------ calibrations
 
-    /// <summary>Every calibrator fitted or loaded on this handle, with its certified thresholds, as JSON.</summary>
+    /// <summary>Every calibrator fitted or loaded on this handle, with the question each was fitted for and its certified
+    /// threshold, as JSON: the file format all three SDKs save and load.</summary>
     public JsonObject Calibrations()
     {
         var certified = new JsonObject();
+        var questions = new JsonObject();
+        var calibrators = JsonNode.Parse(Native.Take(Native.lars_calibrators(_handle))!)!.AsObject();
         lock (_lock)
         {
+            foreach (var (name, _) in calibrators)
+            {
+                if (_questions.TryGetValue(name, out var question)) questions[name] = JsonNode.Parse(question);
+            }
             foreach (var (name, c) in _certified)
             {
                 certified[name] = new JsonObject
@@ -531,9 +541,10 @@ public sealed class Lars : IDisposable, IAsyncDisposable
         }
         return new JsonObject
         {
-            ["format"] = 1,
+            ["format"] = 2,
             ["pack"] = new JsonObject { ["name"] = Pack["name"]!.DeepClone(), ["version"] = Pack["version"]!.DeepClone() },
-            ["calibrators"] = JsonNode.Parse(Native.Take(Native.lars_calibrators(_handle))!),
+            ["calibrators"] = calibrators,
+            ["questions"] = questions,
             ["certified"] = certified,
         };
     }
@@ -541,20 +552,67 @@ public sealed class Lars : IDisposable, IAsyncDisposable
     public void SaveCalibrations(string path) =>
         File.WriteAllText(path, Calibrations().ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
 
-    /// <summary>Load calibrations saved from this pack (the JSON, or a file path).</summary>
+    /// <summary>Load calibrations saved from this pack (the JSON, or a file path), by any of the SDKs. Each replaces the
+    /// predicate's calibrator and its certificate (clearing it if the file has none); other predicates keep theirs. A
+    /// calibration is bound to the question it was fitted for: a predicate of that name asking anything else is refused,
+    /// here or when defined later. The whole file is checked first, so one that is refused changes nothing.</summary>
     public void LoadCalibrations(JsonObject saved)
     {
-        foreach (var (name, calibrator) in saved["calibrators"]!.AsObject())
+        static LarsException Invalid(string message) => new("invalid_request", message);
+        if (saved["format"] is not JsonValue format || !format.TryGetValue<int>(out var f) || f != 2)
+            throw Invalid("these calibrations are not format 2; calibrate again with this SDK");
+        var (packName, packVersion) = (saved["pack"]?["name"]?.ToString(), saved["pack"]?["version"]?.ToString());
+        if (packName != Pack["name"]?.ToString() || packVersion != Pack["version"]?.ToString())
+            throw Invalid($"these calibrations are for pack {packName}@{packVersion}, not {Pack["name"]}@{Pack["version"]}");
+        if (saved["calibrators"] is not JsonObject calibrators) throw Invalid("no calibrators to load");
+        var incoming = new List<(string Name, string Question, Certified? Certified)>();
+        lock (_lock)
         {
-            if (Native.lars_set_calibrator(_handle, name, calibrator!.ToJsonString(), out var error) != 0) throw Native.Error(Native.Take(error));
-            lock (_lock) _calibrated.Add(name);
+            foreach (var (name, _) in calibrators)
+            {
+                if (saved["questions"]?[name] is not JsonObject question)
+                    throw Invalid($"the saved calibration for \"{name}\" records no question");
+                var key = question.ToJsonString();
+                if (_questions.TryGetValue(name, out var existing) && existing != key)
+                    throw Invalid($"the saved calibration for \"{name}\" was fitted for a different question than the predicate of that name here");
+                incoming.Add((name, key, SavedCertified(name, saved["certified"]?[name])));
+            }
         }
-        foreach (var (name, c) in saved["certified"]?.AsObject() ?? [])
+        if (Native.lars_set_calibrators(_handle, calibrators.ToJsonString(), out var error) != 0) throw Native.Error(Native.Take(error));
+        lock (_lock)
         {
-            var certified = new Certified(c!["maxError"]!.GetValue<double>(), c["threshold"]?.GetValue<double>(), c["accepted"]?.GetValue<int>(),
-                c["errors"]?.GetValue<int>(), c["coverage"]?.GetValue<double>(), c["errorUpper95"]?.GetValue<double>(), c["reason"]?.GetValue<string>());
-            lock (_lock) _certified[name] = certified;
+            foreach (var (name, question, certified) in incoming)
+            {
+                _questions[name] = question;
+                _calibrated.Add(name);
+                if (certified is null) _certified.Remove(name);
+                else _certified[name] = certified;
+            }
         }
+    }
+
+    /// <summary>A certificate as the calibrations file records it, checked field by field.</summary>
+    private static Certified? SavedCertified(string name, JsonNode? c)
+    {
+        if (c is null) return null;
+        LarsException Bad(string field) => new("invalid_request", $"the certificate for \"{name}\" has a bad {field}");
+        if (c is not JsonObject o) throw Bad("entry");
+        double? Number(string field)
+        {
+            var v = o[field];
+            if (v is null) return null;
+            if (v is JsonValue value && value.TryGetValue<double>(out var d) && double.IsFinite(d)) return d;
+            throw Bad(field);
+        }
+        int? Count(string field) => Number(field) is { } d ? (d == Math.Floor(d) && d >= 0 ? (int)d : throw Bad(field)) : null;
+        string? reason = o["reason"] switch
+        {
+            null => null,
+            JsonValue v when v.TryGetValue<string>(out var text) => text,
+            _ => throw Bad("reason"),
+        };
+        return new Certified(Number("maxError") ?? throw Bad("maxError"), Number("threshold"), Count("accepted"), Count("errors"),
+            Number("coverage"), Number("errorUpper95"), reason);
     }
 
     public void LoadCalibrations(string path) => LoadCalibrations(JsonNode.Parse(File.ReadAllText(path))!.AsObject());
@@ -579,7 +637,8 @@ public sealed class Lars : IDisposable, IAsyncDisposable
 
     internal bool Accepts(string name, double confidence)
     {
-        lock (_lock) return !_certified.TryGetValue(name, out var c) || c.Threshold is not { } t || confidence >= t;
+        // No certificate: everything is accepted. A failed one (no threshold): nothing is.
+        lock (_lock) return !_certified.TryGetValue(name, out var c) || (c.Threshold is { } t && confidence >= t);
     }
 
     internal static JsonNode? DefaultState<TInput>(TInput input) => input switch

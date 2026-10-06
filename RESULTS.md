@@ -560,3 +560,73 @@ The packs were trained on these tasks, so there is little left to learn. The gai
 the pack's answer format misfits: stsb goes 0.37 → 0.43 and yelp5 0.57 → 0.65 (4B, 200
 labels). One case got slightly worse: sms_spam's log loss rose from 0.118 to 0.15 on the 4B at
 25–100 labels, with accuracy unchanged.
+
+## 2026-10-06: certification, after an external review
+
+A review from the Moe project (`~/Code/moe/docs/integrations/lars-sdk-findings.md`) found three
+behavior bugs through the Rust SDK's mock backend, and questioned the statistics. All four are
+fixed, in all three SDKs, with regression tests.
+
+1. **A failed certification accepted everything.** `maxError` with too few labels gave a null
+   threshold, which every binding treated like no certification at all. Now a null threshold
+   accepts nothing: nouls answer `false` and choices their fallback.
+2. **Saved calibrations didn't record their question.** A calibration loaded into a new handle
+   could be used by a predicate of the same name asking the opposite. The file is now format 2:
+   each calibrator carries its question, and a different question under that name is refused,
+   whether defined before the load or after. Wording, option descriptions and option order all
+   count.
+3. **Loading kept stale certificates.** A replacement calibrator without a certificate kept the
+   old one's threshold. Loading now replaces each predicate's calibrator and certificate
+   together. The whole file is validated first, and the runtime binds every calibrator before
+   any is used (`set_calibrators`, also in the C ABI and the Node addon), so a refused file
+   changes nothing.
+4. **The threshold scan overstated its 95%.** It tried every threshold with a Wilson bound and
+   kept the best, which multiplies the chances of a lucky pass. Simulated with the true error
+   exactly at a 5% budget, the share of trials that certified anyway:
+
+   | labels | best of all thresholds | fixed sequence, as shipped |
+   |---|---|---|
+   | 100 | 2.5–2.6% | 3.2% |
+   | 200 | 5.5–5.9% | 2.1% |
+   | 500 | 9.6–10.7% | 1.4% |
+   | 1,000 | 13.1–13.9% | 1.9% |
+
+   - **Ranges:** over two confidence distributions, uniform and sharp. The fixed-sequence
+     column is the sharp one.
+   - **Trials:** 1,500–3,000 per cell, a standard error of about 0.4 points.
+   - **Nominal rate:** 2.5% (one-sided). The certificate now comes from a fixed sequence:
+   - most confident first
+   - starting where the confidences themselves predict the budget is met, with a fifth to spare
+   - stopping at the first threshold that fails
+
+   A fitted calibrator is also certified on out-of-fold answers now, as recalibrations and
+   heads already were.
+
+   `lars-core` has the simulation as tests:
+   - an error rate just over the budget is certified at most 3.5% of the time, at 200 and 1,000
+     labels
+   - a calibrated model is still certified
+
+**Cost:** coverage at a 5% budget, jev-bench test, pooled calibrator, threshold per config on
+its own validation rows (`sweep/analyze.py`, policy `fixed`):
+
+| model | best of all (accepted error) | fixed sequence (accepted error, 95% upper) |
+|---|---|---|
+| 0.6B pack | 4.5% (4.5%) | 4.5% (4.5%, 8.4%) |
+| 1.7B pack | 11.9% (3.6%) | 8.1% (3.1%, 5.4%) |
+| 4B pack | 17.5% (2.5%) | 13.6% (2.5%, 4.1%) |
+| 4B pack, imatrix | 19.7% (2.2%) | 12.1% (2.1%, 3.7%) |
+| 8B + typed-decisions, Q4_K_M | 27.6% (2.4%) | 22.0% (1.9%, 2.9%) |
+| 8B + typed-decisions, Q3_K_M | 25.8% (2.4%) | 19.0% (2.4%, 3.7%) |
+
+About a fifth to a third less coverage on the larger packs. The old scan's accepted errors
+were also under 5% on this data, because its worst case needs errors flat at the budget, which
+jev-bench doesn't have. The 0.6B's accepted error is 4.5%, with a 95% upper bound of 8.4%: on
+too few accepted answers to show it holds.
+
+**Still open:**
+- **No input-selector binding:** a changed state selector isn't detected. Closures can't be
+  saved, so this needs a caller-supplied version if it matters.
+- **The same labels both choose the calibrator and certify it.** For the strictest use,
+  certify on a held-out set (docs/calibration.md).
+

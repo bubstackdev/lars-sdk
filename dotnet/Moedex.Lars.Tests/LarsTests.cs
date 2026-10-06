@@ -153,12 +153,84 @@ public sealed class MockPackTests(MockPack mock) : IClassFixture<MockPack>
         Assert.Equal(40, fit.Examples);
         Assert.Null(fit.Certified!.Threshold);
         Assert.Contains("cannot certify", fit.Certified.Reason);
+        // Certification was asked for and failed: the gate stays shut.
+        Assert.False((await isRefund.AskAsync("Please refund my order")).Accepted);
+        Assert.False(isRefund.Check("Please refund my order"));
         var saved = Lars.Calibrations();
         Assert.NotNull(saved["calibrators"]!["calibrated"]);
 
         using var other = Lars.Open(mock.Dir);
         other.LoadCalibrations(saved);
         Assert.Contains("calibrated", other.Status()["calibrators"]!.AsArray().Select(n => n!.GetValue<string>()));
+    }
+
+    [Fact]
+    public async Task AnUncertifiedChoiceFallsBack()
+    {
+        var team = Lars.Choice<string, Team>("fallbackTeam", "Which team?", new ChoiceOptions<string, Team> { Fallback = Team.FrontDesk });
+        var inputs = Enumerable.Range(0, 100).Select(i => $"message {i} about something").ToList();
+        var labels = new List<Team>();
+        foreach (var x in inputs) labels.Add((await team.AskAsync(x)).Value);
+        var fit = await team.CalibrateAsync(inputs.Zip(labels), maxError: 0.0001);
+        Assert.Null(fit.Certified!.Threshold);
+        Assert.False((await team.AskAsync("anything")).Accepted);
+        Assert.Equal(Team.FrontDesk, team.Pick("anything"));
+    }
+
+    [Fact]
+    public async Task SavedCalibrationsCarryTheirQuestionAndCertificate()
+    {
+        var refund = Lars.Noul("savedRefund", "The customer asks for a refund");
+        await refund.CalibrateAsync(Enumerable.Range(0, 40).Select(i => ($"refund order {i}", i % 3 != 0)), maxError: 0.05);
+        var saved = Lars.Calibrations();
+        Assert.Equal(2, saved["format"]!.GetValue<int>());
+        Assert.Equal(refund.Question.ToJsonString(), saved["questions"]!["savedRefund"]!.ToJsonString());
+
+        // Loaded elsewhere, the calibration is bound to its question.
+        using var other = Lars.Open(mock.Dir);
+        other.LoadCalibrations(saved);
+        Assert.Throws<LarsException>(() => other.Noul("savedRefund", "The customer is NOT asking for a refund"));
+        var same = other.Noul("savedRefund", "The customer asks for a refund");
+        Assert.False((await same.AskAsync("refund me")).Accepted);
+
+        // Defined first, the other question makes the load fail, and nothing changes.
+        using (var third = Lars.Open(mock.Dir))
+        {
+            third.Noul("savedRefund", "The customer is NOT asking for a refund");
+            Assert.Throws<LarsException>(() => third.LoadCalibrations(saved));
+            Assert.Empty(third.Status()["calibrators"]!.AsArray());
+        }
+
+        // A replacement without a certificate clears the old one.
+        var certified = saved.DeepClone().AsObject();
+        certified["certified"] = new JsonObject { ["savedRefund"] = new JsonObject { ["maxError"] = 0.05, ["threshold"] = 0.5 } };
+        other.LoadCalibrations(certified);
+        Assert.Equal(0.5, other.Calibrations()["certified"]!["savedRefund"]!["threshold"]!.GetValue<double>());
+        var uncertified = saved.DeepClone().AsObject();
+        uncertified["certified"] = new JsonObject();
+        other.LoadCalibrations(uncertified);
+        Assert.Null(other.Calibrations()["certified"]!["savedRefund"]);
+        Assert.True((await same.AskAsync("refund me")).Accepted);
+
+        // A bad entry anywhere in the file changes nothing.
+        var bad = certified.DeepClone().AsObject();
+        bad["calibrators"]!["broken"] = new JsonObject { ["kind"] = "nonsense" };
+        bad["questions"]!["broken"] = new JsonObject { ["type"] = "noul", ["instructions"] = "x" };
+        Assert.Throws<LarsException>(() => other.LoadCalibrations(bad));
+        Assert.Null(other.Calibrations()["certified"]!["savedRefund"]);
+        Assert.Null(other.Calibrations()["calibrators"]!["broken"]);
+        var badCertificate = certified.DeepClone().AsObject();
+        badCertificate["certified"]!["savedRefund"]!["threshold"] = "high";
+        Assert.Throws<LarsException>(() => other.LoadCalibrations(badCertificate));
+        Assert.Null(other.Calibrations()["certified"]!["savedRefund"]);
+
+        // Older files and other packs are refused.
+        var old = saved.DeepClone().AsObject();
+        old["format"] = 1;
+        Assert.Throws<LarsException>(() => other.LoadCalibrations(old));
+        var elsewhere = saved.DeepClone().AsObject();
+        elsewhere["pack"]!["name"] = "another";
+        Assert.Throws<LarsException>(() => other.LoadCalibrations(elsewhere));
     }
 
     [Fact]

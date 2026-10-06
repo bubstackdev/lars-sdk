@@ -81,7 +81,8 @@ export interface SystemOneResponse {
 /** An acceptance threshold certified on labeled examples (Wilson 95% bound on the error rate). */
 export interface Certified {
   maxError: number;
-  /** Accept answers whose confidence is at least this; null when the labels cannot certify maxError. */
+  /** Accept answers whose confidence is at least this. Null when the labels cannot certify maxError
+   *  (`reason` says why); then no answer is accepted until a calibration that certifies replaces it. */
   threshold: number | null;
   accepted?: number;
   errors?: number;

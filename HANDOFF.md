@@ -29,6 +29,12 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **Certification fixes (review from Moe, `~/Code/moe/docs/integrations/lars-sdk-findings.md`):**
+  - a failed certification accepts nothing
+  - calibration files (format 2) carry their questions
+  - loading replaces certificates and is atomic
+  - thresholds come from a fixed sequence, valid at about 2.5%
+  Coverage drops by about a fifth to a third; RESULTS.md 2026-10-06.
 - **Rust SDK:** `moedex-lars` (`rust/`, with `#[derive(Options)]` in `rust/derive`), on the same
   runtime as TypeScript and C#. Molar Triage gives the same answers as TypeScript. `lars` is
   taken on crates.io. `USING.md` is the handoff for other projects.

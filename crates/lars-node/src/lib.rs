@@ -102,6 +102,13 @@ impl NativeLars {
         self.lars()?.set_calibrator(&name, &calibrator_json).map_err(js_error)
     }
 
+    /// Load several calibrators (`{name: calibrator}`, JSON) at once; if any is not for this
+    /// pack, none is loaded.
+    #[napi]
+    pub fn set_calibrators(&self, calibrators_json: String) -> napi::Result<()> {
+        self.lars()?.set_calibrators(&calibrators_json).map_err(js_error)
+    }
+
     /// Every named calibrator, `{name: calibrator}`, as JSON.
     #[napi]
     pub fn calibrators(&self) -> napi::Result<String> {

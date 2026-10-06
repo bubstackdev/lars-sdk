@@ -84,6 +84,16 @@ int32_t lars_set_calibrator(const struct lars_engine *engine,
                             const char *calibrator_json,
                             char **error_json);
 
+// Load several calibrators at once, `{name: calibrator}` as `lars_calibrators` returns them. Each
+// must have been fitted on this pack; if any is not, none is loaded. Returns 0, or -1 with
+// `*error_json` set.
+//
+// # Safety
+// As `lars_evaluate`.
+int32_t lars_set_calibrators(const struct lars_engine *engine,
+                             const char *calibrators_json,
+                             char **error_json);
+
 // This engine's named calibrators as one JSON object, `{name: calibrator}`, for saving.
 //
 // # Safety

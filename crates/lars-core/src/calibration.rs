@@ -471,10 +471,14 @@ pub fn coverage_at_error(confidences: &[f64], correct: &[f64], max_error: f64) -
 
 /// The upper end of the Wilson score interval for `errors` out of `n` (z = 1.96 for 95%).
 pub fn wilson_upper(errors: usize, n: usize, z: f64) -> f64 {
+    wilson_upper_of(errors as f64, n, z)
+}
+
+fn wilson_upper_of(errors: f64, n: usize, z: f64) -> f64 {
     if n == 0 {
         return 1.0;
     }
-    let (n, p) = (n as f64, errors as f64 / n as f64);
+    let (n, p) = (n as f64, errors / n as f64);
     let centre = (p + z * z / (2.0 * n)) / (1.0 + z * z / n);
     let half = z * (p * (1.0 - p) / n + z * z / (4.0 * n * n)).sqrt() / (1.0 + z * z / n);
     (centre + half).min(1.0)
@@ -491,30 +495,57 @@ pub struct Certified {
     pub error_upper: f64,
 }
 
-/// The threshold accepting the most answers whose Wilson 95% upper bound on error is at most
-/// `max_error`, or None. Tied confidences are accepted together. Unlike `coverage_at_error`,
-/// which bounds the error observed on the labels themselves, this accounts for how few labels
-/// there are: certifying 5% with no errors takes 73 accepted answers.
+/// Where the fixed sequence of `certified_threshold` starts: the confidences must predict the
+/// budget with this much to spare.
+const START_SHARE: f64 = 0.8;
+
+/// A confidence threshold whose accepted answers have an error rate of at most `max_error`, with
+/// 95% confidence, or None.
+///
+/// Thresholds are tested in a fixed sequence (as in Learn then Test): the distinct confidences,
+/// most confident first, each accepted while the Wilson 95% upper bound on its accepted answers'
+/// error is at most the budget, and the sequence stops at the first that fails. It starts where
+/// the confidences themselves predict the budget would be met (their summed `1 - confidence` as
+/// errors, with a fifth of the budget to spare), and never before the fewest accepted answers
+/// that could certify it (73 for 5%). The start depends on the confidences, not the labels, so
+/// the sequence stays fixed given the confidences.
+///
+/// Taking the best of every threshold, each checked on its own, is not a 95% guarantee: with the
+/// true error exactly at the budget it certified 6% of the time at 200 labels and 14% at 1,000.
+/// The fixed sequence holds that near the nominal 2.5% (one-sided), at the cost of coverage
+/// when the most confident answers happen to include errors. Tied confidences enter together.
 pub fn certified_threshold(confidences: &[f64], correct: &[f64], max_error: f64) -> Option<Certified> {
+    const Z: f64 = 1.96;
     let n = confidences.len();
+    let fewest = (1..=n).find(|&k| wilson_upper(0, k, Z) <= max_error)?;
     let mut order: Vec<usize> = (0..n).collect();
     order.sort_by(|&a, &b| confidences[b].total_cmp(&confidences[a]));
+    let ranked: Vec<f64> = order.iter().map(|&i| confidences[i]).collect();
+    let group_end = |k: usize| k == n || ranked[k] != ranked[k - 1];
+    let (mut predicted, mut start) = (0.0, fewest);
+    for k in 1..=n {
+        predicted += 1.0 - ranked[k - 1];
+        if k >= fewest && group_end(k) && wilson_upper_of(predicted, k, Z) <= START_SHARE * max_error {
+            start = k;
+        }
+    }
     let (mut errors, mut best) = (0usize, None);
     for k in 1..=n {
         errors += (correct[order[k - 1]] < 0.5) as usize;
-        if k < n && confidences[order[k]] == confidences[order[k - 1]] {
+        if k < start || !group_end(k) {
             continue;
         }
-        let upper = wilson_upper(errors, k, 1.96);
-        if upper <= max_error {
-            best = Some(Certified {
-                threshold: confidences[order[k - 1]],
-                accepted: k,
-                errors,
-                coverage: k as f64 / n as f64,
-                error_upper: upper,
-            });
+        let upper = wilson_upper(errors, k, Z);
+        if upper > max_error {
+            break;
         }
+        best = Some(Certified {
+            threshold: ranked[k - 1],
+            accepted: k,
+            errors,
+            coverage: k as f64 / n as f64,
+            error_upper: upper,
+        });
     }
     best
 }
@@ -548,5 +579,52 @@ mod certified_tests {
         let certified = certified_threshold(&confidences, &correct, 0.10).unwrap();
         assert_eq!(certified.accepted, 80);
         assert_eq!(certified_threshold(&confidences, &correct, 0.05), None);
+    }
+
+    /// xorshift64*: a deterministic stream for the simulations.
+    struct Rng(u64);
+    impl Rng {
+        fn uniform(&mut self) -> f64 {
+            self.0 ^= self.0 >> 12;
+            self.0 ^= self.0 << 25;
+            self.0 ^= self.0 >> 27;
+            (self.0.wrapping_mul(0x2545_f491_4f6c_dd1d) >> 11) as f64 / (1u64 << 53) as f64
+        }
+    }
+
+    /// `trials` draws of `n` answers with confidences from a sharp model (1 - Beta(1, 8) / 2), each
+    /// wrong with probability `error(confidence)`; how often a threshold is certified, and the mean
+    /// coverage.
+    fn simulate(n: usize, trials: usize, error: impl Fn(f64) -> f64) -> (f64, f64) {
+        let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
+        let (mut certified, mut coverage) = (0, 0.0);
+        for _ in 0..trials {
+            // Beta(1, 8) by inversion: 1 - (1 - u)^(1/8).
+            let confidences: Vec<f64> =
+                (0..n).map(|_| 1.0 - 0.5 * (1.0 - (1.0 - rng.uniform()).powf(1.0 / 8.0))).collect();
+            let correct: Vec<f64> =
+                confidences.iter().map(|&c| if rng.uniform() < error(c) { 0.0 } else { 1.0 }).collect();
+            if let Some(c) = certified_threshold(&confidences, &correct, 0.05) {
+                certified += 1;
+                coverage += c.coverage;
+            }
+        }
+        (certified as f64 / trials as f64, coverage / trials as f64)
+    }
+
+    #[test]
+    fn errors_at_the_budget_are_rarely_certified() {
+        // Every threshold's true error is 5.5%, over the budget: any certificate is a false one.
+        for n in [200, 1000] {
+            let (rate, _) = simulate(n, 600, |_| 0.055);
+            assert!(rate <= 0.035, "{n} labels: certified {rate:.3} of the time");
+        }
+    }
+
+    #[test]
+    fn a_well_calibrated_model_is_still_certified() {
+        // Wrong with probability 1 - confidence: the most confident fifth or so holds 5%.
+        let (rate, coverage) = simulate(1000, 200, |c| 1.0 - c);
+        assert!(rate > 0.8 && coverage > 0.6, "certified {rate:.2}, coverage {coverage:.2}");
     }
 }

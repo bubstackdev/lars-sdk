@@ -233,6 +233,28 @@ pub unsafe extern "C" fn lars_set_calibrator(
     }
 }
 
+/// Load several calibrators at once, `{name: calibrator}` as `lars_calibrators` returns them. Each
+/// must have been fitted on this pack; if any is not, none is loaded. Returns 0, or -1 with
+/// `*error_json` set.
+///
+/// # Safety
+/// As `lars_evaluate`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lars_set_calibrators(
+    engine: *const LarsEngine,
+    calibrators_json: *const c_char,
+    error_json: *mut *mut c_char,
+) -> i32 {
+    let result = guarded(|| unsafe { handle(engine)?.set_calibrators(text(calibrators_json, "calibrators_json")?) });
+    match result {
+        Ok(()) => 0,
+        Err(error) => {
+            unsafe { set_error(error_json, &error) };
+            -1
+        }
+    }
+}
+
 /// This engine's named calibrators as one JSON object, `{name: calibrator}`, for saving.
 ///
 /// # Safety

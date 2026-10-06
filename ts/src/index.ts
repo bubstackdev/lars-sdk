@@ -116,7 +116,8 @@ export interface MultiOptions<I> extends PredicateOptions<I> {}
 interface Decision {
   /** The top probability: how likely the answer is right, once calibrated. Thresholds compare to it. */
   confidence: number;
-  /** False when a certified threshold exists for this predicate and the confidence is below it. */
+  /** False when this predicate has a certificate and the confidence is below its threshold, or
+   *  certification was asked for and failed (a null threshold): then nothing is accepted. */
   accepted: boolean;
   abstain?: boolean;
   evidence?: Evidence[];
@@ -234,10 +235,13 @@ function topProbability(probabilities: Record<string, number> | number[]): numbe
   return Math.max(...Object.values(probabilities));
 }
 
+/** The calibrations file all three SDKs save and load. Each calibrator is bound to the question
+ *  it was fitted for, and carries its certificate, if any. */
 export interface SavedCalibrations {
-  format: 1;
+  format: 2;
   pack: { name: string; version: string };
   calibrators: Record<string, unknown>;
+  questions: Record<string, Question>;
   certified: Record<string, Certified>;
 }
 
@@ -383,12 +387,20 @@ export class Lars {
     return JSON.parse(await call(() => this.#native.evaluate(JSON.stringify(request))));
   }
 
-  /** Every calibrator fitted or loaded on this handle, with its certified thresholds. */
+  /** Every calibrator fitted or loaded on this handle, with the question each was fitted for and
+   *  its certified threshold. */
   calibrations(): SavedCalibrations {
+    const calibrators: Record<string, unknown> = JSON.parse(sync(() => this.#native.calibrators()));
+    const questions: Record<string, Question> = {};
+    for (const name of Object.keys(calibrators)) {
+      const question = this.#names.get(name);
+      if (question !== undefined) questions[name] = JSON.parse(question);
+    }
     return {
-      format: 1,
+      format: 2,
       pack: { name: this.pack.name, version: this.pack.version },
-      calibrators: JSON.parse(sync(() => this.#native.calibrators())),
+      calibrators,
+      questions,
       certified: Object.fromEntries(this.#certified),
     };
   }
@@ -397,14 +409,39 @@ export class Lars {
     await writeFile(path, JSON.stringify(this.calibrations(), null, 2) + "\n");
   }
 
-  /** Load calibrations saved from this pack (an object, or a file path). */
+  /** Load calibrations saved from this pack (an object, or a file path), by any of the SDKs. Each
+   *  replaces the predicate's calibrator and its certificate (clearing it if the file has none);
+   *  other predicates keep theirs. A calibration is bound to the question it was fitted for: a
+   *  predicate of that name asking anything else is refused, here or when defined later. The
+   *  whole file is checked first, so one that is refused changes nothing. */
   async loadCalibrations(saved: SavedCalibrations | string): Promise<void> {
     const data: SavedCalibrations = typeof saved === "string" ? JSON.parse(await readFile(saved, "utf8")) : saved;
-    for (const [name, calibrator] of Object.entries(data.calibrators)) {
-      sync(() => this.#native.setCalibrator(name, JSON.stringify(calibrator)));
-      this.#calibrated.add(name);
+    const invalid = (message: string) => new LarsError("invalid_request", message);
+    if (data.format !== 2) throw invalid("these calibrations are not format 2; calibrate again with this SDK");
+    if (data.pack?.name !== this.pack.name || data.pack?.version !== this.pack.version) {
+      throw invalid(`these calibrations are for pack ${data.pack?.name}@${data.pack?.version}, not ${this.pack.name}@${this.pack.version}`);
     }
-    for (const [name, certified] of Object.entries(data.certified ?? {})) this.#certified.set(name, certified);
+    if (typeof data.calibrators !== "object" || data.calibrators === null) throw invalid("no calibrators to load");
+    const incoming: [string, string, Certified | undefined][] = [];
+    for (const name of Object.keys(data.calibrators)) {
+      const question = data.questions?.[name];
+      if (typeof question !== "object" || question === null) {
+        throw invalid(`the saved calibration for ${JSON.stringify(name)} records no question`);
+      }
+      const key = JSON.stringify(question);
+      const existing = this.#names.get(name);
+      if (existing !== undefined && existing !== key) {
+        throw invalid(`the saved calibration for ${JSON.stringify(name)} was fitted for a different question than the predicate of that name here`);
+      }
+      incoming.push([name, key, savedCertified(name, data.certified?.[name])]);
+    }
+    sync(() => this.#native.setCalibrators(JSON.stringify(data.calibrators)));
+    for (const [name, key, certified] of incoming) {
+      this.#names.set(name, key);
+      this.#calibrated.add(name);
+      if (certified) this.#certified.set(name, certified);
+      else this.#certified.delete(name);
+    }
   }
 
   status(): Record<string, unknown> {
@@ -425,8 +462,9 @@ export class Lars {
   readonly #decoders = new Map<string, (answer: unknown) => unknown>();
 
   #decision<D extends { confidence: number }>(name: string, partial: D, answer: { abstain?: boolean; evidence?: Evidence[] }) {
+    // No certificate: everything is accepted. A failed one (null threshold): nothing is.
     const certified = this.#certified.get(name);
-    const accepted = certified?.threshold == null ? true : partial.confidence >= certified.threshold;
+    const accepted = certified === undefined || (certified.threshold != null && partial.confidence >= certified.threshold);
     return {
       ...partial,
       accepted,
@@ -485,6 +523,31 @@ export class Lars {
       return { examples: raw.examples, kept: raw.kept, accuracy: raw.accuracy, certified };
     };
   }
+}
+
+/** A certificate as the calibrations file records it, checked field by field. */
+function savedCertified(name: string, c: unknown): Certified | undefined {
+  if (c === undefined || c === null) return undefined;
+  const bad = (field: string) => new LarsError("invalid_request", `the certificate for ${JSON.stringify(name)} has a bad ${field}`);
+  if (typeof c !== "object") throw bad("entry");
+  const r = c as Record<string, unknown>;
+  const number = (field: string, required = false) => {
+    const v = r[field];
+    if (v === undefined || v === null) {
+      if (required) throw bad(field);
+      return undefined;
+    }
+    if (typeof v !== "number" || !Number.isFinite(v)) throw bad(field);
+    return v;
+  };
+  if (r.reason !== undefined && r.reason !== null && typeof r.reason !== "string") throw bad("reason");
+  const out: Certified = { maxError: number("maxError", true)!, threshold: number("threshold") ?? null };
+  for (const field of ["accepted", "errors", "coverage", "errorUpper95"] as const) {
+    const v = number(field);
+    if (v !== undefined) out[field] = v;
+  }
+  if (typeof r.reason === "string") out.reason = r.reason;
+  return out;
 }
 
 export default Lars;

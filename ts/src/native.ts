@@ -11,6 +11,7 @@ export interface NativeLars {
   evaluate(requestJson: string): Promise<string>;
   calibrate(name: string, examplesJsonl: string, maxError?: number | null): Promise<string>;
   setCalibrator(name: string, calibratorJson: string): void;
+  setCalibrators(calibratorsJson: string): void;
   calibrators(): string;
   status(): string;
   manifest(): string;

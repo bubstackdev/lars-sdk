@@ -73,8 +73,9 @@ pub struct Evidence {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Certified {
     pub max_error: f64,
-    /// Accept answers whose confidence is at least this; `None` when the labels can't certify
-    /// `max_error` (`reason` says why).
+    /// Accept answers whose confidence is at least this. `None` when the labels can't certify
+    /// `max_error` (`reason` says why); then no answer is accepted until a calibration that
+    /// certifies replaces it.
     pub threshold: Option<f64>,
     pub accepted: Option<usize>,
     pub errors: Option<usize>,
@@ -154,9 +155,12 @@ struct RegistryState {
 }
 
 impl Registry {
+    /// Without a certificate every answer is accepted. With one, answers at or above its
+    /// threshold are; a certificate that failed (no threshold) accepts none, so a gate whose
+    /// error budget could not be established stays shut.
     pub(crate) fn accepts(&self, name: &str, confidence: f64) -> bool {
         let state = self.state.lock().unwrap();
-        state.certified.get(name).and_then(|c| c.threshold).is_none_or(|t| confidence >= t)
+        state.certified.get(name).is_none_or(|c| c.threshold.is_some_and(|t| confidence >= t))
     }
 
     fn calibrated(&self, name: &str, certified: Option<Certified>) {
@@ -378,10 +382,17 @@ impl Lars {
 
     // ------------------------------------------------------------------ calibrations
 
-    /// Every calibrator fitted or loaded on this handle, with its certified thresholds: the same
-    /// file format the TypeScript and C# SDKs save and load.
+    /// Every calibrator fitted or loaded on this handle, with the question each was fitted for
+    /// and its certified threshold: the file format all three SDKs save and load.
     pub fn calibrations(&self) -> Value {
         let state = self.inner.registry.state.lock().unwrap();
+        let calibrators = parse(&self.inner.runtime.calibrators_json()).unwrap_or_default();
+        let mut questions = Map::new();
+        for name in calibrators.as_object().into_iter().flat_map(|m| m.keys()) {
+            if let Some(question) = state.questions.get(name) {
+                questions.insert(name.clone(), parse(question).unwrap_or_default());
+            }
+        }
         let certified: Map<String, Value> = state
             .certified
             .iter()
@@ -401,9 +412,10 @@ impl Lars {
             .collect();
         let pack = self.pack();
         json!({
-            "format": 1,
+            "format": 2,
             "pack": {"name": pack["name"], "version": pack["version"]},
-            "calibrators": parse(&self.inner.runtime.calibrators_json()).unwrap_or_default(),
+            "calibrators": calibrators,
+            "questions": questions,
             "certified": certified,
         })
     }
@@ -413,28 +425,54 @@ impl Lars {
         std::fs::write(path.as_ref(), text).map_err(|e| Error::invalid(format!("{}: {e}", path.as_ref().display())))
     }
 
-    /// Load calibrations saved from this pack (by any of the SDKs).
+    /// Load calibrations saved from this pack (by any of the SDKs). Each replaces the predicate's
+    /// calibrator and its certificate (clearing it if the file has none); other predicates keep
+    /// theirs. A calibration is bound to the question it was fitted for: a predicate of that name
+    /// that asks anything else is refused, here or when it is defined later. The whole file is
+    /// checked first, so one that is refused changes nothing.
     pub fn load_calibrations(&self, saved: &Value) -> Result<()> {
-        let calibrators = saved["calibrators"].as_object().ok_or_else(|| Error::invalid("no calibrators to load"))?;
-        for (name, calibrator) in calibrators {
-            self.inner.runtime.set_calibrator(name, &calibrator.to_string())?;
-            self.inner.registry.state.lock().unwrap().calibrated.insert(name.clone());
+        if saved["format"] != 2 {
+            return Err(Error::invalid("these calibrations are not format 2; calibrate again with this SDK"));
         }
-        if let Some(certified) = saved["certified"].as_object() {
-            let mut state = self.inner.registry.state.lock().unwrap();
-            for (name, c) in certified {
-                let count = |key: &str| c[key].as_u64().map(|n| n as usize);
-                let certified = Certified {
-                    max_error: c["maxError"].as_f64().ok_or_else(|| Error::invalid("certified needs maxError"))?,
-                    threshold: c["threshold"].as_f64(),
-                    accepted: count("accepted"),
-                    errors: count("errors"),
-                    coverage: c["coverage"].as_f64(),
-                    error_upper_95: c["errorUpper95"].as_f64(),
-                    reason: c["reason"].as_str().map(str::to_string),
+        let pack = self.pack();
+        if saved["pack"]["name"] != pack["name"] || saved["pack"]["version"] != pack["version"] {
+            return Err(Error::invalid(format!(
+                "these calibrations are for pack {}@{}, not {}@{}",
+                saved["pack"]["name"], saved["pack"]["version"], pack["name"], pack["version"]
+            )));
+        }
+        let calibrators = saved["calibrators"].as_object().ok_or_else(|| Error::invalid("no calibrators to load"))?;
+        let mut incoming = Vec::with_capacity(calibrators.len());
+        {
+            let state = self.inner.registry.state.lock().unwrap();
+            for name in calibrators.keys() {
+                let question = saved["questions"]
+                    .get(name)
+                    .filter(|q| q.is_object())
+                    .ok_or_else(|| Error::invalid(format!("the saved calibration for {name:?} records no question")))?
+                    .to_string();
+                if state.questions.get(name).is_some_and(|existing| *existing != question) {
+                    return Err(Error::invalid(format!(
+                        "the saved calibration for {name:?} was fitted for a different question than the predicate of \
+                         that name here"
+                    )));
+                }
+                let certified = match saved["certified"].get(name) {
+                    None | Some(Value::Null) => None,
+                    Some(c) => Some(saved_certified(name, c)?),
                 };
-                state.certified.insert(name.clone(), certified);
+                incoming.push((name.clone(), question, certified));
             }
+        }
+        self.inner.runtime.set_calibrators(&saved["calibrators"].to_string())?;
+        let mut state = self.inner.registry.state.lock().unwrap();
+        for (name, question, certified) in incoming {
+            state.questions.insert(name.clone(), question);
+            state.calibrated.insert(name.clone());
+            match certified {
+                Some(c) => state.certified.insert(name, c),
+                None => state.certified.remove(&name),
+            };
         }
         Ok(())
     }
@@ -444,6 +482,31 @@ impl Lars {
         let text = std::fs::read_to_string(path).map_err(|e| Error::invalid(format!("{}: {e}", path.display())))?;
         self.load_calibrations(&parse(&text).map_err(|e| Error::invalid(format!("{}: {}", path.display(), e.message)))?)
     }
+}
+
+/// A certificate as the calibrations file records it.
+fn saved_certified(name: &str, c: &Value) -> Result<Certified> {
+    let bad = |field: &str| Error::invalid(format!("the certificate for {name:?} has a bad {field}"));
+    let number = |field: &str| match &c[field] {
+        Value::Null => Ok(None),
+        v => v.as_f64().map(Some).ok_or_else(|| bad(field)),
+    };
+    let count = |field: &str| match &c[field] {
+        Value::Null => Ok(None),
+        v => v.as_u64().map(|n| Some(n as usize)).ok_or_else(|| bad(field)),
+    };
+    Ok(Certified {
+        max_error: number("maxError")?.ok_or_else(|| bad("maxError"))?,
+        threshold: number("threshold")?,
+        accepted: count("accepted")?,
+        errors: count("errors")?,
+        coverage: number("coverage")?,
+        error_upper_95: number("errorUpper95")?,
+        reason: match &c["reason"] {
+            Value::Null => None,
+            v => Some(v.as_str().ok_or_else(|| bad("reason"))?.to_string()),
+        },
+    })
 }
 
 fn criteria<T: Options>() -> Value {

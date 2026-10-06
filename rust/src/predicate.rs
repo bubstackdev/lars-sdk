@@ -117,7 +117,8 @@ pub struct NoulDecision {
     pub p: f64,
     /// The top probability: how likely the answer is right, once calibrated.
     pub confidence: f64,
-    /// False when a certified threshold exists for this predicate and the confidence is below it.
+    /// False when this predicate has a certificate and the confidence is below its threshold, or
+    /// certification was asked for and failed (no threshold): then nothing is accepted.
     pub accepted: bool,
     pub abstain: Option<bool>,
     pub evidence: Option<Vec<Evidence>>,

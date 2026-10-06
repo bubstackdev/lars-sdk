@@ -144,10 +144,25 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
   and 3–4x the speed.
 - **Certify a threshold when mistakes are costly.** `calibrate(labels, maxError: 0.05)`
   certifies a threshold, and answers below it aren't `accepted`. That needs at least 73
-  accepted labels with no mistakes among them for a 5% budget. At 200 labels it typically
-  accepts 7% of answers on the 0.6B and 22–27% on the 4B.
+  accepted labels with no mistakes among them for a 5% budget. At about 190 labels on jev-bench,
+  it accepts:
+
+  | pack | answers accepted |
+  |---|---|
+  | 0.6B | 4.5% |
+  | 4B | 12–14% |
+  | 8B | about 20% |
+
+  If certification fails (`threshold: null`), nothing is accepted: nouls answer `false` and
+  choices their fallback, until a calibration that certifies replaces it.
 - **Save calibrations** with `saveCalibrations` / `SaveCalibrations` / `save_calibrations`. The
   file format is the same in all three languages.
+  - **Bound to its question:** each calibration records the question it was fitted for, and a
+    predicate of the same name asking something else is refused.
+  - **Not bound to your state selector:** change which fields a predicate reads and you must
+    calibrate it again.
+  - **Calibrations from before 2026-10-06 are refused.** The file is now format 2; calibrate
+    again.
 
 ## Known limits
 

@@ -233,12 +233,17 @@ fn calibrate(
     let folds = examples.len().min(5);
     let mut differences = Vec::with_capacity(examples.len());
     let (mut fitted_loss, mut pack_loss) = (0.0, 0.0);
+    // Each example as the fit scores it without having seen it, for certifying a kept fit.
+    let mut fitted_out_of_fold = vec![Vec::new(); examples.len()];
     for fold in 0..folds {
         let held: Vec<usize> = (0..examples.len()).filter(|i| i % folds == fold).collect();
         let train: Vec<usize> = (0..examples.len()).filter(|i| i % folds != fold).collect();
         let (train_examples, train_rows) = eval::subset(examples, &collected, &train);
         let (held_examples, held_rows) = eval::subset(examples, &collected, &held);
         let candidate = eval::calibrate_collected(&train_examples, &train_rows, source);
+        for (&i, (p, _, _)) in held.iter().zip(eval::score_examples(&candidate, &held_examples, &held_rows)?) {
+            fitted_out_of_fold[i] = p;
+        }
         let with_fit = eval::log_losses(&candidate, &held_examples, &held_rows)?;
         let with_pack = eval::log_losses(&pack.calibrator, &held_examples, &held_rows)?;
         fitted_loss += with_fit.iter().sum::<f64>();
@@ -272,6 +277,11 @@ fn calibrate(
             probs = choice.out_of_fold;
             out_of_fold = true;
         }
+    }
+    // Likewise a fit kept on its own: certify on the answers it gives labels it did not see.
+    if use_fitted && !out_of_fold {
+        probs = fitted_out_of_fold;
+        out_of_fold = true;
     }
     let confidences: Vec<f64> = probs.iter().map(|p| p.iter().copied().fold(0.0, f64::max)).collect();
     let correct: Vec<f64> = probs
@@ -520,6 +530,28 @@ impl Lars {
         let mut guard = self.calibrators.lock().unwrap();
         let mut map = (**guard).clone();
         map.insert(name.to_string(), calibrator);
+        *guard = Arc::new(map);
+        Ok(())
+    }
+
+    /// Load several calibrators (`{name: calibrator}`, JSON) at once: every one is checked against
+    /// this pack before any is used, so a bad entry changes nothing.
+    pub fn set_calibrators(&self, calibrators_json: &str) -> Result<()> {
+        let value: Value =
+            serde_json::from_str(calibrators_json).map_err(|e| Error::invalid(format!("calibrators: {e}")))?;
+        let entries = value.as_object().ok_or_else(|| Error::invalid("calibrators must be an object"))?;
+        let mut bound = Vec::with_capacity(entries.len());
+        for (name, calibrator) in entries {
+            let calibrator = self
+                .host
+                .pack
+                .bound_calibrator(calibrator)
+                .map_err(|e| Error { message: format!("{name}: {}", e.message), ..e })?;
+            bound.push((name.clone(), calibrator));
+        }
+        let mut guard = self.calibrators.lock().unwrap();
+        let mut map = (**guard).clone();
+        map.extend(bound);
         *guard = Arc::new(map);
         Ok(())
     }

@@ -83,15 +83,40 @@ const fit = await isPissed.calibrate(labeled, { maxError: 0.05 });
 fit.certified;  // e.g. { maxError: 0.05, threshold: 0.93, accepted: 180, errors: 2, coverage: 0.45, errorUpper95: 0.0396 }
 ```
 
-The threshold is the lowest confidence at which, among your labeled examples it would accept,
-the 95% upper bound on the error rate (Wilson score interval) is at most `maxError`. From then
-on, for this predicate:
+Among your labeled examples, the threshold accepts those at or above it, and the 95% upper
+bound on their error rate (Wilson score interval) is at most `maxError`. From then on, for
+this predicate:
 - `decide()` / `AskAsync()` report `accepted: false` for answers below the threshold.
 - The plain call is conservative: a noul resolves to `false` unless it is a yes **and**
   accepted, and a choice resolves to its `fallback`, if you gave one.
 
 So `if (await isPissed(message))` only takes the branch when the answer is good enough to
 automate. Send the rest to a person.
+
+**A failed certification shuts the gate.** If the labels can't certify `maxError`,
+`certified.threshold` is `null`, and no answer of that predicate is accepted until a calibration
+that certifies replaces it: nouls resolve to `false`, and choices to their fallback. Asking for
+an error budget and not getting one never behaves like not asking.
+
+**How the threshold is chosen.** Candidate thresholds are tested in a fixed sequence:
+- **Order:** the most confident first.
+- **Start:** where the confidences themselves predict the budget will be met, which depends on
+  the confidences, not the labels.
+- **Stop:** at the first threshold whose bound exceeds the budget.
+
+Taking the best of all thresholds, each checked on its own, would overstate the guarantee. In
+simulation, with the true error exactly at the budget, picking the best threshold certified 6%
+of the time at 200 labels and 14% at 1,000, where 2.5% is the nominal rate. The fixed sequence
+stays near 2.5%.
+
+For a fitted calibrator, or a recalibration or head, the threshold is chosen on out-of-fold
+answers, which come from fits that never saw the label being scored.
+
+**What the guarantee assumes.** The certificate describes data like your labels: drawn the
+same way, from the same population. It does not survive a shift in inputs, and labels the
+model produced itself certify nothing. The labels that choose the calibrator also certify its
+threshold. For the strictest use, calibrate on one set and check the threshold's error on
+another set held out from both.
 
 `coverage` is the share of your labeled examples the threshold accepts: how much of the work
 it automates.
@@ -107,15 +132,16 @@ it automates.
 With fewer, `calibrate` returns `threshold: null` and a `reason`, rather than a threshold that
 would not hold. On jev-bench, the empirical alternative ran at 7–20% error on test when it
 promised 5%: that alternative is "accept wherever the labels themselves showed at most 5%
-errors." The Wilson threshold held 1.6–4.7% (`RESULTS.md`).
+errors." The certified threshold held 1.9–4.5% (`RESULTS.md`).
 
-Typical coverage at a 5% budget with 200 labels per decision, on jev-bench:
+Typical coverage at a 5% budget with about 190 labels per decision, on jev-bench test:
 
-| pack | coverage |
-|---|---|
-| 0.6B | 7% |
-| 1.7B | 12% |
-| 4B | 22–27% |
+| pack | coverage | error on accepted test answers |
+|---|---|---|
+| 0.6B | 4.5% | 4.5% |
+| 1.7B | 8% | 3.1% |
+| 4B | 12–14% | 2.1–2.5% |
+| 8B | 19–22% | 1.9–2.4% |
 
 It is much higher on easy, well-defined decisions and lower on subjective ones.
 
@@ -133,8 +159,23 @@ lars.SaveCalibrations("calibrations.json");
 lars.LoadCalibrations("calibrations.json");
 ```
 
-The file holds each predicate's calibrator, bound to the pack's name, version and model hash,
-and its certified threshold.
+The file holds, for each predicate:
+- its calibrator, bound to the pack's name, version and model hash
+- the question it was fitted for
+- its certified threshold, if any
+
+All three SDKs read and write the same file. A calibration is bound to its question: loading it
+for a predicate of the same name that asks anything else is refused, whether that predicate is
+defined before the load or after. Changed wording counts, and so do changed option descriptions
+or order.
+
+Loading replaces each named predicate's calibrator and its certificate together. A file without
+a certificate for that predicate clears the old one, so a threshold never outlives the
+calibrator it was certified on. The whole file is checked before anything changes, so a refused
+file leaves the current calibrations as they were.
+
+The question is checked, but not your state selector: if you change which fields a predicate
+reads, calibrate it again.
 
 ## When to recalibrate
 
