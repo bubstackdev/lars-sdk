@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/lars-core", "crates/lars-llama-sys", "crates/lars-llama", "crates/lars-dev", "crates/lars-runtime", "crates/lars-ffi", "crates/lars-node"]
+members = ["crates/lars-core", "crates/lars-llama-sys", "crates/lars-llama", "crates/lars-dev", "crates/lars-runtime", "crates/lars-ffi", "crates/lars-node", "rust", "rust/derive"]
 
 [workspace.package]
 version = "0.1.0"

@@ -34,11 +34,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: cargo clippy -p lars-llama -p lars-dev -p lars-runtime -p lars-ffi --all-targets -- -D warnings
+      - run: cargo clippy -p lars-llama -p lars-dev -p lars-runtime -p lars-ffi -p moedex-lars -p moedex-lars-derive --all-targets -- -D warnings
       - run: cargo build --release -p lars-dev
       # Model tests need a GGUF (LARS_TEST_GGUF) and skip without one; the runtime and the C ABI
       # are tested on mock packs (the C smoke test runs on Unix, under leaks on macOS).
-      - run: cargo test --release -p lars-llama -p lars-runtime -p lars-ffi
+      - run: cargo test --release -p lars-llama -p lars-runtime -p lars-ffi -p moedex-lars
       - name: lars.h is up to date
         if: runner.os == 'Linux'
         run: |

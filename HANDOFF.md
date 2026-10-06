@@ -29,6 +29,9 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **Rust SDK:** `moedex-lars` (`rust/`, with `#[derive(Options)]` in `rust/derive`), on the same
+  runtime as TypeScript and C#. Molar Triage gives the same answers as TypeScript. `lars` is
+  taken on crates.io. `USING.md` is the handoff for other projects.
 - **Per-predicate heads are in the SDK** (`calibrate`: pack/fitted → recal → head, each step
   significant on 5-fold CV). typed-decisions with 100 labels: 0.6B 0.44 → 0.66, 4B 0.61 → 0.72.
   In-domain (jev-bench), they add 0.5–1 point and do no net harm. RESULTS.md has the tables.

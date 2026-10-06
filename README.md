@@ -17,6 +17,13 @@ var isPissed = lars.Noul("isPissed", "The customer is angry");
 if (await isPissed.AskAsync(message)) Escalate(message);
 ```
 
+```rust
+let lars = Lars::open("lars-4b").await?;
+let is_pissed = lars.noul("isPissed", "The customer is angry");
+
+if is_pissed.ask(message).await? { escalate(message) }
+```
+
 A predicate asks one typed question about its input:
 - **noul:** yes or no
 - **choice:** one of your options
@@ -31,29 +38,32 @@ predicate on your own labels, and get a threshold certified for an error budget.
 There is no server, no Ollama, and no network after a model pack is downloaded. The model is
 llama.cpp, linked into the library, on Metal on Macs and on the CPU everywhere else.
 
-This repository is the SDK: TypeScript (`@moedex/lars`) and C# (`Moedex.Lars`), over one Rust
-core. The engine, the benchmark work and the training live in the
+This repository is the SDK: TypeScript (`@moedex/lars`), C# (`Moedex.Lars`) and Rust
+(`moedex-lars`), over one Rust core. The engine, the benchmark work and the training live in the
 [lars](https://github.com/moedex/lars) repository; this SDK reproduces its prompts byte for
 byte and its answers to the last digit.
 
 > **Status: pre-release.** Nothing is published yet. Packages and packs are built by CI as
 > artifacts. Build from source to try it (below).
+>
+> Using it from another project: [USING.md](USING.md).
 
 ## What a predicate gives you
 
-| predicate | TypeScript | C# | resolves to |
-|---|---|---|---|
-| noul | `lars.noul(name, claim)` | `lars.Noul(name, claim)` | `boolean` |
-| choice | `lars.choice(name, question, { key: "description", ... })` | `lars.Choice<TEnum>(name, question)` | one of your keys / enum members |
-| score | `lars.score(name, question, levels)` | `lars.Score(name, question, levels...)` | the expected level (fractional) |
-| multi | `lars.multi(name, question, { key: "description", ... })` | `lars.Multi<TEnum>(name, question)` | the keys that apply |
+| predicate | TypeScript | C# | Rust | resolves to |
+|---|---|---|---|---|
+| noul | `lars.noul(name, claim)` | `lars.Noul(name, claim)` | `lars.noul(name, claim)` | `boolean` |
+| choice | `lars.choice(name, question, { key: "description", ... })` | `lars.Choice<TEnum>(name, question)` | `lars.choice::<Enum>(name, question)` | one of your keys / enum members |
+| score | `lars.score(name, question, levels)` | `lars.Score(name, question, levels...)` | `lars.score(name, question, levels)` | the expected level (fractional) |
+| multi | `lars.multi(name, question, { key: "description", ... })` | `lars.Multi<TEnum>(name, question)` | `lars.multi::<Enum>(name, question)` | the keys that apply |
 
 Each predicate also has:
-- **`decide` (TS) / `AskAsync` (C#):** the decision with its probabilities and confidence, and
+- **`decide` (TS, Rust) / `AskAsync` (C#):** the decision with its probabilities and confidence, and
   whether a certified threshold accepts it
-- **`calibrate` / `CalibrateAsync`:** fits its own calibrator on your labels
-- **`lars.ask(input, { a, b, c })` / `AskAsync(input, a, b, c)`:** puts several predicates to the
-  model in one request, which reads the input once
+- **`calibrate` / `CalibrateAsync` (C#):** fits its own calibrator on your labels
+- **`lars.ask(input, { a, b, c })` (TS) / `AskAsync(input, a, b, c)` (C#) /
+  `lars.ask(input, (&a, &b, &c))` (Rust):** puts several predicates to the model in one request,
+  which reads the input once
 
 Inputs are strings, or objects sent as JSON. Use a state selector to pick the fields that matter,
 so whole records, and the personal data in them, stay out of prompts:
@@ -74,8 +84,23 @@ public enum Team
 Team team = await lars.Choice<Team>("team", "Which team should handle this?").AskAsync(message);
 ```
 
-Full examples: `ts/examples/molar-triage.ts` and `dotnet/examples/MolarTriage`, which sort a
-dental practice's inbox.
+Rust choices are enums too, and `#[derive(Options)]` makes each variant's doc comment its
+description. Every Rust call returns a `Pending`: `.await` it on any executor, or `.wait()` for it
+in blocking code.
+
+```rust
+#[derive(Clone, Copy, Debug, PartialEq, Options)]
+enum Team {
+    /// Payments, charges, refunds
+    Billing,
+    /// Bugs, crashes, outages
+    Technical,
+}
+let team: Team = lars.choice::<Team>("team", "Which team should handle this?").ask(message).await?;
+```
+
+Full examples: `ts/examples/molar-triage.ts`, `dotnet/examples/MolarTriage` and
+`rust/examples/molar_triage.rs`, which sort a dental practice's inbox.
 
 ## Packs
 
@@ -150,9 +175,9 @@ on Metal and about 1.4 s on CPU.
 ## How it works
 
 ```
-TypeScript (@moedex/lars)                 C# (Moedex.Lars)
-        │ napi-rs (crates/lars-node)               │ P/Invoke (crates/lars-ffi, include/lars.h)
-        └──────────────┬───────────────────────────┘
+TypeScript (@moedex/lars)          C# (Moedex.Lars)                     Rust (moedex-lars)
+        │ napi-rs (crates/lars-node)        │ P/Invoke (crates/lars-ffi, lars.h)        │ directly
+        └──────────────┬────────────────────┴───────────────────────────────────────────┘
                 lars-runtime    packs, downloads, one worker thread per loaded model, calibrators
                 lars-core       request schema, prompt rendering, answers, constraints, calibration
                 lars-llama      llama.cpp, vendored at a pinned commit and linked statically
@@ -173,13 +198,14 @@ Needs Rust (stable), CMake, and a C/C++ toolchain; Node 22+ and pnpm for TypeScr
 ```sh
 git clone --recursive https://github.com/moedex/lars-sdk && cd lars-sdk
 cargo test -p lars-core                       # the core, against the reference fixtures
+cargo test -p moedex-lars                     # the Rust SDK
 
 cd ts && pnpm install && pnpm build:native && pnpm test
 cd ../dotnet && cargo build --release -p lars-ffi \
   && LARS_NATIVE=$PWD/../target/release/liblars.dylib dotnet test Moedex.Lars.Tests
 ```
 
-Both test suites run on a mock pack with no model. Set `LARS_TEST_PACK` to a pack directory to
+All three test suites run on a mock pack with no model. Set `LARS_TEST_PACK` to a pack directory to
 run the real-model tests too.
 
 | | |
@@ -187,6 +213,7 @@ run the real-model tests too.
 | `crates/` | Rust: `lars-core`, `lars-llama-sys`, `lars-llama`, `lars-runtime`, `lars-ffi`, `lars-node`, `lars-dev` (developer CLI) |
 | `ts/` | `@moedex/lars` |
 | `dotnet/` | `Moedex.Lars`, its tests and example |
+| `rust/` | `moedex-lars` and its `#[derive(Options)]` crate, tests and example |
 | `fixtures/` | reference outputs from the Python engine, and the scripts that produce them |
 | `sweep/` | the model-size sweep and training pipeline behind the packs |
 | `PLAN.md`, `RESULTS.md` | the plan to 1.0, and every measurement so far |

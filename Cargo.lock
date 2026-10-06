@@ -338,6 +338,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "moedex-lars"
+version = "0.1.0"
+dependencies = [
+ "lars-runtime",
+ "moedex-lars-derive",
+ "serde_json",
+]
+
+[[package]]
+name = "moedex-lars-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "napi"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
