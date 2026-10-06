@@ -1,7 +1,7 @@
 # Shared steps for LoRA runs (sourced by sweep/train4b.sh): train, fuse, convert and quantize
 # with an importance matrix, capture jev-bench, and typed-decisions through a pack. The caller
 # sets SDK, LARS, PY, CONVERT, FIXPY, LLAMA, TOOLS, DEV, OUT, TD, DATA, RECORDS, SELECT, SKIP,
-# TRAIN_ARGS, TEMPLATE, SMOKE, LIMIT_ROWS and RESULTS. (sweep/overnight.sh has its own copy, written
+# TRAIN_ARGS, TEMPLATE, SMOKE, LIMIT_ROWS and RESULTS, and optionally CONVERT_ARGS. (sweep/overnight.sh has its own copy, written
 # before this file; fold it in once that run is over.)
 
 step() { echo "=== $(date '+%F %T') $*"; }
@@ -39,7 +39,7 @@ build() {  # name hf-dir template quants...
     b_bf16=$SDK/models/$b_name-BF16.gguf
     b_text=$SDK/models/imatrix-$(basename "$b_template" .json).txt
     b_matrix=$SDK/models/$b_name.imatrix.gguf
-    [ -s "$b_bf16" ] || { "$CONVERT" "$LLAMA/convert_hf_to_gguf.py" "$b_dir" --outtype bf16 --outfile "$b_bf16.part" \
+    [ -s "$b_bf16" ] || { "$CONVERT" "$LLAMA/convert_hf_to_gguf.py" "$b_dir" --outtype bf16 ${CONVERT_ARGS:-} --outfile "$b_bf16.part" \
         > "$OUT/convert-$b_name.log" 2>&1 && mv "$b_bf16.part" "$b_bf16"; } || return 1
     [ -s "$b_text" ] || "$PY" "$SDK/sweep/imatrix_text.py" --template "$b_template" --records 1500 --out "$b_text" \
         > "$OUT/imatrix-text-$b_name.log" 2>&1 || return 1

@@ -1,28 +1,27 @@
-# Handoff, 2026-10-05 evening
+# Handoff, 2026-10-06 morning
 
-## Running overnight (unattended)
+## Running (unattended), 2026-10-06
 
-`dev.lars-sdk.overnight` (`sweep/overnight.sh`, under launchd and caffeinate) started at 15:08.
-Log: `sweep/out/overnight.log`; results summary: `sweep/out/overnight-results.txt`. It unloads
-itself when done. Stop it with `launchctl bootout gui/$(id -u)/dev.lars-sdk.overnight`.
+Two launchd jobs, one after the other; each unloads itself. Stop one with
+`launchctl bootout gui/$(id -u)/dev.lars-sdk.<name>`.
 
-| step | what | expected |
-|---|---|---|
-| 1 | LoRA on **Qwen3-8B**, corpus E + 1,000 typed-decisions train cases, the corpus-E recipe, 4,948 steps (`sweep/out/train-Qwen3-8B-lora-etd-s0.log`) | done about 00:15 |
-| 2 | fuse, convert, imatrix Q4_K_M (5.0 GB) and Q3_K_M; jev-bench capture and report for each | about 02:00 |
-| 3 | pack `models/packs/lars-8b-dev/0.0.1`; typed-decisions test and train through it, with hidden states; zero-shot score and per-predicate heads into `overnight-results.txt` | about 03:30 |
-| 4 | the untrained Qwen3-8B at Q4_K_M, captured as the zero-shot reference | about 04:30 |
-| 5 | LoRA on **Qwen3.5-2B**, same data (about 10 h), then fuse, convert, capture | into the afternoon; stopping it loses nothing earlier |
+1. `dev.lars-sdk.train4b` (`sweep/train4b.sh`, log `sweep/out/train4b.log`), started training
+   07:45. The 4B trained exactly like the 8B (BF16, corpus E soft + typed-decisions train), then
+   imatrix Q4_K_M, a jev-bench capture, pack `lars-4b-etd-dev` and typed-decisions
+   (`sweep/out/train4b-results.txt`). It decides the top tier: keep the 4B if it lands within
+   about 1 point of accuracy and 3 points of Wilson coverage of the 8B; else the 8B at Q3_K_M
+   replaces it. Never both.
+2. `dev.lars-sdk.train35` (`sweep/train35.sh`, log `sweep/out/train35.log`) waits for it, then
+   trains Qwen3.5-2B the same way (from scratch: the overnight run was stopped at step 2,300 to
+   let the 4B go first), converts with `--no-mtp` (mlx_lm drops the MTP block when it fuses), and
+   captures.
 
-Training cannot resume. If the machine reboots, launchd restarts the script, finished steps
-are skipped, and an unfinished training starts over.
-
-**What to compare in the morning:**
-- `Qwen3-8B-lora-etd-s0-Q4_K_M` against the 4B pack: jev-bench 0.736 pooled, Wilson coverage
-  17.5%; and against the 30B anchor: 0.761, 21.1%.
-- On typed-decisions: the 4B pack scored 0.607 zero-shot. The 8B trained on typed-decisions
-  train, so its number belongs in the leaderboard's "fitted" table (OpenDecider-small-td 0.792).
-- The 8B's own zero-shot row, to separate the size gain from the LoRA gain.
+The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37:
+- `lars-8b-dev`: jev-bench 0.749 (Q4_K_M, 5.0 GB) and 0.748 (Q3_K_M, 4.1 GB), Brier 0.285,
+  Wilson coverage 27.6%.
+- The untrained 8B scored 0.627.
+- On typed-decisions test (it trained on train): 0.773, KL 0.095, Brier 0.050.
+- Per-predicate heads on top: 0.806 at 300 labels.
 
 ## Decided today
 
