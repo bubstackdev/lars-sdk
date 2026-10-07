@@ -36,9 +36,9 @@ The overnight run (`sweep/archive/overnight.sh`) finished everything for the 8B 
   - **Packages:** `dist/rc/` holds the npm tarballs and the NuGet package, for macOS arm64 and x64.
   - **Blocked:** Linux and Windows wait on GitHub Actions billing; publishing waits on sign-off.
 - **Tonight, 2026-10-07:** `dev.lars-sdk.train35-4b` (`sweep/train35_4b.sh`, log
-  `sweep/out/train35_4b.log`) waits until 18:00, then trains Qwen3.5-4B like the 2B.
+  `sweep/out/train35_4b.log`) started at 11:13 (moved up from 18:00) and trains Qwen3.5-4B like the 2B.
   - **Expected:** about 8-9 h of training (48.6 GB peak in the smoke test), then the build check,
-    jev-bench, pack `lars-4b35-dev` and typed-decisions, all done around 04:00.
+    jev-bench, pack `lars-4b35-dev` and typed-decisions, done around 21:00-22:00.
   - **The question:** does it match the 8B (0.748) at about 2.5 GB? The smoke test passed end to
     end on the real base (check: MLX 0.775, GGUF 0.788).
 - **2026-10-07 lineup (agreed):**
