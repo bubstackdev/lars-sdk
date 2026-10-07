@@ -20,7 +20,7 @@ Two launchd jobs, one after the other; each unloads itself. Stop one with
 Overlapping GPU jobs costs a lot: the old rule ran at 16.2 s per step next to the 4B training,
 against 4.7 s alone. Run one GPU job at a time.
 
-The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37:
+The overnight run (`sweep/archive/overnight.sh`) finished everything for the 8B by 04:37:
 - `lars-8b-dev`: jev-bench 0.749 (Q4_K_M, 5.0 GB) and 0.748 (Q3_K_M, 4.1 GB), Brier 0.285,
   Wilson coverage 27.6%.
 - The untrained 8B scored 0.627.
@@ -29,6 +29,12 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **Tonight, 2026-10-07:** `dev.lars-sdk.train35-4b` (`sweep/train35_4b.sh`, log
+  `sweep/out/train35_4b.log`) waits until 18:00, then trains Qwen3.5-4B like the 2B.
+  - **Expected:** about 8-9 h of training (48.6 GB peak in the smoke test), then the build check,
+    jev-bench, pack `lars-4b35-dev` and typed-decisions, all done around 04:00.
+  - **The question:** does it match the 8B (0.748) at about 2.5 GB? The smoke test passed end to
+    end on the real base (check: MLX 0.775, GGUF 0.788).
 - **2026-10-07 lineup (agreed):**
   - `lars-2b-dev` 0.0.1: Qwen3.5-2B, the default.
   - `lars-8b-dev` 0.0.2: Q3_K_M, the top tier.

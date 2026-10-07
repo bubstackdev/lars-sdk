@@ -258,7 +258,7 @@ Team t = await team.AskAsync(message);
 - `AskAsync` completes from the native callback and takes a `CancellationToken`, which
   cancels a queued request.
 - In 1.0, enum options are read by reflection. A source generator comes only if trimming
-  or AOT needs it.
+  or AOT needs it; native AOT was checked on 2026-10-07 and doesn't.
 
 ## Parity with the Python reference
 
@@ -422,7 +422,7 @@ No GPU training and no new work for Codex. The SDK's own harness answers the siz
   - [x] a C smoke test (`crates/lars-ffi/tests/c/smoke.c`)
   - [x] concurrency: 8 threads in Rust, 4 in C
   - [x] downloads against a local server
-  - [x] leak check with `leaks` on macOS; ASan on Linux not yet
+  - [x] leak check with `leaks` on macOS; AddressSanitizer on Linux in CI (2026-10-07)
 
 **Done 2026-10-05.**
 - **A C program on the dev pack** (`models/packs/lars-4b-dev/0.0.1`, the 4B LoRA Q4_K_M) opens
@@ -464,7 +464,8 @@ No GPU training and no new work for Codex. The SDK's own harness answers the siz
 - [x] xUnit tests on the mock pack, plus a real-model test behind `LARS_TEST_PACK`; CI on three OSes.
 - [x] Molar Triage example in C#.
 
-**Done 2026-10-05.** Enum options are read by reflection; no source generator yet.
+**Done 2026-10-05.** Enum options are read by reflection. A native AOT publish of Molar Triage
+(2026-10-07) builds without trim warnings and answers correctly, so no source generator is needed.
 
 ### Phase 6: the first real pack (needs Phase 2b and a LoRA from Codex)
 
@@ -499,7 +500,8 @@ Done when the pack's manifest carries its own as-shipped accuracy, calibration a
   - [x] package READMEs
   - [x] `docs/calibration.md`
   - [x] `docs/packs.md`
-  - [ ] an API reference generated from the doc comments
+  - [x] an API reference generated from the doc comments (2026-10-07): TypeDoc and rustdoc, the CI
+    `docs` artifact; C#'s XML docs ship in the NuGet package
 - [ ] Publishing to npm, NuGet and the Hub: held until you sign off (2026-10-05).
 - [ ] Version 1.0.0, tag, release notes: with publishing.
 

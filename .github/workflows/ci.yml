@@ -99,3 +99,46 @@ jobs:
           esac
           LARS_NATIVE="$PWD/target/release/$lib" dotnet test dotnet/Moedex.Lars.Tests -c Release
       - run: dotnet build dotnet/examples/MolarTriage -c Release
+
+  # AddressSanitizer over the runtime and the Rust SDK on mock packs (llama.cpp itself is not
+  # instrumented, but its allocations go through the sanitizer's allocator).
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+      - run: cargo test --target x86_64-unknown-linux-gnu -Zbuild-std -p lars-core -p lars-runtime -p moedex-lars
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+          RUSTDOCFLAGS: -Zsanitizer=address
+          ASAN_OPTIONS: detect_leaks=0
+
+  # The API reference from the doc comments: TypeDoc and rustdoc, as an artifact. C#'s XML docs
+  # ship in the NuGet package.
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: cargo doc -p moedex-lars --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - run: pnpm install --frozen-lockfile && pnpm docs
+        working-directory: ts
+      - run: mkdir -p target/api && cp -r target/doc target/api/rust
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-reference
+          path: target/api

@@ -1,8 +1,9 @@
-# Shared steps for LoRA runs (sourced by sweep/train4b.sh): train, fuse, convert and quantize
-# with an importance matrix, capture jev-bench, and typed-decisions through a pack. The caller
-# sets SDK, LARS, PY, CONVERT, FIXPY, LLAMA, TOOLS, DEV, OUT, TD, DATA, RECORDS, SELECT, SKIP,
-# TRAIN_ARGS, TEMPLATE, SMOKE, LIMIT_ROWS and RESULTS, and optionally CONVERT_ARGS. (sweep/overnight.sh has its own copy, written
-# before this file; fold it in once that run is over.)
+# Shared steps for LoRA runs (sourced by sweep/train4b.sh, train35.sh, train35_4b.sh and
+# finish2b.sh): train, fuse, convert and quantize with an importance matrix, check the GGUF
+# against MLX, capture jev-bench, and typed-decisions through a pack. The caller sets SDK, LARS,
+# PY, CONVERT, FIXPY, LLAMA, TOOLS, DEV, OUT, TD, DATA, RECORDS, SELECT, SKIP, TRAIN_ARGS,
+# TEMPLATE, SMOKE, LIMIT_ROWS and RESULTS, and optionally CONVERT_ARGS. The 2026-10-05 overnight
+# run, written before this file with its own copy, is in sweep/archive/.
 
 step() { echo "=== $(date '+%F %T') $*"; }
 

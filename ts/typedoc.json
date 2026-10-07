@@ -1,0 +1,17 @@
+{
+  "entryPoints": [
+    "src/index.ts"
+  ],
+  "out": "../target/api/ts",
+  "name": "@moedex/lars",
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "treatWarningsAsErrors": true,
+  "intentionallyNotExported": [
+    "Spec",
+    "DecisionOf",
+    "InputOf",
+    "AnyPredicate"
+  ]
+}

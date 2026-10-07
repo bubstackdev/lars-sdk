@@ -27,11 +27,13 @@
     "build:native": "node scripts/build-native.mjs",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "docs": "typedoc"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "tsx": "^4.23.15",
+    "typedoc": "~0.28.20",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }
