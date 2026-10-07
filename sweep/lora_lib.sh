@@ -57,6 +57,23 @@ build() {  # name hf-dir template quants...
     rm -f "$b_bf16"
 }
 
+# Before anything long: the converted model must answer like the trained one. 80 validation rows
+# (10 from each of 8 sets) through MLX (base + adapter, the training framework) and through the
+# GGUF; their accuracies must be within 0.08. A broken conversion fails here in minutes: the
+# fused Qwen3.5-2B with doubled norms scored 0.316 on jev-bench, against 0.716 once fixed.
+check() {  # hub-model adapter name (models/<name>.gguf) template
+    c_rows=$OUT/check-rows.jsonl
+    [ -s "$c_rows" ] || for f in boolq banking77 mnli sms_spam arc_challenge massive paws helpsteer2_helpfulness; do
+        head -10 "$DATA/$f.validation.jsonl"
+    done > "$c_rows"
+    c_mlx=$(cd "$LARS" && "$PY" -m lars eval --backend mlx --model "$1" --adapter "$2" --data "$c_rows" 2>>"$OUT/check-$3.log" \
+        | "$PY" -c "import json,sys; print(json.load(sys.stdin)['accuracy'])") || { step "check $3: MLX eval failed"; return 1; }
+    c_gguf=$("$DEV" eval --model "$SDK/models/$3.gguf" --template "$4" --data "$c_rows" 2>>"$OUT/check-$3.log" \
+        | "$PY" -c "import json,sys; print(json.load(sys.stdin)['accuracy'])") || { step "check $3: GGUF eval failed"; return 1; }
+    step "check $3: MLX $c_mlx, GGUF $c_gguf on $(wc -l < "$c_rows" | tr -d ' ') rows"
+    "$PY" -c "import sys; sys.exit(abs($c_mlx - $c_gguf) > 0.08)" || { step "FAILED check $3: the GGUF does not answer like the trained model"; return 1; }
+}
+
 capture() {  # name (models/<name>.gguf)
     if [ "$SMOKE" = 1 ]; then
         cat "$DATA/boolq.test.jsonl" > "$OUT/smoke-rows.jsonl"

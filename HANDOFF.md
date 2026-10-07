@@ -29,6 +29,13 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **2026-10-07 results (RESULTS.md):**
+  - 4B + td 0.740, 8B + td 0.749, Qwen3.5-2B + td 0.716.
+  - Top tier: the 8B (Q3_K_M), by the coverage rule.
+  - The 2B is the best small model. Its pack, typed-decisions and latency come from
+    `sweep/finish2b.sh` (running from 09:00; results in `sweep/out/finish2b-results.txt` and
+    `sweep/out/latency-tiers.md`).
+  - Builds now gate on `check` (MLX vs GGUF on 80 rows).
 - **2026-10-07, two pipeline bugs fixed:**
   - **4B fuse failed offline.** mlx_lm fetches the base's README for a model card; `fuse` now
     reads the local snapshot. The 4B resumed from its finished adapter at 07:26.

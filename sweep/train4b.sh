@@ -68,6 +68,7 @@ grep -q '"improved": false' "$CKPT/adapter_config.json" && step "NOTE $NAME: no 
 step "$NAME: fuse, convert, quantize"
 fuse "$BASE" "$CKPT" "$SDK/models/fused/$NAME" && build "$NAME" "$SDK/models/fused/$NAME" "$TEMPLATE" Q4_K_M \
     || { step "FAILED fuse/build $NAME"; exit 1; }
+check "$BASE" "$CKPT" "$NAME-Q4_K_M" "$TEMPLATE" || exit 1
 step "$NAME-Q4_K_M: capture"
 capture "$NAME-Q4_K_M"
 step "$NAME: pack $PACK"

@@ -630,3 +630,45 @@ too few accepted answers to show it holds.
 - **The same labels both choose the calibrator and certify it.** For the strictest use,
   certify on a held-out set (docs/calibration.md).
 
+## 2026-10-07: the 4B and Qwen3.5-2B trained like the 8B
+
+Both trained on corpus E (soft) plus typed-decisions train, with the 8B's recipe. jev-bench test,
+pooled calibrator, Metal. Certified coverage is the fixed-sequence certificate at a 5% budget
+(error on accepted test answers in brackets).
+
+| model | size | accuracy | Brier | certified coverage |
+|---|---|---|---|---|
+| 8B + td, Q4_K_M | 5.0 GB | 0.749 | 0.285 | 22.0% (1.9%) |
+| 8B + td, Q3_K_M | 4.1 GB | 0.748 | 0.287 | 19.0% (2.4%) |
+| 4B + td, Q4_K_M | 2.5 GB | 0.740 | 0.295 | 12.0% (1.5%) |
+| 4B pack (corpus E only) | 2.5 GB | 0.736 | 0.304 | 13.6% (2.5%) |
+| Qwen3.5-2B + td, Q4_K_M | 1.3 GB | 0.716 | 0.333 | 15.3% (3.1%) |
+| 1.7B pack | 1.1 GB | 0.677 | 0.362 | 8.1% (3.1%) |
+| Qwen3.5-2B zero-shot | 1.3 GB | 0.493 | 0.548 | |
+
+typed-decisions test (held out), pack calibrator, and with per-predicate heads:
+- **4B + td:** 0.770. With heads, 0.80 at 200 labels and 0.81 at 300.
+- **8B + td:** 0.773. With heads, 0.806 at 300 labels.
+
+- **The typed-decisions data is worth little on jev-bench for the 4B:** +0.4 points. Size explains
+  most of the 4B-to-8B gap that remains, 0.9 points.
+- **Top tier: the 8B.** It ties the 4B on accuracy and certifies 1.6-1.8x as many answers. By the
+  rule set on 2026-10-06, a tie on accuracy with a coverage gap over 3 points means the 8B at
+  Q3_K_M replaces the 4B.
+- **Qwen3.5-2B is the best small model by far:** 4 points over the 1.7B at about the same size,
+  2.4 under the 4B at half its size. Its typed-decisions scores and latency are pending.
+
+**Two pipeline bugs, both fixed:**
+- **The 4B's fuse failed offline.** mlx_lm fetches the base's README for a model card; fuse now
+  reads the local snapshot.
+- **The first 2B build scored 0.316.** Its norms were doubled: mlx_lm adds 1.0 to Qwen3.5's
+  zero-centered norms and saves them shifted, and the converter adds 1.0 again
+  (`sweep/unshift_norms.py`).
+
+Neither showed in the smoke tests: those checked that each step ran, not that the converted model
+answered like the trained one. Every build now runs `check` (`sweep/lora_lib.sh`) before
+capturing: 80 validation rows through MLX (base + adapter) and through the GGUF, whose
+accuracies must agree within 0.08. It takes about 15 s per model:
+- the fixed 2B passes: MLX 0.850, GGUF 0.863
+- the broken build fails: GGUF 0.300
+
