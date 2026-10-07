@@ -29,6 +29,14 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **2026-10-07, two pipeline bugs fixed:**
+  - **4B fuse failed offline.** mlx_lm fetches the base's README for a model card; `fuse` now
+    reads the local snapshot. The 4B resumed from its finished adapter at 07:26.
+  - **The fused Qwen3.5-2B was broken (0.316, against 0.493 untrained).** mlx_lm adds 1.0 to five
+    zero-centered norm tensors on load, the fused save keeps the shift, and the converter adds
+    1.0 again. `sweep/unshift_norms.py` now runs after every fuse. The 2B rebuilds from its
+    adapter after the 4B finishes. Training was fine: selection 0.43 -> 0.778. Broken outputs
+    are in `models/broken` and `sweep/out/broken`.
 - **Certification fixes (review from Moe, `~/Code/moe/docs/integrations/lars-sdk-findings.md`):**
   - a failed certification accepts nothing
   - calibration files (format 2) carry their questions

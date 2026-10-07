@@ -21,13 +21,16 @@ snapshot() {
 fuse() {  # hub-model adapter out
     [ -f "$3/config.json" ] && return 0
     rm -rf "$3.part"
-    (cd "$LARS" && "$PY" -m mlx_lm fuse --model "$1" --adapter-path "$2" --save-path "$3.part") \
+    # From the local snapshot: given a Hub name, mlx_lm fetches the base's README for a model card,
+    # which fails offline when the README was never cached.
+    base=$(snapshot "$1") || return 1
+    (cd "$LARS" && "$PY" -m mlx_lm fuse --model "$base" --adapter-path "$2" --save-path "$3.part") \
         > "$OUT/fuse-$(basename "$3").log" 2>&1 || return 1
     # The base's own tokenizer files: mlx_lm rewrites tokenizer_config with a newer transformers.
-    base=$(snapshot "$1") || return 1
     for f in tokenizer.json tokenizer_config.json vocab.json merges.txt special_tokens_map.json; do
         [ -f "$base/$f" ] && cp "$base/$f" "$3.part/$f"
     done
+    "$PY" "$SDK/sweep/unshift_norms.py" "$3.part" >> "$OUT/fuse-$(basename "$3").log" 2>&1 || return 1
     mv "$3.part" "$3"
 }
 
