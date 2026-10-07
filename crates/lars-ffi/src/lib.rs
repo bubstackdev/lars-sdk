@@ -126,6 +126,17 @@ pub unsafe extern "C" fn lars_open(
     }
 }
 
+/// Download a pack ahead of time and return its directory (free it with `lars_string_free`): a
+/// bare name gets the newest published version if it isn't installed, `name@version` that
+/// version. Blocks while it downloads. NULL on failure, with `*error_json` set.
+///
+/// # Safety
+/// `pack` must be a NUL-terminated string; `error_json` NULL or writable.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lars_pull(pack: *const c_char, error_json: *mut *mut c_char) -> *mut c_char {
+    unsafe { string_result(error_json, || Ok(lars_runtime::pull(text(pack, "pack")?)?.to_string_lossy().into_owned())) }
+}
+
 /// Answer a System One request. Blocks until it has run.
 ///
 /// # Safety

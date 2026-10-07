@@ -68,6 +68,15 @@ On data like the packs' training (routing, sentiment, NLI) there is less to gain
 guard keeps the pack's calibrator more often. A head costs no measurable latency, and a few
 tens of KB in saved calibrations (more for choices with many options).
 
+**Label a representative mix.** A recalibration learns a bias per option, so it learns how often
+each option appears in your labels. If your labels over-represent some options, it leans toward
+them on everything after. Cross-validation can't catch this, because every fold comes from the
+same labels. On Molar Triage, 17 of the 30 calibration messages were restorative or surgery
+against 5 of the 30 test messages. Calibrating "department" on the 0.6B kept a recalibration that
+cross-validation called clearly better (log loss 0.58 against 0.74), and it scored 22 of 30 on
+test instead of 24. Sample labels from the traffic the predicate will see, not from the cases
+that were easiest to find.
+
 Label examples the way the predicate will see them: the same field selection (`state`), the same
 kind of input. A calibrator describes the inputs it was fitted on. A head is bound to its
 question's options, so calibrate each question separately rather than sharing one calibrator

@@ -97,13 +97,21 @@ fn packs_download_verify_and_work_offline() {
     let leftovers: Vec<_> = std::fs::read_dir(cache.join("broken")).unwrap().flatten().collect();
     assert!(leftovers.is_empty(), "no staging directory is left behind: {leftovers:?}");
 
+    // A newer release: open keeps using what is installed, pull fetches it.
+    publish(&work.join("published"), "mockdl", "0.3.0", false);
+    std::fs::write(work.join("published/mockdl/index.json"), r#"{"latest": "0.3.0"}"#).unwrap();
+    assert_eq!(Lars::open("mockdl", OpenOptions::default()).unwrap().pack().version, "0.2.0");
+    assert!(lars_runtime::pull("mockdl").unwrap().ends_with("mockdl/0.3.0"));
+    assert!(lars_runtime::pull("mockdl@0.1.0").unwrap().ends_with("mockdl/0.1.0"));
+    assert!(lars_runtime::pull("./no/such/pack").is_err());
+
     unsafe { std::env::set_var("LARS_OFFLINE", "1") };
     assert_eq!(
         Lars::open("mockdl", OpenOptions::default()).unwrap().pack().version,
-        "0.2.0",
+        "0.3.0",
         "installed packs open offline"
     );
-    let error = Lars::open("mockdl@0.3.0", OpenOptions::default()).err().unwrap();
+    let error = Lars::open("mockdl@0.4.0", OpenOptions::default()).err().unwrap();
     assert!(error.message.contains("LARS_OFFLINE"), "{}", error.message);
     let _ = std::fs::remove_dir_all(work);
 }

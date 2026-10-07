@@ -441,8 +441,8 @@ No GPU training and no new work for Codex. The SDK's own harness answers the siz
   - [x] `decide`, and `ask` for several questions with constraints
   - [x] options: threshold, abstain margin, explain, permutations, state selector, fallback
   - [x] `calibrate` with a certified threshold that gates the boolean; save and load calibrations
-  - [ ] cancellation (`AbortSignal`)
-  - [ ] `npx lars pull <pack>`
+  - [x] cancellation (`AbortSignal`), 2026-10-07
+  - [x] `npx lars pull <pack>`, 2026-10-07 (and `Lars.pull` in all three SDKs)
 - [x] Tests:
   - [x] vitest on the mock pack, and a real-pack test with `LARS_TEST_PACK`
   - [x] in CI on Node 22 and 24, and Bun, on three OSes

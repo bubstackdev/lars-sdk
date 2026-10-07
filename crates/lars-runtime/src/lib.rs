@@ -34,7 +34,7 @@ use lars_llama::{FlashAttention, LlamaBackend, LlamaOptions};
 use serde_json::{Value, json};
 
 pub use error::{Error, Result};
-pub use pack::Pack;
+pub use pack::{Pack, pull};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

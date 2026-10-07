@@ -383,6 +383,13 @@ fn calibrations_are_bound_to_the_state_version() {
 }
 
 #[test]
+fn pull_returns_a_pack_directory() {
+    let dir = mock_pack("pull");
+    assert_eq!(Lars::pull(dir.to_str().unwrap()).wait().unwrap(), dir);
+    assert_eq!(Lars::pull("./no/such/pack").wait().unwrap_err().error_type, "pack_error");
+}
+
+#[test]
 fn names_are_unique_per_question_and_errors_have_a_type() {
     let lars = open("errors");
     lars.noul("unique", "One question").ask("x").wait().unwrap();

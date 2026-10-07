@@ -112,7 +112,8 @@ A pack is a model plus everything its probabilities depend on:
 - a pooled calibrator fitted on jev-bench validation
 
 `Lars.open({ pack: "lars-2b" })` downloads a pack once from the Hub, checks its sha256 and
-caches it. A path to a pack directory works too. See [docs/packs.md](docs/packs.md).
+caches it. A path to a pack directory works too. `npx lars pull lars-2b` (or `Lars.pull`)
+downloads one ahead of time. See [docs/packs.md](docs/packs.md).
 
 Current development packs, each a base model with the LARS LoRA, evaluated through this SDK on
 jev-bench test (22 configs):

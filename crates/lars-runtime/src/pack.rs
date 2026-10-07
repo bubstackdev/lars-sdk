@@ -231,6 +231,21 @@ pub fn resolve(reference: &str) -> Result<PathBuf> {
     }
 }
 
+/// Make `reference` available offline and return its directory. Unlike `resolve`, a bare name
+/// asks the server for its newest version and downloads it if it isn't installed, so a newer
+/// release replaces an older cached one for later opens. A path is only checked.
+pub fn pull(reference: &str) -> Result<PathBuf> {
+    let path = Path::new(reference);
+    if path.join("pack.json").exists() {
+        return Ok(path.to_path_buf());
+    }
+    if reference.contains(['/', '\\']) || reference.starts_with('.') {
+        return Err(Error::pack(format!("{reference}: no pack.json there")));
+    }
+    let (name, version) = reference.split_once('@').map_or((reference, None), |(n, v)| (n, Some(v)));
+    install(name, version)
+}
+
 fn newest_version(root: &Path) -> Option<String> {
     let parse = |v: &str| v.split('.').map(|p| p.parse::<u64>().unwrap_or(0)).collect::<Vec<_>>();
     std::fs::read_dir(root)

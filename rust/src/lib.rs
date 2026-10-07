@@ -212,6 +212,21 @@ impl Lars {
         }
     }
 
+    /// Download a pack ahead of time and return its directory: a bare name gets the newest
+    /// published version (if it isn't already installed), `name@version` that version. Later
+    /// opens use it from the cache, offline too.
+    pub fn pull(pack: &str) -> Pending<std::path::PathBuf> {
+        let (pending, filler) = Pending::new();
+        let reference = pack.to_string();
+        match std::thread::Builder::new()
+            .name("lars-pull".into())
+            .spawn(move || filler.fill(lars_runtime::pull(&reference)))
+        {
+            Ok(_) => pending,
+            Err(e) => Pending::ready(Err(Error::internal(format!("pull: {e}")))),
+        }
+    }
+
     /// The SDK version.
     pub fn version() -> &'static str {
         lars_runtime::VERSION

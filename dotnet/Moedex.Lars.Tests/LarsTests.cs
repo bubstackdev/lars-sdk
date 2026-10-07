@@ -259,6 +259,13 @@ public sealed class MockPackTests(MockPack mock) : IClassFixture<MockPack>
     }
 
     [Fact]
+    public async Task PullReturnsAPackDirectory()
+    {
+        Assert.Equal(mock.Dir, await Lars.PullAsync(mock.Dir));
+        Assert.Equal("pack_error", Assert.Throws<LarsException>(() => Lars.Pull("./no/such/pack")).Type);
+    }
+
+    [Fact]
     public void ErrorsAreTyped()
     {
         Assert.Equal("pack_error", Assert.Throws<LarsException>(() => Lars.Open("./no/such/pack")).Type);

@@ -13,6 +13,9 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "lars": "./dist/cli.js"
+  },
   "files": [
     "dist",
     "native"

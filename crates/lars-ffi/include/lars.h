@@ -34,6 +34,14 @@ struct lars_engine *lars_open(const char *pack,
                               const char *options_json,
                               char **error_json);
 
+// Download a pack ahead of time and return its directory (free it with `lars_string_free`): a
+// bare name gets the newest published version if it isn't installed, `name@version` that
+// version. Blocks while it downloads. NULL on failure, with `*error_json` set.
+//
+// # Safety
+// `pack` must be a NUL-terminated string; `error_json` NULL or writable.
+char *lars_pull(const char *pack, char **error_json);
+
 // Answer a System One request. Blocks until it has run.
 //
 // # Safety

@@ -1,6 +1,6 @@
 #!/bin/sh
-# The 2026-10-07 lineup: lars-2b-dev (Qwen3.5-2B + LoRA, the default) and lars-8b-dev 0.0.2
-# (Qwen3-8B + LoRA at Q3_K_M, the top tier), next to lars-0.6b-dev. Log: sweep/out/promote.log.
+# The 2026-10-07 lineup: lars-2b-dev (Qwen3.5-2B + LoRA, the default), lars-8b-dev 0.0.2
+# (Qwen3-8B + LoRA at Q3_K_M, the top tier) and lars-0.6b-dev 0.0.2 (from the imatrix Q4_K_M). Log: sweep/out/promote.log.
 set -u
 SDK=$(cd "$(dirname "$0")/.." && pwd)
 DEV=$SDK/target/release/lars-dev
@@ -18,4 +18,5 @@ pack() {  # name version gguf template base quantization
 }
 pack lars-2b-dev 0.0.1 Qwen3.5-2B-lora-etd-s0-Q4_K_M Qwen3.5-2B Qwen/Qwen3.5-2B Q4_K_M
 pack lars-8b-dev 0.0.2 Qwen3-8B-lora-etd-s0-Q3_K_M Qwen3-8B Qwen/Qwen3-8B Q3_K_M
+pack lars-0.6b-dev 0.0.2 Qwen3-0.6B-lora-e-s0-imat-Q4_K_M Qwen3-0.6B Qwen/Qwen3-0.6B Q4_K_M
 step "promote.sh finished"

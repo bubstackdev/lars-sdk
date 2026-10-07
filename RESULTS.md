@@ -719,3 +719,15 @@ within the cache, restored the same way. 2B, Metal, p50:
 - **One cache sequence goes to the snapshot,** so batched passes run 14 questions instead of 15 on
   Qwen3.5.
 
+**Molar Triage's "department" got worse with calibration (0.6B, 24 to 22 of 30).** The cause is
+label shift, not noise:
+- **The mix:** the 30 calibration messages are 17 restorative or surgery, against 5 of the 30 test
+  messages.
+- **What was kept:** a recalibration, whose per-option biases learned that mix. Cross-validated
+  log loss: pack 0.740, fitted 0.755, recal 0.584.
+- **On test:** log loss went from 0.770 to 0.834.
+- **The 2B kept its pack calibrator** and stayed at 27 of 30.
+
+Cross-validation inside the labels can't see a shift between labels and use, so this is a
+documentation fix (docs/calibration.md): label a representative mix.
+

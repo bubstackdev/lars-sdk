@@ -216,6 +216,29 @@ describe("on a mock pack", () => {
     other.close();
   });
 
+  it("an AbortSignal cancels queued calls, and every call settles", async () => {
+    const isRefund = lars.noul("cancellable", "The customer asks for a refund");
+    const before = new AbortController();
+    before.abort();
+    await expect(isRefund("refund", { signal: before.signal })).rejects.toMatchObject({ type: "cancelled" });
+
+    const controller = new AbortController();
+    const calls = Array.from({ length: 300 }, (_, i) => isRefund.decide(`queued ${i} refund`, { signal: controller.signal }));
+    controller.abort();
+    const settled = await Promise.allSettled(calls);
+    const cancelled = settled.filter((r) => r.status === "rejected");
+    expect(cancelled.length).toBeGreaterThan(0);
+    for (const r of cancelled) expect((r as PromiseRejectedResult).reason).toMatchObject({ type: "cancelled" });
+    expect(settled.length).toBe(300);
+    expect(typeof (await isRefund("still answers"))).toBe("boolean");
+  });
+
+  it("pull returns a pack directory, and refuses a path without a pack", async () => {
+    const dir = (lars.status().pack as { dir: string }).dir;
+    expect(await Lars.pull(dir)).toBe(dir);
+    await expect(Lars.pull("./no/such/pack")).rejects.toMatchObject({ type: "pack_error" });
+  });
+
   it("names are unique per question", () => {
     lars.noul("unique", "One question");
     expect(() => lars.noul("unique", "Another question")).toThrow(LarsError);

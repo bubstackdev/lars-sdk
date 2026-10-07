@@ -396,6 +396,14 @@ public sealed class Lars : IDisposable, IAsyncDisposable
 
     public static string Version => System.Runtime.InteropServices.Marshal.PtrToStringUTF8(Native.lars_version())!;
 
+    /// <summary>Download a pack ahead of time and return its directory; blocks while it downloads. A bare name gets the
+    /// newest published version if it isn't installed, <c>name@version</c> that version. Later opens use it from the
+    /// cache, offline too.</summary>
+    public static string Pull(string pack) => Native.Check(Native.lars_pull(pack, out var error), error);
+
+    /// <summary>Download a pack ahead of time, on a thread-pool thread.</summary>
+    public static Task<string> PullAsync(string pack) => Task.Run(() => Pull(pack));
+
     /// <summary>Open a pack and load its model; blocks while it loads.</summary>
     public static Lars Open(LarsOptions options)
     {

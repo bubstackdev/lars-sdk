@@ -8,8 +8,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface NativeLars {
-  evaluate(requestJson: string): Promise<string>;
-  calibrate(name: string, examplesJsonl: string, maxError?: number | null): Promise<string>;
+  evaluate(requestJson: string, cancelToken?: number | null): Promise<string>;
+  calibrate(name: string, examplesJsonl: string, maxError?: number | null, cancelToken?: number | null): Promise<string>;
+  cancel(cancelToken: number): boolean;
   setCalibrator(name: string, calibratorJson: string): void;
   setCalibrators(calibratorsJson: string): void;
   calibrators(): string;
@@ -20,6 +21,7 @@ export interface NativeLars {
 
 export interface NativeModule {
   open(pack: string, optionsJson?: string | null): Promise<NativeLars>;
+  pull(pack: string): Promise<string>;
   version(): string;
 }
 

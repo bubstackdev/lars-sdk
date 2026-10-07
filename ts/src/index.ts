@@ -155,7 +155,14 @@ export interface MultiDecision<K extends string> {
   evidence?: Evidence[];
 }
 
-export interface CalibrateOptions {
+/** Options every call takes. */
+export interface CallOptions {
+  /** Cancels the call if it hasn't started running: it rejects with a `cancelled` LarsError. A call
+   *  the model has already started finishes and resolves normally. */
+  signal?: AbortSignal;
+}
+
+export interface CalibrateOptions extends CallOptions {
   /** Also certify an acceptance threshold for this error rate (e.g. 0.05), at 95% confidence. */
   maxError?: number;
 }
@@ -182,9 +189,9 @@ interface Spec<I> {
 const SPEC = Symbol("lars.predicate");
 
 export interface Predicate<I, V, D> {
-  (input: I): Promise<V>;
+  (input: I, options?: CallOptions): Promise<V>;
   /** The value and the probabilities behind it. */
-  decide(input: I): Promise<D>;
+  decide(input: I, options?: CallOptions): Promise<D>;
   readonly name: string;
   readonly question: Question;
   readonly [SPEC]: Spec<I>;
@@ -210,7 +217,7 @@ type AnyPredicate = Predicate<any, unknown, unknown>;
 type DecisionOf<P> = P extends Predicate<any, unknown, infer D> ? D : never;
 type InputOf<P> = P extends Predicate<infer I, unknown, unknown> ? I : never;
 
-export interface AskOptions {
+export interface AskOptions extends CallOptions {
   /** Structural relations between noul predicates, by predicate name. */
   constraints?: Constraint[];
 }
@@ -281,6 +288,13 @@ export class Lars {
     return new Lars(await call(() => native().open(o.pack, json)));
   }
 
+  /** Download a pack ahead of time; resolves with its directory. A bare name gets the newest
+   *  published version if it isn't installed, `name@version` that version. Later opens use it from
+   *  the cache, offline too. Also on the command line: `npx lars pull lars-2b`. */
+  static async pull(pack: string): Promise<string> {
+    return call(() => native().pull(pack));
+  }
+
   static version(): string {
     return native().version();
   }
@@ -297,8 +311,8 @@ export class Lars {
       return this.#decision(name, { value: p >= threshold, p, confidence: Math.max(p, 1 - p) }, answer);
     };
     const predicate = this.#predicate<I, NoulAnswer, NoulDecision>(name, question, options, decode, {});
-    return callable(async (input: I) => {
-      const d = await predicate.decide(input);
+    return callable(async (input: I, call?: CallOptions) => {
+      const d = await predicate.decide(input, call);
       return d.value && d.accepted;
     }, predicate, { calibrate: this.#calibrator(name, question, predicate[SPEC], (label: boolean) => (label ? "yes" : "no")) }) as Noul<I>;
   }
@@ -320,8 +334,8 @@ export class Lars {
       }, answer);
     const extra = options.permutations ? { permutations: options.permutations } : {};
     const predicate = this.#predicate<I, ChoiceAnswer, ChoiceDecision<K>>(name, question, options, decode, extra);
-    return callable(async (input: I) => {
-      const d = await predicate.decide(input);
+    return callable(async (input: I, call?: CallOptions) => {
+      const d = await predicate.decide(input, call);
       return !d.accepted && options.fallback !== undefined ? options.fallback : d.value;
     }, predicate, { calibrate: this.#calibrator(name, question, predicate[SPEC], (label: K) => label) }) as Choice<K, I>;
   }
@@ -341,7 +355,7 @@ export class Lars {
       }, answer);
     };
     const predicate = this.#predicate<I, ScoreAnswer, ScoreDecision>(name, question, options, decode, {});
-    return callable(async (input: I) => (await predicate.decide(input)).value, predicate, {
+    return callable(async (input: I, call?: CallOptions) => (await predicate.decide(input, call)).value, predicate, {
       calibrate: this.#calibrator(name, question, predicate[SPEC], (label: number) => String(label)),
     }) as Score<I>;
   }
@@ -360,7 +374,7 @@ export class Lars {
       ...(answer.evidence && { evidence: answer.evidence }),
     });
     const predicate = this.#predicate<I, MultiAnswer, MultiDecision<K>>(name, question, options, decode, {});
-    return callable(async (input: I) => (await predicate.decide(input)).value, predicate) as Multi<K, I>;
+    return callable(async (input: I, call?: CallOptions) => (await predicate.decide(input, call)).value, predicate) as Multi<K, I>;
   }
 
   /** Ask several predicates about one input in one request; the model reads the input once. */
@@ -383,15 +397,16 @@ export class Lars {
       questions,
       lars: { calibrators, ...(options.constraints && { constraints: options.constraints }) },
     };
-    const response = await this.evaluate(request);
+    const response = await this.evaluate(request, options);
     const out: Record<string, unknown> = {};
     for (const [key, p] of entries) out[key] = this.#decoders.get(p.name)!(response.answers[p.name]);
     return out as { [K in keyof P]: DecisionOf<P[K]> };
   }
 
   /** Send a raw System One request. */
-  async evaluate(request: SystemOneRequest): Promise<SystemOneResponse> {
-    return JSON.parse(await call(() => this.#native.evaluate(JSON.stringify(request))));
+  async evaluate(request: SystemOneRequest, options: CallOptions = {}): Promise<SystemOneResponse> {
+    const json = JSON.stringify(request);
+    return JSON.parse(await this.#cancellable(options.signal, (token) => this.#native.evaluate(json, token)));
   }
 
   /** Every calibrator fitted or loaded on this handle, with the question each was fitted for and
@@ -477,6 +492,21 @@ export class Lars {
   // ------------------------------------------------------------------ internals
 
   readonly #decoders = new Map<string, (answer: unknown) => unknown>();
+  #nextToken = 0;
+
+  /** Run a native call that `signal` can cancel while it is queued. */
+  async #cancellable(signal: AbortSignal | undefined, run: (token: number | null) => Promise<string>): Promise<string> {
+    if (!signal) return call(() => run(null));
+    if (signal.aborted) throw new LarsError("cancelled", "the request was cancelled before it ran");
+    const token = (this.#nextToken = (this.#nextToken + 1) % 0xffff_ffff);
+    const onAbort = () => this.#native.cancel(token);
+    signal.addEventListener("abort", onAbort, { once: true });
+    try {
+      return await call(() => run(token));
+    } finally {
+      signal.removeEventListener("abort", onAbort);
+    }
+  }
 
   #decision<D extends { confidence: number }>(name: string, partial: D, answer: { abstain?: boolean; evidence?: Evidence[] }) {
     // No certificate: everything is accepted. A failed one (null threshold): nothing is.
@@ -513,8 +543,9 @@ export class Lars {
       ...(lars.#calibrated.has(name) && { calibrators: { [name]: name } }),
     });
     const spec: Spec<I> = { name, question, stateOf: stateOf as (input: I) => Content, extensions };
-    const decide = async (input: I): Promise<D> => {
-      const response = await this.evaluate({ state: spec.stateOf(input), questions: { [name]: question }, lars: extensions(this) });
+    const decide = async (input: I, call: CallOptions = {}): Promise<D> => {
+      const request = { state: spec.stateOf(input), questions: { [name]: question }, lars: extensions(this) };
+      const response = await this.evaluate(request, call);
       return decode(response.answers[name] as A);
     };
     return { decide, name, question, [SPEC]: spec };
@@ -525,7 +556,8 @@ export class Lars {
       const jsonl = examples
         .map((e) => JSON.stringify({ state: spec.stateOf(e.input), question, label: label(e.label) }))
         .join("\n");
-      const raw = JSON.parse(await call(() => this.#native.calibrate(name, jsonl, options.maxError ?? null)));
+      const raw = JSON.parse(await this.#cancellable(options.signal,
+        (token) => this.#native.calibrate(name, jsonl, options.maxError ?? null, token)));
       this.#calibrated.add(name);
       const c = raw.certified;
       const certified: Certified | null = c

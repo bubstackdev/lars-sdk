@@ -32,8 +32,21 @@ nothing.
 | `LARS_PACK_URL` | where packs are downloaded from |
 | `LARS_OFFLINE=1` | never download; only cached packs or paths open |
 
-For containers and air-gapped machines, copy a pack directory into the image and open it by path,
-or set `LARS_PACK_DIR`.
+Opening a bare `name` never checks for a newer release once one is cached. To download ahead of
+time, or to pick up a newer release, pull it:
+
+```sh
+npx lars pull lars-2b            # or lars-2b@0.0.1
+```
+```ts
+await Lars.pull("lars-2b");      // C#: Lars.Pull / PullAsync; Rust: Lars::pull(..).wait()
+```
+
+A bare name asks the server for its newest version and downloads it if it isn't installed;
+later opens use it, offline too.
+
+For containers and air-gapped machines, pull while building the image, copy a pack directory into
+it and open it by path, or set `LARS_PACK_DIR`.
 
 On open, every file's size is checked. Its sha256 is checked too with `verify: true`; that takes
 a few seconds for a 2.5 GB model.
