@@ -163,8 +163,9 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
   file format is the same in all three languages.
   - **Bound to its question:** each calibration records the question it was fitted for, and a
     predicate of the same name asking something else is refused.
-  - **Not bound to your state selector:** change which fields a predicate reads and you must
-    calibrate it again.
+  - **Bound to your state selector only through a version:** give predicates that read records a
+    `stateVersion` (C# `StateVersion`, Rust `.state_version(...)`) and bump it when the fields
+    change; a calibration saved under another version is refused.
   - **Calibrations from before 2026-10-06 are refused.** The file is now format 2; calibrate
     again.
 

@@ -338,6 +338,51 @@ fn saved_calibrations_carry_their_question_and_certificate() {
 }
 
 #[test]
+fn calibrations_are_bound_to_the_state_version() {
+    struct Ticket {
+        subject: &'static str,
+        body: &'static str,
+    }
+    let lars = open("versions");
+    let urgent = lars
+        .noul("urgent", "The ticket needs a reply today")
+        .state(|t: &Ticket| json!({"subject": t.subject}))
+        .state_version("subject-only");
+    let tickets: Vec<Ticket> = (0..20).map(|_| Ticket { subject: "Down", body: "Everything is down" }).collect();
+    urgent.calibrate(tickets.iter().map(|t| (t, true)), None).wait().unwrap();
+    let saved = lars.calibrations();
+    assert_eq!(saved["stateVersions"]["urgent"], "subject-only");
+
+    // The same version loads; another version, or none, is refused.
+    let dir = lars.status()["pack"]["dir"].as_str().unwrap().to_string();
+    let same = Lars::open(&dir).wait().unwrap();
+    same.load_calibrations(&saved).unwrap();
+    let reread = same
+        .noul("urgent", "The ticket needs a reply today")
+        .state(|t: &Ticket| json!({"subject": t.subject, "body": t.body}))
+        .state_version("subject-and-body");
+    let ticket = Ticket { subject: "Down", body: "Everything is down" };
+    assert_eq!(reread.ask(&ticket).wait().unwrap_err().error_type, "invalid_request");
+    let unversioned = same.noul("urgent", "The ticket needs a reply today");
+    assert_eq!(unversioned.ask("x").wait().unwrap_err().error_type, "invalid_request");
+    let matching = same
+        .noul("urgent", "The ticket needs a reply today")
+        .state(|t: &Ticket| json!({"subject": t.subject}))
+        .state_version("subject-only");
+    matching.ask(&ticket).wait().unwrap();
+
+    let other = Lars::open(&dir).wait().unwrap();
+    other
+        .noul("urgent", "The ticket needs a reply today")
+        .state(|t: &Ticket| json!({"body": t.body}))
+        .state_version("body-only")
+        .ask(&ticket)
+        .wait()
+        .unwrap();
+    assert_eq!(other.load_calibrations(&saved).unwrap_err().error_type, "invalid_request");
+}
+
+#[test]
 fn names_are_unique_per_question_and_errors_have_a_type() {
     let lars = open("errors");
     lars.noul("unique", "One question").ask("x").wait().unwrap();

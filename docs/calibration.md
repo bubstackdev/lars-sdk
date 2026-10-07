@@ -174,8 +174,18 @@ a certificate for that predicate clears the old one, so a threshold never outliv
 calibrator it was certified on. The whole file is checked before anything changes, so a refused
 file leaves the current calibrations as they were.
 
-The question is checked, but not your state selector: if you change which fields a predicate
-reads, calibrate it again.
+Your state selector is code, so it can't be saved or compared. Give it a version instead
+(`stateVersion` in TypeScript, `StateVersion` in C#, `.state_version(...)` in Rust):
+
+```ts
+const urgent = lars.noul<Ticket>("urgent", "The ticket needs a reply today",
+  { state: (t) => ({ subject: t.subject, body: t.body }), stateVersion: "tickets-v2" });
+```
+
+The file records it, and a predicate whose version differs from the saved one, or that has none
+when the file does, is refused like a changed question. Bump the version whenever you change
+which fields a predicate reads, and calibrate again. Without a version, a change to the selector
+goes unnoticed.
 
 ## When to recalibrate
 

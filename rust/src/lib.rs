@@ -306,7 +306,7 @@ impl Lars {
         };
         let (mut asked, mut calibrators) = (Map::new(), Map::new());
         for part in &parts {
-            if let Err(error) = self.register(part.name, part.question) {
+            if let Err(error) = self.register(part.name, part.question, part.state_version) {
                 return Pending::ready(Err(error));
             }
             asked.insert(part.name.into(), part.question.clone());
@@ -360,14 +360,14 @@ impl Lars {
         }
     }
 
-    /// A predicate's name stands for one question: calibrators are kept by name.
-    pub(crate) fn register(&self, name: &str, question: &Value) -> Result<()> {
-        let key = question.to_string();
+    /// A predicate's name stands for one question and state version: calibrators are kept by name.
+    pub(crate) fn register(&self, name: &str, question: &Value, state_version: Option<&str>) -> Result<()> {
+        let key = binding(question, state_version);
         let mut state = self.inner.registry.state.lock().unwrap();
         match state.questions.get(name) {
-            Some(existing) if *existing != key => {
-                Err(Error::invalid(format!("a predicate named {name:?} already asks a different question")))
-            }
+            Some(existing) if *existing != key => Err(Error::invalid(format!(
+                "a predicate named {name:?} already asks a different question or reads a different state version"
+            ))),
             Some(_) => Ok(()),
             None => {
                 state.questions.insert(name.to_string(), key);
@@ -387,10 +387,14 @@ impl Lars {
     pub fn calibrations(&self) -> Value {
         let state = self.inner.registry.state.lock().unwrap();
         let calibrators = parse(&self.inner.runtime.calibrators_json()).unwrap_or_default();
-        let mut questions = Map::new();
+        let (mut questions, mut state_versions) = (Map::new(), Map::new());
         for name in calibrators.as_object().into_iter().flat_map(|m| m.keys()) {
-            if let Some(question) = state.questions.get(name) {
-                questions.insert(name.clone(), parse(question).unwrap_or_default());
+            if let Some(key) = state.questions.get(name) {
+                let bound = parse(key).unwrap_or_default();
+                questions.insert(name.clone(), bound["question"].clone());
+                if let Some(version) = bound["state_version"].as_str() {
+                    state_versions.insert(name.clone(), version.into());
+                }
             }
         }
         let certified: Map<String, Value> = state
@@ -416,6 +420,7 @@ impl Lars {
             "pack": {"name": pack["name"], "version": pack["version"]},
             "calibrators": calibrators,
             "questions": questions,
+            "stateVersions": state_versions,
             "certified": certified,
         })
     }
@@ -427,8 +432,9 @@ impl Lars {
 
     /// Load calibrations saved from this pack (by any of the SDKs). Each replaces the predicate's
     /// calibrator and its certificate (clearing it if the file has none); other predicates keep
-    /// theirs. A calibration is bound to the question it was fitted for: a predicate of that name
-    /// that asks anything else is refused, here or when it is defined later. The whole file is
+    /// theirs. A calibration is bound to the question it was fitted for, and to its state version
+    /// (`Predicate::state_version`): a predicate of that name that asks anything else, or reads a
+    /// different version, is refused, here or when it is defined later. The whole file is
     /// checked first, so one that is refused changes nothing.
     pub fn load_calibrations(&self, saved: &Value) -> Result<()> {
         if saved["format"] != 2 {
@@ -449,12 +455,17 @@ impl Lars {
                 let question = saved["questions"]
                     .get(name)
                     .filter(|q| q.is_object())
-                    .ok_or_else(|| Error::invalid(format!("the saved calibration for {name:?} records no question")))?
-                    .to_string();
+                    .ok_or_else(|| Error::invalid(format!("the saved calibration for {name:?} records no question")))?;
+                let version = match saved["stateVersions"].get(name) {
+                    None | Some(Value::Null) => None,
+                    Some(Value::String(v)) => Some(v.as_str()),
+                    Some(_) => return Err(Error::invalid(format!("the state version for {name:?} is not a string"))),
+                };
+                let question = binding(question, version);
                 if state.questions.get(name).is_some_and(|existing| *existing != question) {
                     return Err(Error::invalid(format!(
-                        "the saved calibration for {name:?} was fitted for a different question than the predicate of \
-                         that name here"
+                        "the saved calibration for {name:?} was fitted for a different question or state version \
+                         than the predicate of that name here"
                     )));
                 }
                 let certified = match saved["certified"].get(name) {
@@ -482,6 +493,11 @@ impl Lars {
         let text = std::fs::read_to_string(path).map_err(|e| Error::invalid(format!("{}: {e}", path.display())))?;
         self.load_calibrations(&parse(&text).map_err(|e| Error::invalid(format!("{}: {}", path.display(), e.message)))?)
     }
+}
+
+/// What a predicate's name is bound to: its question and the version of its state selector.
+fn binding(question: &Value, state_version: Option<&str>) -> String {
+    json!({"question": question, "state_version": state_version}).to_string()
 }
 
 /// A certificate as the calibrations file records it.

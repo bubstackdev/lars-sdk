@@ -626,7 +626,9 @@ too few accepted answers to show it holds.
 
 **Still open:**
 - **No input-selector binding:** a changed state selector isn't detected. Closures can't be
-  saved, so this needs a caller-supplied version if it matters.
+  saved, so this needs a caller-supplied version if it matters. *Done 2026-10-07:*
+  `stateVersion`, saved as `stateVersions` in the calibrations file and checked like the
+  question.
 - **The same labels both choose the calibrator and certify it.** For the strictest use,
   certify on a held-out set (docs/calibration.md).
 

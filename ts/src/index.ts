@@ -89,6 +89,11 @@ interface PredicateOptions<I> {
   /** What the model reads for an input: default the string itself, or the object as JSON. Pick
    *  the fields that matter, so whole records (and the personal data in them) stay out of prompts. */
   state?: (input: I) => Content;
+  /** Name the version of what `state` reads, e.g. "tickets-v2". Saved calibrations record it, and
+   *  loading one for a predicate whose version differs is refused: change the fields a predicate
+   *  reads, bump the version, and calibrations fitted on the old fields can't be used by mistake.
+   *  The selector itself can't be saved, so without a version a change to it goes unnoticed. */
+  stateVersion?: string;
   /** Mark an answer abstained when its top two probabilities are within this margin. */
   abstainMargin?: number;
   /** Return the spans of the state that moved the answer most (one extra pass per sentence). */
@@ -242,6 +247,8 @@ export interface SavedCalibrations {
   pack: { name: string; version: string };
   calibrators: Record<string, unknown>;
   questions: Record<string, Question>;
+  /** Each calibrated predicate's `stateVersion`, when it has one. */
+  stateVersions?: Record<string, string>;
   certified: Record<string, Certified>;
 }
 
@@ -392,15 +399,20 @@ export class Lars {
   calibrations(): SavedCalibrations {
     const calibrators: Record<string, unknown> = JSON.parse(sync(() => this.#native.calibrators()));
     const questions: Record<string, Question> = {};
+    const stateVersions: Record<string, string> = {};
     for (const name of Object.keys(calibrators)) {
-      const question = this.#names.get(name);
-      if (question !== undefined) questions[name] = JSON.parse(question);
+      const key = this.#names.get(name);
+      if (key === undefined) continue;
+      const bound = JSON.parse(key) as { question: Question; state_version: string | null };
+      questions[name] = bound.question;
+      if (bound.state_version !== null) stateVersions[name] = bound.state_version;
     }
     return {
       format: 2,
       pack: { name: this.pack.name, version: this.pack.version },
       calibrators,
       questions,
+      stateVersions,
       certified: Object.fromEntries(this.#certified),
     };
   }
@@ -411,8 +423,9 @@ export class Lars {
 
   /** Load calibrations saved from this pack (an object, or a file path), by any of the SDKs. Each
    *  replaces the predicate's calibrator and its certificate (clearing it if the file has none);
-   *  other predicates keep theirs. A calibration is bound to the question it was fitted for: a
-   *  predicate of that name asking anything else is refused, here or when defined later. The
+   *  other predicates keep theirs. A calibration is bound to the question it was fitted for and its
+   *  `stateVersion`: a predicate of that name asking anything else, or reading another version, is
+   *  refused, here or when defined later. The
    *  whole file is checked first, so one that is refused changes nothing. */
   async loadCalibrations(saved: SavedCalibrations | string): Promise<void> {
     const data: SavedCalibrations = typeof saved === "string" ? JSON.parse(await readFile(saved, "utf8")) : saved;
@@ -428,10 +441,14 @@ export class Lars {
       if (typeof question !== "object" || question === null) {
         throw invalid(`the saved calibration for ${JSON.stringify(name)} records no question`);
       }
-      const key = JSON.stringify(question);
+      const version = data.stateVersions?.[name] ?? null;
+      if (version !== null && typeof version !== "string") {
+        throw invalid(`the state version for ${JSON.stringify(name)} is not a string`);
+      }
+      const key = binding(question, version);
       const existing = this.#names.get(name);
       if (existing !== undefined && existing !== key) {
-        throw invalid(`the saved calibration for ${JSON.stringify(name)} was fitted for a different question than the predicate of that name here`);
+        throw invalid(`the saved calibration for ${JSON.stringify(name)} was fitted for a different question or state version than the predicate of that name here`);
       }
       incoming.push([name, key, savedCertified(name, data.certified?.[name])]);
     }
@@ -480,10 +497,11 @@ export class Lars {
     decode: (answer: A) => D,
     extra: Record<string, unknown>,
   ) {
-    const key = JSON.stringify(question);
+    const key = binding(question, options.stateVersion ?? null);
     const existing = this.#names.get(name);
     if (existing !== undefined && existing !== key) {
-      throw new LarsError("invalid_request", `a predicate named ${JSON.stringify(name)} already asks a different question`);
+      throw new LarsError("invalid_request",
+        `a predicate named ${JSON.stringify(name)} already asks a different question or reads a different state version`);
     }
     this.#names.set(name, key);
     this.#decoders.set(name, decode as (answer: unknown) => unknown);
@@ -523,6 +541,11 @@ export class Lars {
       return { examples: raw.examples, kept: raw.kept, accuracy: raw.accuracy, certified };
     };
   }
+}
+
+/** What a predicate's name is bound to: its question and the version of its state selector. */
+function binding(question: Question, stateVersion: string | null): string {
+  return JSON.stringify({ question, state_version: stateVersion });
 }
 
 /** A certificate as the calibrations file records it, checked field by field. */

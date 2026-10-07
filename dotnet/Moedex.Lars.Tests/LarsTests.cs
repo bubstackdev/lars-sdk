@@ -234,6 +234,31 @@ public sealed class MockPackTests(MockPack mock) : IClassFixture<MockPack>
     }
 
     [Fact]
+    public async Task CalibrationsAreBoundToTheStateVersion()
+    {
+        var urgent = Lars.Noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+            new NoulOptions<Ticket> { State = t => new JsonObject { ["subject"] = t.Subject }, StateVersion = "subject-only" });
+        await urgent.CalibrateAsync(Enumerable.Range(0, 20).Select(_ => (new Ticket("Down", "All down", "a@example.com"), true)));
+        var saved = Lars.Calibrations();
+        Assert.Equal("subject-only", saved["stateVersions"]!["versionedUrgent"]!.GetValue<string>());
+
+        using (var same = Lars.Open(mock.Dir))
+        {
+            same.LoadCalibrations(saved);
+            Assert.Throws<LarsException>(() => same.Noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+                new NoulOptions<Ticket> { State = t => new JsonObject { ["body"] = t.Body }, StateVersion = "body-only" }));
+            Assert.Throws<LarsException>(() => same.Noul("versionedUrgent", "The ticket needs a reply today"));
+            same.Noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+                new NoulOptions<Ticket> { State = t => new JsonObject { ["subject"] = t.Subject }, StateVersion = "subject-only" });
+        }
+
+        using var other = Lars.Open(mock.Dir);
+        other.Noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+            new NoulOptions<Ticket> { State = t => new JsonObject { ["body"] = t.Body }, StateVersion = "body-only" });
+        Assert.Throws<LarsException>(() => other.LoadCalibrations(saved));
+    }
+
+    [Fact]
     public void ErrorsAreTyped()
     {
         Assert.Equal("pack_error", Assert.Throws<LarsException>(() => Lars.Open("./no/such/pack")).Type);

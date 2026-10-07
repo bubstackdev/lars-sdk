@@ -192,6 +192,30 @@ describe("on a mock pack", () => {
     other.close();
   });
 
+  it("calibrations are bound to the state version", async () => {
+    type Ticket = { subject: string; body: string };
+    const dir = (lars.status().pack as { dir: string }).dir;
+    const urgent = lars.noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+      { state: (t) => ({ subject: t.subject }), stateVersion: "subject-only" });
+    await urgent.calibrate(Array.from({ length: 20 }, () => ({ input: { subject: "Down", body: "All down" }, label: true })));
+    const saved = lars.calibrations();
+    expect(saved.stateVersions?.versionedUrgent).toBe("subject-only");
+
+    const same = await Lars.open(dir);
+    await same.loadCalibrations(saved);
+    expect(() => same.noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+      { state: (t) => t, stateVersion: "subject-and-body" })).toThrow(LarsError);
+    expect(() => same.noul("versionedUrgent", "The ticket needs a reply today")).toThrow(LarsError);
+    same.noul<Ticket>("versionedUrgent", "The ticket needs a reply today",
+      { state: (t) => ({ subject: t.subject }), stateVersion: "subject-only" });
+    same.close();
+
+    const other = await Lars.open(dir);
+    other.noul<Ticket>("versionedUrgent", "The ticket needs a reply today", { state: (t) => t.body, stateVersion: "body-only" });
+    await expect(other.loadCalibrations(saved)).rejects.toBeInstanceOf(LarsError);
+    other.close();
+  });
+
   it("names are unique per question", () => {
     lars.noul("unique", "One question");
     expect(() => lars.noul("unique", "Another question")).toThrow(LarsError);

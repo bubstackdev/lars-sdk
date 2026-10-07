@@ -129,6 +129,11 @@ public record PredicateOptions<TInput>
     public Func<TInput, JsonNode?>? State { get; init; }
     public double? AbstainMargin { get; init; }
     public bool Explain { get; init; }
+    /// <summary>Names the version of what <see cref="State"/> reads, e.g. "tickets-v2". Saved calibrations record it, and
+    /// loading one for a predicate whose version differs is refused: change the fields a predicate reads, bump the
+    /// version, and calibrations fitted on the old fields can't be used by mistake. The selector itself can't be saved,
+    /// so without a version a change to it goes unnoticed.</summary>
+    public string? StateVersion { get; init; }
 }
 
 public sealed record NoulOptions<TInput> : PredicateOptions<TInput>
@@ -415,7 +420,7 @@ public sealed class Lars : IDisposable, IAsyncDisposable
         Noul(name, instructions, new NoulOptions<string> { Threshold = threshold });
 
     public Noul<TInput> Noul<TInput>(string name, JsonNode? instructions, NoulOptions<TInput> options) =>
-        new(this, name, Register(name, new JsonObject { ["type"] = "noul", ["instructions"] = instructions?.DeepClone() }), options);
+        new(this, name, Register(name, new JsonObject { ["type"] = "noul", ["instructions"] = instructions?.DeepClone() }, options.StateVersion), options);
 
     public Choice<string, T> Choice<T>(string name, string instructions) where T : struct, Enum =>
         Choice(name, instructions, new ChoiceOptions<string, T>());
@@ -424,7 +429,7 @@ public sealed class Lars : IDisposable, IAsyncDisposable
     {
         var (criteria, byKey) = Options<T>();
         var question = new JsonObject { ["type"] = "choice", ["instructions"] = instructions?.DeepClone(), ["criteria"] = criteria };
-        return new Choice<TInput, T>(this, name, Register(name, question), byKey, options);
+        return new Choice<TInput, T>(this, name, Register(name, question, options.StateVersion), byKey, options);
     }
 
     public Score<string> Score(string name, string instructions, params string[] levels) =>
@@ -437,7 +442,7 @@ public sealed class Lars : IDisposable, IAsyncDisposable
             ["type"] = "score", ["instructions"] = instructions?.DeepClone(),
             ["criteria"] = new JsonArray(levels.Select(l => (JsonNode)l).ToArray()),
         };
-        return new Score<TInput>(this, name, Register(name, question), levels.Count, options);
+        return new Score<TInput>(this, name, Register(name, question, options.StateVersion), levels.Count, options);
     }
 
     public Multi<string, T> Multi<T>(string name, string instructions) where T : struct, Enum =>
@@ -448,7 +453,7 @@ public sealed class Lars : IDisposable, IAsyncDisposable
     {
         var (criteria, byKey) = Options<T>();
         var question = new JsonObject { ["type"] = "multi", ["instructions"] = instructions?.DeepClone(), ["criteria"] = criteria };
-        return new Multi<TInput, T>(this, name, Register(name, question), byKey, options);
+        return new Multi<TInput, T>(this, name, Register(name, question, options.StateVersion), byKey, options);
     }
 
     /// <summary>Ask several predicates about one input in one request; the model reads the input once.</summary>
@@ -523,12 +528,16 @@ public sealed class Lars : IDisposable, IAsyncDisposable
     {
         var certified = new JsonObject();
         var questions = new JsonObject();
+        var stateVersions = new JsonObject();
         var calibrators = JsonNode.Parse(Native.Take(Native.lars_calibrators(_handle))!)!.AsObject();
         lock (_lock)
         {
             foreach (var (name, _) in calibrators)
             {
-                if (_questions.TryGetValue(name, out var question)) questions[name] = JsonNode.Parse(question);
+                if (!_questions.TryGetValue(name, out var key)) continue;
+                var bound = JsonNode.Parse(key)!;
+                questions[name] = bound["question"]!.DeepClone();
+                if (bound["state_version"] is JsonValue version) stateVersions[name] = version.DeepClone();
             }
             foreach (var (name, c) in _certified)
             {
@@ -545,6 +554,7 @@ public sealed class Lars : IDisposable, IAsyncDisposable
             ["pack"] = new JsonObject { ["name"] = Pack["name"]!.DeepClone(), ["version"] = Pack["version"]!.DeepClone() },
             ["calibrators"] = calibrators,
             ["questions"] = questions,
+            ["stateVersions"] = stateVersions,
             ["certified"] = certified,
         };
     }
@@ -572,9 +582,15 @@ public sealed class Lars : IDisposable, IAsyncDisposable
             {
                 if (saved["questions"]?[name] is not JsonObject question)
                     throw Invalid($"the saved calibration for \"{name}\" records no question");
-                var key = question.ToJsonString();
+                string? version = saved["stateVersions"]?[name] switch
+                {
+                    null => null,
+                    JsonValue v when v.TryGetValue<string>(out var text) => text,
+                    _ => throw Invalid($"the state version for \"{name}\" is not a string"),
+                };
+                var key = Binding(question, version);
                 if (_questions.TryGetValue(name, out var existing) && existing != key)
-                    throw Invalid($"the saved calibration for \"{name}\" was fitted for a different question than the predicate of that name here");
+                    throw Invalid($"the saved calibration for \"{name}\" was fitted for a different question or state version than the predicate of that name here");
                 incoming.Add((name, key, SavedCertified(name, saved["certified"]?[name])));
             }
         }
@@ -650,17 +666,22 @@ public sealed class Lars : IDisposable, IAsyncDisposable
             $"give a State selector to turn a {typeof(TInput).Name} into text or JSON (PredicateOptions.State)"),
     };
 
-    private JsonObject Register(string name, JsonObject question)
+    private JsonObject Register(string name, JsonObject question, string? stateVersion)
     {
-        var key = question.ToJsonString();
+        var key = Binding(question, stateVersion);
         lock (_lock)
         {
             if (_questions.TryGetValue(name, out var existing) && existing != key)
-                throw new LarsException("invalid_request", $"a predicate named \"{name}\" already asks a different question");
+                throw new LarsException("invalid_request",
+                    $"a predicate named \"{name}\" already asks a different question or reads a different state version");
             _questions[name] = key;
         }
         return question;
     }
+
+    /// <summary>What a predicate's name is bound to: its question and the version of its state selector.</summary>
+    private static string Binding(JsonObject question, string? stateVersion) =>
+        new JsonObject { ["question"] = question.DeepClone(), ["state_version"] = stateVersion }.ToJsonString();
 
     /// <summary>An enum's members as choice criteria: snake_case keys (or [Option(Key=...)]) and their descriptions.</summary>
     private static (JsonObject Criteria, Dictionary<string, T> ByKey) Options<T>() where T : struct, Enum

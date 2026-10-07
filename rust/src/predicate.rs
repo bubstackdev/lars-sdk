@@ -325,6 +325,7 @@ pub struct Predicate<K: Kind, I: ?Sized = str> {
     pub(crate) question: Value,
     pub(crate) kind: Arc<K>,
     pub(crate) state: StateFn<I>,
+    pub(crate) state_version: Option<Arc<str>>,
     abstain_margin: Option<f64>,
     explain: bool,
 }
@@ -337,6 +338,7 @@ impl<K: Kind, I: ?Sized> Clone for Predicate<K, I> {
             question: self.question.clone(),
             kind: self.kind.clone(),
             state: self.state.clone(),
+            state_version: self.state_version.clone(),
             abstain_margin: self.abstain_margin,
             explain: self.explain,
         }
@@ -357,6 +359,7 @@ impl<K: Kind> Predicate<K, str> {
             question,
             kind: Arc::new(kind),
             state: Arc::new(|text: &str| Value::String(text.to_string())),
+            state_version: None,
             abstain_margin: None,
             explain: false,
         }
@@ -387,9 +390,20 @@ impl<K: Kind, I: ?Sized> Predicate<K, I> {
             question: self.question,
             kind: self.kind,
             state: Arc::new(state),
+            state_version: self.state_version,
             abstain_margin: self.abstain_margin,
             explain: self.explain,
         }
+    }
+
+    /// Name the version of what the state selector reads, e.g. `"tickets-v2"`. Saved calibrations
+    /// record it, and loading one for a predicate whose version differs is refused: change the
+    /// fields a predicate reads, bump the version, and calibrations fitted on the old fields can't
+    /// be used by mistake. The selector itself can't be saved, so without a version a change to
+    /// it goes unnoticed.
+    pub fn state_version(mut self, version: &str) -> Self {
+        self.state_version = Some(version.into());
+        self
     }
 
     /// Mark an answer abstained when its top two probabilities are within this margin.
@@ -416,7 +430,7 @@ impl<K: Kind, I: ?Sized> Predicate<K, I> {
     }
 
     fn answer<T: Send + 'static>(&self, input: &I, then: impl FnOnce(K::Decision) -> T + Send + 'static) -> Pending<T> {
-        if let Err(error) = self.lars.register(&self.name, &self.question) {
+        if let Err(error) = self.lars.register(&self.name, &self.question, self.state_version.as_deref()) {
             return Pending::ready(Err(error));
         }
         let mut extensions = Map::new();
@@ -453,7 +467,7 @@ impl<K: Labeled, I: ?Sized> Predicate<K, I> {
         examples: impl IntoIterator<Item = (X, K::Label)>,
         max_error: impl Into<Option<f64>>,
     ) -> Pending<CalibrationResult> {
-        if let Err(error) = self.lars.register(&self.name, &self.question) {
+        if let Err(error) = self.lars.register(&self.name, &self.question, self.state_version.as_deref()) {
             return Pending::ready(Err(error));
         }
         let mut jsonl = String::new();
