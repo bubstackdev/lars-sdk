@@ -672,3 +672,28 @@ accuracies must agree within 0.08. It takes about 15 s per model:
 - the fixed 2B passes: MLX 0.850, GGUF 0.863
 - the broken build fails: GGUF 0.300
 
+**Qwen3.5-2B, pack `lars-2b-etd-dev`:**
+- **typed-decisions test:** 0.759 with the pack calibrator. The 4B scores 0.770 and the 8B 0.773.
+- **With heads:** 0.78 at 100 labels and 0.784-0.788 at 300. The 4B reaches 0.797 and 0.80-0.81,
+  so labels lift the 2B a little less than the 4B.
+
+**Latency, Metal, p50, a new input each call** (`sweep/out/latency-tiers.md`; shared machine).
+The 2B ran at a load average of 5-6, the others at 9-18, so its numbers are somewhat
+flattered.
+
+| request | Qwen3.5-2B | 1.7B | 4B | 8B Q3_K_M |
+|---|---|---|---|---|
+| one noul | 40 ms | 39 ms | 80 ms | 118 ms |
+| Molar Triage (3 questions) | 292 ms | 174 ms | 502 ms | 725 ms |
+| twenty questions | 223 ms | 195 ms | 282 ms | 511 ms |
+| one noul, CPU 12 threads | 261 ms | 126 ms | 341 ms | 463 ms |
+| peak memory (Metal) | 1.8 GB | 2.0 GB | 3.6 GB | 5.0 GB |
+
+- **The same input asked again doesn't get faster on the 2B** (39 ms against 40 ms for a new
+  one). On the Qwen3 models it halves. Prefix reuse doesn't help Qwen3.5's recurrent layers here.
+- **Lineup:**
+  - **The 2B replaces the 1.7B and becomes the default.** It is 4 points more accurate, about
+    as fast on single questions, and up to 1.7x slower on several at once.
+  - **The 8B at Q3_K_M is the top tier.** The 4B is dropped.
+  - **The 0.6B stays** as the smallest.
+
