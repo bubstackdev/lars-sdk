@@ -6,7 +6,7 @@ prompt layout, the llama.cpp build or flash attention all move logits (`RESULTS.
 so a pack fixes them all.
 
 ```
-lars-4b/0.1.0/
+lars-2b/0.1.0/
   pack.json          the manifest
   model.gguf         the weights
   calibration.json   the pooled calibrator, bound to this pack
@@ -43,7 +43,7 @@ a few seconds for a 2.5 GB model.
 ```json
 {
   "format": 1,
-  "name": "lars-4b",
+  "name": "lars-2b",
   "version": "0.1.0",
   "backend": "llamacpp",
   "model": {"file": "model.gguf", "bytes": 2497280960, "sha256": "...",
@@ -71,7 +71,7 @@ a few seconds for a 2.5 GB model.
 `calibration.json`, and every calibrator `calibrate` returns, records the pack it was fitted on:
 
 ```json
-"pack": {"name": "lars-4b", "version": "0.1.0", "model_sha256": "..."}
+"pack": {"name": "lars-2b", "version": "0.1.0", "model_sha256": "..."}
 ```
 
 `set_calibrator` / `loadCalibrations` refuse a calibrator that records another pack, or no pack.
@@ -80,7 +80,7 @@ a few seconds for a 2.5 GB model.
 
 ```sh
 cargo run --release -p lars-dev -- pack --model model.gguf --template chatml \
-  --name lars-4b --version 0.1.0 --data-dir <jev-bench eval data> --out packs/lars-4b/0.1.0 \
+  --name lars-2b --version 0.1.0 --data-dir <jev-bench eval data> --out packs/lars-2b/0.1.0 \
   --base Qwen/Qwen3-4B-Instruct-2507 --license Apache-2.0 --quantization Q4_K_M
 ```
 

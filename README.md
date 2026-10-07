@@ -4,21 +4,21 @@ Typed decisions as functions in your code, answered by a small language model ru
 your process.
 
 ```ts
-const lars = await Lars.open({ pack: "lars-4b" });
+const lars = await Lars.open({ pack: "lars-2b" });
 const isPissed = lars.noul("isPissed", "The customer is angry");
 
 if (await isPissed(message)) escalate(message);
 ```
 
 ```csharp
-using var lars = await Lars.OpenAsync("lars-4b");
+using var lars = await Lars.OpenAsync("lars-2b");
 var isPissed = lars.Noul("isPissed", "The customer is angry");
 
 if (await isPissed.AskAsync(message)) Escalate(message);
 ```
 
 ```rust
-let lars = Lars::open("lars-4b").await?;
+let lars = Lars::open("lars-2b").await?;
 let is_pissed = lars.noul("isPissed", "The customer is angry");
 
 if is_pissed.ask(message).await? { escalate(message) }
@@ -111,17 +111,22 @@ A pack is a model plus everything its probabilities depend on:
 - flash attention on or off
 - a pooled calibrator fitted on jev-bench validation
 
-`Lars.open({ pack: "lars-4b" })` downloads a pack once from the Hub, checks its sha256 and
+`Lars.open({ pack: "lars-2b" })` downloads a pack once from the Hub, checks its sha256 and
 caches it. A path to a pack directory works too. See [docs/packs.md](docs/packs.md).
 
-Current development packs. All are Qwen3 with the LARS LoRA, Q4_K_M, evaluated through this
-SDK on jev-bench test (22 configs):
+Current development packs, each a base model with the LARS LoRA, evaluated through this SDK on
+jev-bench test (22 configs):
 
-| pack | base model | size | macro accuracy | Brier |
-|---|---|---|---|---|
-| `lars-4b-dev` | Qwen3-4B-Instruct-2507 | 2.5 GB | 0.736 | 0.304 |
-| `lars-1.7b-dev` | Qwen3-1.7B | 1.3 GB | 0.672 | 0.370 |
-| `lars-0.6b-dev` | Qwen3-0.6B | 0.5 GB | 0.646 | 0.421 |
+| pack | base model | quantization | size | macro accuracy | Brier |
+|---|---|---|---|---|---|
+| `lars-2b-dev` (default) | Qwen3.5-2B | Q4_K_M | 1.3 GB | 0.716 | 0.333 |
+| `lars-8b-dev` 0.0.2 (top tier) | Qwen3-8B | Q3_K_M | 4.1 GB | 0.748 | 0.287 |
+| `lars-0.6b-dev` (smallest) | Qwen3-0.6B | Q4_K_M | 0.4 GB | 0.646 | 0.421 |
+
+The 8B certifies the most answers at a strict error budget; the 2B is the balance of accuracy,
+memory and speed. `lars-4b-dev` (0.736) and `lars-1.7b-dev` (0.672) are retired: the 8B ties the
+4B on accuracy and certifies more, and the 2B beats the 1.7B by 4 points (`RESULTS.md`,
+2026-10-07).
 
 For comparison, the hosted Jev model's published number on the same benchmark is 0.733 /
 0.349. The small packs close most of the gap on routing and triage, and lose most on world
@@ -147,9 +152,12 @@ Indicative only: measured on an M5 Max while other jobs ran. Quiet-machine numbe
 
 | | one yes/no question | three questions (Molar Triage) | twenty questions, one message |
 |---|---|---|---|
-| 4B, Metal | 40–90 ms | 140–180 ms | 230 ms |
+| 2B, Metal | 40 ms | 80–290 ms | 200–220 ms |
+| 8B Q3_K_M, Metal | 60–120 ms | 180–730 ms | 410–510 ms |
 | 0.6B, Metal | 12–24 ms | 45 ms | 65 ms |
-| 4B, CPU (12 threads) | 130–470 ms | 1.0–1.4 s | 2.6–3.2 s |
+| 2B, CPU (12 threads) | 240–260 ms | 0.6–2.5 s | 1.5–1.9 s |
+
+The 2B doesn't get faster when the same input is asked again; the Qwen3 packs do.
 
 The lower figure in a range is the same input asked again; the higher is a new input. Memory is
 about the model file plus 1 GB, more on CPU, where llama.cpp repacks weights. Loading takes 0.3–0.5 s
@@ -164,7 +172,7 @@ on Metal and about 1.4 s on CPU.
   threshold you care about.
 - **A threshold only holds for data like its labels.** Certified thresholds and calibrated
   probabilities describe the labels they were fitted on. Recalibrate when your inputs change.
-- **The 4B on CPU is too slow for a hot path** (about 0.5 s for a new input). On machines
+- **The 8B on CPU is too slow for a hot path** (about 0.5 s for a new input). On machines
   without Metal, use a small pack or move the call off the request path.
 - **Platforms:**
   - macOS (arm64, x64) uses Metal; Linux (x64, arm64, glibc 2.28+) and Windows x64 run on the

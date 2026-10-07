@@ -14,7 +14,7 @@ enum Team {
     Technical,
 }
 
-let lars = Lars::open("lars-4b").wait()?;
+let lars = Lars::open("lars-2b").wait()?;
 let is_pissed = lars.noul("isPissed", "The customer is angry");
 let team = lars.choice::<Team>("team", "Which team should handle this?");
 

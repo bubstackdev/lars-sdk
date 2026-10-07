@@ -51,7 +51,7 @@ fn rows(file: &str) -> Vec<Row> {
 }
 
 fn main() -> Result<()> {
-    let pack = std::env::args().nth(1).unwrap_or_else(|| "lars-4b".into());
+    let pack = std::env::args().nth(1).unwrap_or_else(|| "lars-2b".into());
     let lars = Lars::open(pack).wait()?;
 
     let in_pain = lars.noul("inPain", PAIN);

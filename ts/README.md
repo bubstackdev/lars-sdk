@@ -6,7 +6,7 @@ Node or Bun process. No server, no Ollama, no network after the model pack is do
 ```ts
 import { Lars } from "@moedex/lars";
 
-const lars = await Lars.open({ pack: "lars-4b" });
+const lars = await Lars.open({ pack: "lars-2b" });
 
 const isPissed = lars.noul("isPissed", "The customer is angry");
 const team = lars.choice("team", "Which team should handle this?", {

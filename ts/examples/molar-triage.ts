@@ -2,7 +2,7 @@
 // them on 30 labeled messages and measure on 30 others. The messages are fictional
 // (examples/molar_triage, from the lars repository).
 //
-//   npx tsx examples/molar-triage.ts <pack>      e.g. ../models/packs/lars-4b-dev/0.0.1
+//   npx tsx examples/molar-triage.ts <pack>      e.g. ../models/packs/lars-2b-dev/0.0.1
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,7 +11,7 @@ import { Lars } from "../src/index.js";
 
 const DATA = join(import.meta.dirname, "..", "..", "examples", "molar_triage");
 
-const lars = await Lars.open(process.argv[2] ?? "lars-4b");
+const lars = await Lars.open(process.argv[2] ?? "lars-2b");
 
 const inPain = lars.noul("inPain", "The sender says they are in pain right now.");
 const department = lars.choice("department", "Which department should take this message?", {

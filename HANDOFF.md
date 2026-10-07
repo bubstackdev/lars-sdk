@@ -29,6 +29,13 @@ The overnight run (`sweep/overnight.sh`) finished everything for the 8B by 04:37
 
 ## Decided today
 
+- **2026-10-07 lineup (agreed):**
+  - `lars-2b-dev` 0.0.1: Qwen3.5-2B, the default.
+  - `lars-8b-dev` 0.0.2: Q3_K_M, the top tier.
+  - `lars-0.6b-dev`: the smallest.
+  - `lars-4b-dev`, `lars-1.7b-dev` and `lars-8b-dev` 0.0.1 are retired but left on disk.
+  - Built by `sweep/promote.sh`.
+  - Next: prefix reuse for Qwen3.5 (snapshot the recurrent state instead of re-reading the input).
 - **2026-10-07 results (RESULTS.md):**
   - 4B + td 0.740, 8B + td 0.749, Qwen3.5-2B + td 0.716.
   - Top tier: the 8B (Q3_K_M), by the coverage rule.

@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 using Moedex.Lars;
 
 var data = Path.Combine(AppContext.BaseDirectory, "../../../../../../examples/molar_triage");
-using var lars = await Lars.OpenAsync(args.Length > 0 ? args[0] : "lars-4b");
+using var lars = await Lars.OpenAsync(args.Length > 0 ? args[0] : "lars-2b");
 
 var inPain = lars.Noul("inPain", "The sender says they are in pain right now.");
 var department = lars.Choice<Department>("department", "Which department should take this message?");

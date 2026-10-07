@@ -1,6 +1,6 @@
 // @moedex/lars: typed decisions as functions in your code.
 //
-//   const lars = await Lars.open({ pack: "lars-4b" });
+//   const lars = await Lars.open({ pack: "lars-2b" });
 //   const isPissed = lars.noul("isPissed", "The customer is angry");
 //   if (await isPissed(message)) escalate(message);
 //

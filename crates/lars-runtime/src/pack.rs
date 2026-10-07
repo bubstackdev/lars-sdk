@@ -7,7 +7,7 @@
 //!
 //! ```json
 //! {
-//!   "format": 1, "name": "lars-4b", "version": "0.1.0", "backend": "llamacpp",
+//!   "format": 1, "name": "lars-2b", "version": "0.1.0", "backend": "llamacpp",
 //!   "model": {"file": "model.gguf", "bytes": 2497280960, "sha256": "...", "base": "Qwen/Qwen3-4B-Instruct-2507",
 //!             "license": "Apache-2.0", "quantization": "Q4_K_M"},
 //!   "calibration": {"file": "calibration.json", "sha256": "..."},

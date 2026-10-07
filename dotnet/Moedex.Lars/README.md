@@ -6,7 +6,7 @@ Typed decisions as functions in your code, answered by a small language model ru
 ```csharp
 using Moedex.Lars;
 
-using var lars = await Lars.OpenAsync("lars-4b");
+using var lars = await Lars.OpenAsync("lars-2b");
 
 var isPissed = lars.Noul("isPissed", "The customer is angry");
 var team = lars.Choice<Team>("team", "Which team should handle this?");

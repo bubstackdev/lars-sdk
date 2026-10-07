@@ -1,6 +1,6 @@
 # Using the LARS SDK from another project
 
-A short handoff for projects that want to try LARS. Last updated 2026-10-06.
+A short handoff for projects that want to try LARS. Last updated 2026-10-07.
 
 ## What it is
 
@@ -12,7 +12,7 @@ inside your process: no server, no network, no API keys.
   probability for each option you declared. It never generates text.
 - **Probabilities are calibrated,** and you can recalibrate a predicate on your own labels and
   certify a threshold for an error budget.
-- **Speed:** on Metal, about 12–24 ms per question on the 0.6B and 40–90 ms on the 4B.
+- **Speed:** on Metal, about 40 ms per question on the default 2B pack, 12–24 ms on the 0.6B.
 
 Use it for triage, routing and gating: is this message urgent, which team owns it, is this
 diff risky, does this log show a failure. It is not a knowledge base, so don't ask it facts the
@@ -25,7 +25,7 @@ input doesn't contain.
 - **Status: pre-release, nothing published.** No npm, NuGet, crates.io or model Hub yet, so use
   it from the local checkout as below. The API may still change before 1.0.
 - **Packs (model + calibrator):** `~/Code/personal/lars-sdk/models/packs/<name>/0.0.1`. Open
-  them by path; names like `"lars-4b"` only work once packs are published.
+  them by path; names like `"lars-2b"` only work once packs are published.
 - **Platforms:** macOS on Metal. Linux and Windows run on the CPU, but are built only in CI so
   far. No browser or mobile before 1.0.
 
@@ -33,15 +33,18 @@ input doesn't contain.
 
 | pack | size | jev-bench accuracy | use it for |
 |---|---|---|---|
-| `lars-0.6b-dev` | 0.4 GB | 0.646 | fast iteration, and production when you have labels to calibrate on |
-| `lars-1.7b-dev` | 1.1 GB | 0.672 | in between; may be dropped |
-| `lars-4b-dev` | 2.5 GB | 0.736 | the "no labels" tier |
-| `lars-8b-dev` | 5.0 GB | 0.749 | experimental top tier |
+| `lars-2b-dev/0.0.1` | 1.3 GB | 0.716 | **the default**: accuracy, memory and speed in balance |
+| `lars-8b-dev/0.0.2` | 4.1 GB | 0.748 | the top tier: automating the most at a strict error budget |
+| `lars-0.6b-dev/0.0.1` | 0.4 GB | 0.646 | the smallest, with labels to calibrate on |
 
 For reference, the hosted Jev model scores 0.733 on the same benchmark.
 
-**The top tier is being decided today:** the 4B is retraining on the 8B's data, and only one of
-them stays. Keep the pack path in one config value.
+`lars-4b-dev` and `lars-1.7b-dev` are retired but still on disk; `lars-8b-dev/0.0.1` is the
+Q4_K_M build (5.0 GB, 0.749). Keep the pack path in one config value.
+
+The 2B and 8B trained on typed-decisions' business workflows (their test cases held out). On the
+held-out cases they score 0.759 and 0.773 with no labels; that is in-domain, so expect less on
+decisions unlike those.
 
 ## TypeScript (Node 22+)
 
@@ -52,7 +55,7 @@ pnpm add link:$HOME/Code/personal/lars-sdk/ts      # or: npm install ~/Code/pers
 ```ts
 import { Lars } from "@moedex/lars";
 
-const lars = await Lars.open(`${process.env.HOME}/Code/personal/lars-sdk/models/packs/lars-0.6b-dev/0.0.1`);
+const lars = await Lars.open(`${process.env.HOME}/Code/personal/lars-sdk/models/packs/lars-2b-dev/0.0.1`);
 const urgent = lars.noul("urgent", "The message needs a reply today");
 const team = lars.choice("team", "Which team should handle this?", {
   billing: "Payments, charges, refunds",
@@ -130,9 +133,10 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
   prompts.
 - **Calibrate on your own labels when you can.** `calibrate(labels)` on a predicate refits only
   when that is significantly better on held-out labels, and says what it kept. Accuracy on
-  business decisions none of the packs trained on (typed-decisions):
+  business decisions the packs had never seen (typed-decisions, measured with the retired 4B and
+  the 0.6B before typed-decisions became training data):
 
-  | labels per predicate | 4B | 0.6B |
+  | labels per predicate | 4B (retired) | 0.6B |
   |---|---|---|
   | none | 0.61 | 0.44 |
   | 25 | 0.67 | 0.56 |
@@ -140,8 +144,8 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
   | 100 | 0.72 | 0.66 |
   | 300 | 0.76 | 0.72 |
 
-  With about 100 labels, the 0.6B gets close to the uncalibrated 4B, at a sixth of the size
-  and 3–4x the speed.
+  On decisions like the training workflows, labels add less: the 2B goes from 0.759 to 0.78
+  with 100 labels.
 - **Certify a threshold when mistakes are costly.** `calibrate(labels, maxError: 0.05)`
   certifies a threshold, and answers below it aren't `accepted`. That needs at least 73
   accepted labels with no mistakes among them for a 5% budget. At about 190 labels on jev-bench,
@@ -150,7 +154,7 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
   | pack | answers accepted |
   |---|---|
   | 0.6B | 4.5% |
-  | 4B | 12–14% |
+  | 2B | 15% |
   | 8B | about 20% |
 
   If certification fails (`threshold: null`), nothing is accepted: nouls answer `false` and
@@ -170,7 +174,10 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
 - **Exact levels on fine scales are the weakest primitive:** 11–14 of 30 on a 5-level urgency
   scale. Use a score for ordering, or a yes/no question for the threshold you care about.
 - **English only.**
-- **The 4B on the CPU is about 0.5 s per new input,** too slow for a hot path off Metal.
+- **Off Metal, use the 2B or 0.6B:** the 2B takes about 0.25 s per question on the CPU, the 8B
+  about 0.5 s.
+- **Ask several questions in one `ask` call on the 2B:** it can't reuse the input between calls
+  yet, so twenty separate calls cost about 1 s against 0.2 s together.
 - **The training Mac is shared:** while a training run is going, calls on the big packs are
   slower and slow the training down.
 

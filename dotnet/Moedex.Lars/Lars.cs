@@ -1,6 +1,6 @@
 // Moedex.Lars: typed decisions as functions in your code.
 //
-//     using var lars = await Lars.OpenAsync("lars-4b");
+//     using var lars = await Lars.OpenAsync("lars-2b");
 //     var isPissed = lars.Noul("isPissed", "The customer is angry");
 //     if (isPissed.Check(message)) Escalate(message);            // blocking: scripts, console apps
 //     if (await isPissed.AskAsync(message)) Escalate(message);   // ASP.NET and other async code
