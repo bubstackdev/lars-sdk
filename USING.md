@@ -176,8 +176,8 @@ Each one sorts a dental inbox, then calibrates on 30 labels:
 - **English only.**
 - **Off Metal, use the 2B or 0.6B:** the 2B takes about 0.25 s per question on the CPU, the 8B
   about 0.5 s.
-- **Ask several questions in one `ask` call on the 2B:** it can't reuse the input between calls
-  yet, so twenty separate calls cost about 1 s against 0.2 s together.
+- **Ask several questions about one input in one `ask` call:** twenty questions take about 0.2 s
+  together on the 2B, and 0.4 s one at a time.
 - **The training Mac is shared:** while a training run is going, calls on the big packs are
   slower and slow the training down.
 

@@ -152,12 +152,11 @@ Indicative only: measured on an M5 Max while other jobs ran. Quiet-machine numbe
 
 | | one yes/no question | three questions (Molar Triage) | twenty questions, one message |
 |---|---|---|---|
-| 2B, Metal | 40 ms | 80–290 ms | 200–220 ms |
+| 2B, Metal | 18–40 ms | 77–290 ms | 190–215 ms |
 | 8B Q3_K_M, Metal | 60–120 ms | 180–730 ms | 410–510 ms |
 | 0.6B, Metal | 12–24 ms | 45 ms | 65 ms |
 | 2B, CPU (12 threads) | 240–260 ms | 0.6–2.5 s | 1.5–1.9 s |
 
-The 2B doesn't get faster when the same input is asked again; the Qwen3 packs do.
 
 The lower figure in a range is the same input asked again; the higher is a new input. Memory is
 about the model file plus 1 GB, more on CPU, where llama.cpp repacks weights. Loading takes 0.3–0.5 s

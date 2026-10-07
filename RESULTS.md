@@ -697,3 +697,23 @@ flattered.
   - **The 8B at Q3_K_M is the top tier.** The 4B is dropped.
   - **The 0.6B stays** as the smallest.
 
+**Prefix reuse on Qwen3.5.** Its recurrent layers can't drop a tail from the cache, so every
+call re-read its whole prompt. Now a spare sequence holds a snapshot of the last prefix, a copy
+within the cache, restored the same way. 2B, Metal, p50:
+
+| | snapshot | re-read |
+|---|---|---|
+| the same input asked again (one noul) | 18 ms | 39 ms |
+| Molar Triage, same input again | 77 ms | 98 ms |
+| twenty questions, same input again | 190 ms | 234 ms |
+| twenty questions one at a time, new input | 404 ms | 990 ms |
+| three questions one at a time, new input | 277 ms | 405 ms |
+
+- **Bit-identical to re-reading:** 150 of 150 rows (Molar Triage plus boolq, banking77 and mnli).
+  The Qwen3 path is unchanged, also 150 of 150.
+- **A head snapshot was tried and dropped.** Snapshotting the shared head (system prompt and
+  template) for new inputs saved 0-15%. It moved probabilities by up to 0.0013 and flipped 1 of
+  150 near-tie answers, because the recurrent state was then computed in different pieces.
+- **One cache sequence goes to the snapshot,** so batched passes run 14 questions instead of 15 on
+  Qwen3.5.
+

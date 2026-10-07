@@ -19,6 +19,16 @@
 //! state asked about again, is prefilled once. Measured bit-identical to a fresh prefill
 //! (RESULTS.md, 2026-10-02).
 //!
+//! Recurrent and hybrid models (Qwen3.5) keep a running state that can't be cut back to an
+//! earlier token, so the cache can't be truncated to a shared prefix. For them, a spare sequence
+//! holds a snapshot of the last prefix instead: a copy within the cache (`seq_cp`, the cells
+//! shared until written), restored the same way. A state asked about again, or questions asked
+//! one at a time, are not prefilled again; Qwen3.5-2B answers the same input again in 19 ms
+//! instead of 39, and twenty questions one at a time in 0.42 s instead of 1.03. Bit-identical to
+//! a fresh prefill. A new state is prefilled in full: snapshotting the shared head too saved up
+//! to 15% but moved probabilities by up to 0.0013, since the recurrent state is computed in
+//! different pieces (RESULTS.md, 2026-10-07). The snapshot's sequence is not a suffix lane.
+//!
 //! Flash attention is off by default: on, it moves probabilities by up to 0.035 on Metal and
 //! 0.54 on CPU, and off matches the reference engine bit for bit. Whatever a pack's calibrator
 //! was fitted with is what it must be served with.
@@ -162,6 +172,10 @@ pub struct LlamaBackend {
     batch: Batch,
     /// Read the final hidden state with each row's logits (`label_logits_hidden`).
     want_hidden: bool,
+    /// A recurrent or hybrid model with `reuse_prefix`: the last prefix is reused from a snapshot.
+    snapshot_prefixes: bool,
+    /// The tokens the snapshot (sequence n_seq_max - 1) holds; empty when it holds nothing.
+    snapshot: Vec<sys::llama_token>,
 }
 
 /// A row's label logits, and its hidden state when asked for.
@@ -220,6 +234,9 @@ impl LlamaBackend {
         let vocab = unsafe { sys::llama_model_get_vocab(model.as_ptr()) };
         let n_vocab = unsafe { sys::llama_vocab_n_tokens(vocab) } as usize;
         let batch = Batch::new(options.n_batch.max(options.n_ctx) as usize, options.n_seq_max as usize);
+        let recurrent =
+            unsafe { sys::llama_model_is_recurrent(model.as_ptr()) || sys::llama_model_is_hybrid(model.as_ptr()) };
+        let snapshot_prefixes = recurrent && options.reuse_prefix && options.n_seq_max >= 3;
         Ok(LlamaBackend {
             model,
             ctx,
@@ -232,6 +249,8 @@ impl LlamaBackend {
             cached: Vec::new(),
             batch,
             want_hidden: false,
+            snapshot_prefixes,
+            snapshot: Vec::new(),
         })
     }
 
@@ -318,9 +337,87 @@ impl LlamaBackend {
         decoded
     }
 
+    fn snapshot_seq(&self) -> sys::llama_seq_id {
+        self.options.n_seq_max as i32 - 1
+    }
+
+    /// Sequences a batched pass may decode suffixes into, after sequence 0.
+    fn lanes(&self) -> usize {
+        let reserved = if self.snapshot_prefixes { 2 } else { 1 };
+        (self.options.n_seq_max as usize).saturating_sub(reserved).max(1)
+    }
+
+    /// Replace sequence `to` with a copy of sequence `from`.
+    fn copy_seq(&self, from: sys::llama_seq_id, to: sys::llama_seq_id) {
+        let memory = self.memory();
+        unsafe {
+            sys::llama_memory_seq_rm(memory, to, -1, -1);
+            sys::llama_memory_seq_cp(memory, from, to, -1, -1);
+        }
+    }
+
+    /// Decode `tokens` into sequence 0 after the `self.cached` tokens it already holds.
+    fn extend_prefix(&mut self, tokens: &[sys::llama_token]) -> Result<()> {
+        for chunk in tokens.chunks(self.options.n_batch as usize) {
+            self.batch.clear();
+            let start = self.cached.len();
+            for (i, &token) in chunk.iter().enumerate() {
+                self.batch.push(token, (start + i) as i32, 0, false);
+            }
+            self.decode()?;
+            self.cached.extend_from_slice(chunk);
+        }
+        Ok(())
+    }
+
+    /// `set_prefix` for a recurrent model: restore the last prefix's snapshot instead of
+    /// truncating, or prefill in full.
+    fn set_prefix_from_snapshot(&mut self, tokens: &[sys::llama_token]) -> Result<()> {
+        let memory = self.memory();
+        for seq in 1..self.snapshot_seq() {
+            unsafe { sys::llama_memory_seq_rm(memory, seq, -1, -1) };
+        }
+        if self.cached == tokens {
+            return Ok(());
+        }
+        if self.snapshot == tokens {
+            self.copy_seq(self.snapshot_seq(), 0);
+            self.cached = tokens.to_vec();
+            return Ok(());
+        }
+        unsafe {
+            sys::llama_memory_seq_rm(memory, 0, -1, -1);
+            sys::llama_memory_seq_rm(memory, self.snapshot_seq(), -1, -1);
+        }
+        self.cached.clear();
+        self.snapshot.clear();
+        self.extend_prefix(tokens)?;
+        self.copy_seq(0, self.snapshot_seq());
+        self.snapshot = tokens.to_vec();
+        Ok(())
+    }
+
+    /// Sequence 0 held a prefix and a row's suffix: drop the suffix, or everything if the cache
+    /// can't (a recurrent model), for the next row's `set_prefix` to restore.
+    fn drop_suffix(&mut self, prefix_len: usize) {
+        let memory = self.memory();
+        if self.snapshot_prefixes {
+            unsafe { sys::llama_memory_seq_rm(memory, 0, -1, -1) };
+            self.cached.clear();
+        } else if !unsafe { sys::llama_memory_seq_rm(memory, 0, prefix_len as i32, -1) } {
+            // The cache cannot drop a tail for this model (recurrent state): start over, and
+            // prefill the prefix again only if another row follows.
+            unsafe { sys::llama_memory_clear(memory, false) };
+            self.cached.clear();
+        }
+    }
+
     /// Make sequence 0 hold exactly `tokens`, keeping what matches from the previous call when
     /// `reuse_prefix` is on, and clearing every other sequence.
     fn set_prefix(&mut self, tokens: &[sys::llama_token]) -> Result<()> {
+        if self.snapshot_prefixes {
+            return self.set_prefix_from_snapshot(tokens);
+        }
         let memory = self.memory();
         let keep = if self.options.reuse_prefix {
             self.cached.iter().zip(tokens).take_while(|(a, b)| a == b).count()
@@ -336,16 +433,7 @@ impl LlamaBackend {
             unsafe { sys::llama_memory_seq_rm(memory, seq, -1, -1) };
         }
         self.cached = tokens[..keep].to_vec();
-        for chunk in tokens[keep..].chunks(self.options.n_batch as usize) {
-            self.batch.clear();
-            let start = self.cached.len();
-            for (i, &token) in chunk.iter().enumerate() {
-                self.batch.push(token, (start + i) as i32, 0, false);
-            }
-            self.decode()?;
-            self.cached.extend_from_slice(chunk);
-        }
-        Ok(())
+        self.extend_prefix(&tokens[keep..])
     }
 
     fn check_fits(&self, tokens: usize) -> Result<()> {
@@ -361,14 +449,14 @@ impl LlamaBackend {
     /// Logits after `prefix + suffix` for each suffix decoded alone after the prefix.
     fn one_at_a_time(&mut self, prefix: &[i32], suffixes: &[Vec<i32>], labels: &[Vec<i32>]) -> Result<Vec<RowOut>> {
         self.set_prefix(prefix)?;
-        let memory = self.memory();
         let mut results = Vec::with_capacity(suffixes.len());
         for (row, (suffix, label_ids)) in suffixes.iter().zip(labels).enumerate() {
             if suffix.is_empty() {
                 return Err(backend_error("a row has no tokens after its prefix"));
             }
             if row > 0 && self.cached.len() != prefix.len() {
-                // The previous row could not be truncated away (a recurrent model): prefill again.
+                // The previous row could not be truncated away (a recurrent model): prefill again,
+                // or restore the prefix's snapshot.
                 self.set_prefix(prefix)?;
             }
             self.check_fits(prefix.len() + suffix.len())?;
@@ -389,12 +477,7 @@ impl LlamaBackend {
                 self.decode_with_hidden()?;
             }
             results.push(self.read_row(self.batch.len() - 1, label_ids)?);
-            if !unsafe { sys::llama_memory_seq_rm(memory, 0, prefix.len() as i32, -1) } {
-                // The cache cannot drop a tail for this model (recurrent state): start over, and
-                // prefill the prefix again only if another row follows.
-                unsafe { sys::llama_memory_clear(memory, false) };
-                self.cached.clear();
-            }
+            self.drop_suffix(prefix.len());
         }
         Ok(results)
     }
@@ -404,7 +487,7 @@ impl LlamaBackend {
         self.set_prefix(prefix)?;
         let memory = self.memory();
         let mut results = vec![(Vec::new(), None); suffixes.len()];
-        let lanes = (self.options.n_seq_max as usize - 1).max(1);
+        let lanes = self.lanes();
         let mut start = 0;
         while start < suffixes.len() {
             // As many suffixes as fit in the lanes, the context and one batch.
