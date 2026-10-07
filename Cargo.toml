@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/lars-core", "crates/lars-llama-sys", "crates/lars-llama", "crates/lars-dev", "crates/lars-runtime", "crates/lars-ffi", "crates/lars-node", "rust", "rust/derive"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.0-rc.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/moedex/lars-sdk"
@@ -15,3 +15,9 @@ regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
 sha2 = "0.10"
+# The workspace's own crates, with the exact version crates.io needs alongside the path.
+lars-core = { path = "crates/lars-core", version = "=0.1.0-rc.1" }
+lars-llama-sys = { path = "crates/lars-llama-sys", version = "=0.1.0-rc.1" }
+lars-llama = { path = "crates/lars-llama", version = "=0.1.0-rc.1" }
+lars-runtime = { path = "crates/lars-runtime", version = "=0.1.0-rc.1" }
+moedex-lars-derive = { path = "rust/derive", version = "=0.1.0-rc.1" }

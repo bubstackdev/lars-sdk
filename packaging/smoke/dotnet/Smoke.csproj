@@ -9,6 +9,6 @@
     <RestoreAdditionalProjectSources>$(LarsFeed)</RestoreAdditionalProjectSources>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Moedex.Lars" Version="0.1.0" />
+    <PackageReference Include="Moedex.Lars" Version="0.1.0-rc.1" />
   </ItemGroup>
 </Project>

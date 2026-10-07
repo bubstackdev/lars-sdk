@@ -233,7 +233,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "lars-core"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "indexmap",
  "regex",
@@ -244,7 +244,7 @@ dependencies = [
 
 [[package]]
 name = "lars-dev"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "lars-core",
  "lars-llama",
@@ -254,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "lars-ffi"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "lars-runtime",
  "serde_json",
@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "lars-llama"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "lars-core",
  "lars-llama-sys",
@@ -271,14 +271,14 @@ dependencies = [
 
 [[package]]
 name = "lars-llama-sys"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "cmake",
 ]
 
 [[package]]
 name = "lars-node"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "lars-runtime",
  "napi",
@@ -289,7 +289,7 @@ dependencies = [
 
 [[package]]
 name = "lars-runtime"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "indexmap",
  "lars-core",
@@ -339,7 +339,7 @@ dependencies = [
 
 [[package]]
 name = "moedex-lars"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "lars-runtime",
  "moedex-lars-derive",
@@ -348,7 +348,7 @@ dependencies = [
 
 [[package]]
 name = "moedex-lars-derive"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "proc-macro2",
  "quote",

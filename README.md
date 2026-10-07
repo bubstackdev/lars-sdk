@@ -43,8 +43,8 @@ This repository is the SDK: TypeScript (`@moedex/lars`), C# (`Moedex.Lars`) and 
 [lars](https://github.com/moedex/lars) repository; this SDK reproduces its prompts byte for
 byte and its answers to the last digit.
 
-> **Status: pre-release.** Nothing is published yet. Packages and packs are built by CI as
-> artifacts. Build from source to try it (below).
+> **Status: release candidate 0.1.0-rc.1, not yet published** ([CHANGELOG.md](CHANGELOG.md)).
+> Packages and packs are built as artifacts. Build from source to try it (below).
 >
 > Using it from another project: [USING.md](USING.md).
 

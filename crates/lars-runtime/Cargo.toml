@@ -9,12 +9,12 @@ rust-version.workspace = true
 
 [dependencies]
 indexmap.workspace = true
-lars-core = { path = "../lars-core" }
-lars-llama = { path = "../lars-llama" }
+lars-core.workspace = true
+lars-llama.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 ureq = "3"
 
 [dev-dependencies]
-lars-core = { path = "../lars-core" }
+lars-core.workspace = true
 sha2.workspace = true

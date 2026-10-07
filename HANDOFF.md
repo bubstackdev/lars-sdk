@@ -29,6 +29,12 @@ The overnight run (`sweep/archive/overnight.sh`) finished everything for the 8B 
 
 ## Decided today
 
+- **Release candidate 0.1.0-rc.1, 2026-10-07 (CHANGELOG.md):** built and verified on macOS, not
+  published, not tagged.
+  - **Packs:** `sweep/release_packs.py` stages `lars-2b`, `lars-8b` and `lars-0.6b` 0.1.0 in
+    `dist/packs/` in the Hub's layout, with model cards and NOTICEs.
+  - **Packages:** `dist/rc/` holds the npm tarballs and the NuGet package, for macOS arm64 and x64.
+  - **Blocked:** Linux and Windows wait on GitHub Actions billing; publishing waits on sign-off.
 - **Tonight, 2026-10-07:** `dev.lars-sdk.train35-4b` (`sweep/train35_4b.sh`, log
   `sweep/out/train35_4b.log`) waits until 18:00, then trains Qwen3.5-4B like the 2B.
   - **Expected:** about 8-9 h of training (48.6 GB peak in the smoke test), then the build check,

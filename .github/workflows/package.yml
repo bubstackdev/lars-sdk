@@ -127,10 +127,11 @@ jobs:
         shell: bash
         run: |
           triple=$(node -p 'process.platform + "-" + process.arch')
+          version=$(node -p 'require("./ts/package.json").version')
           dist="$PWD/dist/npm"
           mkdir -p "$RUNNER_TEMP/npm-smoke" && cd "$RUNNER_TEMP/npm-smoke"
           npm init -y > /dev/null && npm pkg set type=module
-          npm install --omit=optional "$dist"/moedex-lars-0.1.0.tgz "$dist/moedex-lars-$triple-0.1.0.tgz"
+          npm install --omit=optional "$dist/moedex-lars-$version.tgz" "$dist/moedex-lars-$triple-$version.tgz"
           cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
       - name: NuGet package, restored from a local feed
         shell: bash

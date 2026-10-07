@@ -9,7 +9,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageId>Moedex.Lars</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.0-rc.1</Version>
     <Description>Typed decisions as functions in your code: calibrated answers from a small model running in-process.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/moedex/lars-sdk</RepositoryUrl>

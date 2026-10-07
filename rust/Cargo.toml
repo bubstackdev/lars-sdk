@@ -11,6 +11,6 @@ keywords = ["llm", "classification", "calibration", "llama"]
 categories = ["text-processing", "science"]
 
 [dependencies]
-lars-runtime = { path = "../crates/lars-runtime" }
-moedex-lars-derive = { path = "derive" }
+lars-runtime.workspace = true
+moedex-lars-derive.workspace = true
 serde_json.workspace = true

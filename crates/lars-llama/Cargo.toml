@@ -8,8 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-lars-core = { path = "../lars-core" }
-lars-llama-sys = { path = "../lars-llama-sys" }
+lars-core.workspace = true
+lars-llama-sys.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
