@@ -1,4 +1,54 @@
-# Handoff, 2026-10-06 morning
+# Handoff, 2026-10-08 07:45: paused
+
+## Stopped here
+
+The user paused the project; nothing is running. Read this section first.
+
+**What happened.** On 2026-10-07 the old `~/Code/personal/lars` checkout was deleted. The user
+didn't know it was still in use. I had kept work this project depended on there: lars's
+unpushed branch `codex-wip-2026-10-02`, the training venv, the jev-bench eval data, the training
+corpus and every LoRA adapter. That was my mistake: all working state now lives in lars-sdk and is
+pushed. The SDK, the packs, the release candidate and `sweep/out` were never affected.
+
+**Recovered, inside lars-sdk:**
+- `tools/fetch_jevbench.py` rebuilds the eval files into gitignored `data/evals`. All 8,520 rows
+  have the row ids of the old captures, so they're exact.
+- `training/`: the trainer, lars's `src/` at `ab59a0b` (it survived in `fixtures/.reference/`).
+  - **My lost commits** are replayed from the session transcript: the chunked gated delta rule,
+    exact again against mlx-lm; the noul-criteria fix; the lora.py hook. `--max-steps` and progress
+    lines are added.
+  - **Environment:** `sh training/setup.sh` builds `.venv-train` (mlx-lm 0.31.3).
+- **Build check:** `lars-dev prompts` plus `training/score_mlx.py` replace lars's MLX evaluator
+  (sweep/lora_lib.sh `check`).
+- **Qwen3.5-4B:** the trained checkpoints from step 1,500 on are in `checkpoints/`. Steps 500 and
+  1,000 were lost, so the run's own selection fell back to the untrained adapter.
+  - `models/Qwen3.5-4B-lora-etd-s0-Q4_K_M.gguf` is built from step 4,500 (selection 0.803, unseen
+    0.709) and passed the build check: MLX 0.800, GGUF 0.813.
+  - **To finish it:** rerun `sh sweep/package35_4b.sh`. It skips what is built, then captures,
+    packs `lars-4b35-dev` and runs typed-decisions, about 50 minutes. Then compare it with the 8B
+    (0.748, 19% certified).
+
+**Not recovered:**
+- **The training corpus** (`data/train-e-soft`) and the scripts that built it. Codex's soft-target
+  repair went with them. It can be rebuilt from the public datasets (Open-Jev, tasksource-jev,
+  jev-bench train), but not byte-verified.
+- **Codex's other uncommitted trainer work:** selection fixes and an MLX prefix cache. Its
+  ordinal loss and `--init-adapter` were off in our recipe.
+- **Proof the rebuilt training reproduces the old packs.** Retrain the 0.6B and compare: 0.650
+  jev-bench through the imatrix pack, 0.646 plain.
+- **Still pointing at the deleted folder:** `sweep/analyze.py`, which imports from
+  `fixtures/.reference` and works, and the training scripts (`train*.sh`), whose corpus paths
+  wait on the corpus rebuild. `sweep/imatrix_text.py` imports lars from the old path; the
+  Qwen3.5 imatrix texts already exist in `models/`.
+
+**Release candidate 0.1.0-rc.1** (CHANGELOG.md) is unchanged and on hold:
+- **Packs:** `dist/packs`, staged in the Hub's layout.
+- **Packages:** `dist/rc`, macOS only.
+- **Blocked:** GitHub Actions billing (Friday at the earliest) for Linux and Windows, and the
+  user's sign-off for publishing.
+
+## Earlier notes
+
 
 ## Running (unattended), 2026-10-06
 
