@@ -4,7 +4,7 @@
 set -u
 SDK=$(cd "$(dirname "$0")/.." && pwd)
 DEV=$SDK/target/release/lars-dev
-DATA=$HOME/Code/personal/lars/evals/data
+DATA=$(cd "$(dirname "$0")/.." && pwd)/data/evals
 OUT=$SDK/sweep/out
 step() { echo "=== $(date '+%F %T') $*"; }
 pack() {  # name version gguf template base quantization

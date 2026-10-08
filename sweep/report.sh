@@ -7,7 +7,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 OUT=$ROOT/sweep/out
 mkdir "$OUT/.report.lock" 2>/dev/null || exit 0
 trap 'rmdir "$OUT/.report.lock"' EXIT
-FILES=$(ls "${LARS_EVAL_DATA:-$HOME/Code/personal/lars/evals/data}"/*.jsonl | wc -l | tr -d ' ')
+FILES=$(ls "${LARS_EVAL_DATA:-$(cd "$(dirname "$0")/.." && pwd)/data/evals}"/*.jsonl | wc -l | tr -d ' ')
 runs="" transfers=""
 for dir in "$OUT"/*.*.v[12]; do
     [ "$(ls "$dir"/*.jsonl 2>/dev/null | wc -l | tr -d ' ')" = "$FILES" ] || continue

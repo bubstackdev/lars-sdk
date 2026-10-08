@@ -10,7 +10,7 @@ set -eu
 NAME=$1 MODEL=$2 DEVICE=$3 LAYOUT=$4
 shift 4
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-DATA=${LARS_EVAL_DATA:-$HOME/Code/personal/lars/evals/data}
+DATA=${LARS_EVAL_DATA:-$(cd "$(dirname "$0")/.." && pwd)/data/evals}
 BIN=$ROOT/target/release/lars-dev
 BASE=$(echo "$NAME" | sed -E 's/-dev$//; s/-lora-.*$//; s/(-imat)?-(BF16|I?Q[0-9]_[A-Z0-9_]+|IQ[0-9])$//')
 TEMPLATE=chatml

@@ -1,7 +1,7 @@
 # Shared steps for LoRA runs (sourced by sweep/train4b.sh, train35.sh, train35_4b.sh and
 # finish2b.sh): train, fuse, convert and quantize with an importance matrix, check the GGUF
 # against MLX, capture jev-bench, and typed-decisions through a pack. The caller sets SDK, LARS,
-# PY, CONVERT, FIXPY, LLAMA, TOOLS, DEV, OUT, TD, DATA, RECORDS, SELECT, SKIP, TRAIN_ARGS,
+# PY (.venv-train), CONVERT, FIXPY, LLAMA, TOOLS, DEV, OUT, TD, DATA (data/evals), RECORDS, SELECT, SKIP, TRAIN_ARGS,
 # TEMPLATE, SMOKE, LIMIT_ROWS and RESULTS, and optionally CONVERT_ARGS. The 2026-10-05 overnight
 # run, written before this file with its own copy, is in sweep/archive/.
 
@@ -11,7 +11,7 @@ step() { echo "=== $(date '+%F %T') $*"; }
 train() {  # hub-model checkpoint log
     [ -f "$2/.done" ] && return 0
     rm -rf "$2" "$2.steps" "$2.last" "$2.history.json" "$2.baseline.json"
-    (cd "$LARS" && "$PY" -m lars.train.lora --model "$1" --records $RECORDS --seed 0 \
+    (cd "$SDK" && "$PY" -m lars.train.lora --model "$1" --records $RECORDS --seed 0 \
         --select-records $SELECT --select-skip $SKIP --out "$2" $TRAIN_ARGS) > "$3" 2>&1 && touch "$2/.done"
 }
 
@@ -25,7 +25,7 @@ fuse() {  # hub-model adapter out
     # From the local snapshot: given a Hub name, mlx_lm fetches the base's README for a model card,
     # which fails offline when the README was never cached.
     base=$(snapshot "$1") || return 1
-    (cd "$LARS" && "$PY" -m mlx_lm fuse --model "$base" --adapter-path "$2" --save-path "$3.part") \
+    "$PY" -m mlx_lm fuse --model "$base" --adapter-path "$2" --save-path "$3.part" \
         > "$OUT/fuse-$(basename "$3").log" 2>&1 || return 1
     # The base's own tokenizer files: mlx_lm rewrites tokenizer_config with a newer transformers.
     for f in tokenizer.json tokenizer_config.json vocab.json merges.txt special_tokens_map.json; do
@@ -67,8 +67,12 @@ check() {  # hub-model adapter name (models/<name>.gguf) template
     [ -s "$c_rows" ] || for f in boolq banking77 mnli sms_spam arc_challenge massive paws helpsteer2_helpfulness; do
         head -10 "$DATA/$f.validation.jsonl"
     done > "$c_rows"
-    c_mlx=$(cd "$LARS" && "$PY" -m lars eval --backend mlx --model "$1" --adapter "$2" --data "$c_rows" 2>>"$OUT/check-$3.log" \
-        | "$PY" -c "import json,sys; print(json.load(sys.stdin)['accuracy'])") || { step "check $3: MLX eval failed"; return 1; }
+    # The SDK renders the prompts (lars-dev prompts), so both runtimes score exactly what is served.
+    "$DEV" prompts --model "$SDK/models/$3.gguf" --template "$4" --data "$c_rows" --out "$OUT/check-$3.prompts.jsonl" \
+        2>>"$OUT/check-$3.log" || { step "check $3: rendering the prompts failed"; return 1; }
+    c_mlx=$("$PY" "$SDK/training/score_mlx.py" --model "$1" --adapter "$2" --prompts "$OUT/check-$3.prompts.jsonl" \
+        2>>"$OUT/check-$3.log" | "$PY" -c "import json,sys; print(json.load(sys.stdin)['accuracy'])") \
+        || { step "check $3: MLX scoring failed"; return 1; }
     c_gguf=$("$DEV" eval --model "$SDK/models/$3.gguf" --template "$4" --data "$c_rows" 2>>"$OUT/check-$3.log" \
         | "$PY" -c "import json,sys; print(json.load(sys.stdin)['accuracy'])") || { step "check $3: GGUF eval failed"; return 1; }
     step "check $3: MLX $c_mlx, GGUF $c_gguf on $(wc -l < "$c_rows" | tr -d ' ') rows"

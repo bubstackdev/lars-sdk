@@ -12,6 +12,7 @@
 //!     lars-dev pack      --model M.gguf --name N --version V --data-dir evals/data --out DIR
 //!                        [--template T] [--base B --license L --quantization Q]
 //!     lars-dev capture-requests --model M.gguf --requests requests.json --out rows.jsonl
+//!     lars-dev prompts   --model M.gguf --data set.jsonl --out prompts.jsonl   (rendered, not run)
 //!
 //! Backend flags: --template chatml|plain|gemma|llama3|<captured.json>, --cpu, --threads N,
 //! --layout v1|v2, --no-batch-suffixes, --no-reuse-prefix, --no-repack, --flash off|on|auto (default off), --n-ctx N. `--model mock` uses the
@@ -19,6 +20,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use lars_core::backend::{Backend, MockBackend};
@@ -134,6 +136,73 @@ fn examples(args: &Args) -> Result<Vec<eval::Example>, Failure> {
     Ok(examples)
 }
 
+/// Rows a `Recorder` saw: each full prompt and its label strings.
+type Recorded = Arc<Mutex<Vec<(String, Vec<String>)>>>;
+
+/// A backend that records what the engine asks of it: each row's full prompt and label
+/// strings. Tokenizer questions go to the real model, so rows are planned exactly as served.
+struct Recorder {
+    inner: Box<dyn Backend>,
+    rows: Recorded,
+}
+
+impl Backend for Recorder {
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    fn model_name(&self) -> &str {
+        self.inner.model_name()
+    }
+
+    fn template(&self) -> &Template {
+        self.inner.template()
+    }
+
+    fn is_single_token(&self, label: &str) -> bool {
+        self.inner.is_single_token(label)
+    }
+
+    fn count_tokens(&self, text: &str) -> usize {
+        self.inner.count_tokens(text)
+    }
+
+    fn label_logits(
+        &mut self,
+        prefix: &str,
+        suffixes: &[String],
+        labels: &[Vec<String>],
+    ) -> lars_core::Result<Vec<Vec<f64>>> {
+        let mut rows = self.rows.lock().unwrap();
+        for (suffix, row_labels) in suffixes.iter().zip(labels) {
+            rows.push((format!("{prefix}{suffix}"), row_labels.clone()));
+        }
+        Ok(labels.iter().map(|l| vec![0.0; l.len()]).collect())
+    }
+}
+
+/// Each example's prompt as the SDK renders it, its answer labels (each read as the token of
+/// " <label>") and the index of its gold label: for scoring the same prompts in another runtime
+/// (sweep's build check against MLX).
+fn prompts(args: &Args) -> Result<(), Failure> {
+    let examples = examples(args)?;
+    let rows = Arc::new(Mutex::new(Vec::new()));
+    let recorder = Recorder { inner: backend(args)?, rows: rows.clone() };
+    let layout = Layout::parse(args.get("layout").unwrap_or("v1")).ok_or("--layout: use v1 or v2")?;
+    let options = EngineOptions { version: "0.0.1".into(), layout, ..EngineOptions::default() };
+    let mut engine = Engine::new(Box::new(recorder), Calibrator::default(), options)?;
+    let mut lines = Vec::with_capacity(examples.len());
+    for example in &examples {
+        let request = Request::from_value(&json!({"state": example.state, "questions": {"q": example.question}}))?;
+        let (keys, _, _) = engine.raw_row(&example.state, &request.questions["q"], false)?;
+        let (prompt, labels) = rows.lock().unwrap().pop().ok_or("the engine asked for no row")?;
+        let target = eval::hard_index(&keys, &example.label)?;
+        lines.push(json!({"id": example.id(), "prompt": prompt, "labels": labels, "target": target}).to_string());
+    }
+    std::fs::write(args.need("out")?, lines.join("\n") + "\n")?;
+    Ok(())
+}
+
 fn read_request(path: &str) -> Result<Request, Failure> {
     Ok(Request::from_json(&std::fs::read_to_string(path)?)?)
 }
@@ -227,6 +296,7 @@ fn main() -> Result<(), Failure> {
         "fit-head" => fit_head(&args)?,
         "pack" => build_pack(&args)?,
         "compare" => compare(&args)?,
+        "prompts" => prompts(&args)?,
         "capture-requests" => {
             // Every row of every request in a JSON array, so multi-row batching can be compared.
             let requests: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(args.need("requests")?)?)?;

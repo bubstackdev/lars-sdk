@@ -4,7 +4,7 @@
 # train and test. Resumable; output in sweep/out/heads/<pack>/. Log: sweep/out/heads/capture.log.
 cd "$(dirname "$0")/.."
 OUT=sweep/out/heads
-DATA=$HOME/Code/personal/lars/evals/data
+DATA=$(cd "$(dirname "$0")/.." && pwd)/data/evals
 TD=sweep/out/typed-decisions
 mkdir -p $OUT
 while pgrep -f 'typed-decisions/capture.sh' > /dev/null; do sleep 20; done

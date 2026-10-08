@@ -1,0 +1,12 @@
+[project]
+name = "lars"
+version = "0.0.0"
+description = "LARS training: the reference engine's source at ab59a0b (recovered from fixtures/.reference) with the SDK's changes"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
