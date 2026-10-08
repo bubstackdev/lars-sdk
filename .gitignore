@@ -12,3 +12,6 @@ sweep/out/
 dist/
 ts/npm-dist/
 ts/native-dist/
+/checkpoints/
+/data/
+/.venv-train/
