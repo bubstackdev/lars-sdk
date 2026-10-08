@@ -36,16 +36,16 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-REFERENCE = sorted((ROOT / "fixtures" / ".reference").glob("*/src"))
-if not REFERENCE:
-    sys.exit("run fixtures/generate.py first: it extracts the reference engine")
+# The reference engine: the archive fixtures/generate.py extracts, or else its copy in training/src
+# (the same source at ab59a0b, recovered when the lars checkout was deleted).
+REFERENCE = sorted((ROOT / "fixtures" / ".reference").glob("*/src")) or [ROOT / "training" / "src"]
 sys.path.insert(0, str(REFERENCE[0]))
 
 from lars import evalset  # noqa: E402
 from lars.calibration import coverage_at_error, ece, fit_platt, fit_temperature  # noqa: E402
 from lars.primitives import sigmoid, softmax  # noqa: E402
 
-DATA = Path(os.environ.get("LARS_EVAL_DATA", Path.home() / "Code" / "personal" / "lars" / "evals" / "data"))
+DATA = Path(os.environ.get("LARS_EVAL_DATA", ROOT / "data" / "evals"))
 FEW = [10, 25, 50, 100, 200]
 DRAWS = 10
 
@@ -93,8 +93,8 @@ def load_split(run: Path, config: str, split: str) -> list[Row] | None:
     capture, source = run / f"{config}.{split}.jsonl", DATA / f"{config}.{split}.jsonl"
     if not capture.exists():
         return None
-    captured = [json.loads(line) for line in capture.read_text().splitlines() if line.strip()]
-    raw_lines = [json.loads(line) for line in source.read_text().splitlines() if line.strip()]
+    captured = [json.loads(line) for line in capture.read_text().split("\n") if line.strip()]
+    raw_lines = [json.loads(line) for line in source.read_text().split("\n") if line.strip()]
     examples = list(evalset.read_examples(source))
     if [e.id for e in examples] != [c["id"] for c in captured]:
         raise SystemExit(f"{capture}: rows do not align with {source}")

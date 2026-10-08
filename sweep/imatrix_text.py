@@ -5,7 +5,7 @@ representative text. The representative text here is the adapters' own training 
 (corpus E, repaired targets), rendered with the model's chat template through `Answer:`, so the
 activations it measures are the ones served. No validation or test row is used.
 
-    ~/Code/personal/lars/.venv/bin/python sweep/imatrix_text.py --template sweep/templates/Qwen3-1.7B.json \
+    .venv-train/bin/python sweep/imatrix_text.py --template sweep/templates/Qwen3-1.7B.json \
         --out models/imatrix-Qwen3-1.7B.txt [--records 1500]
 
 Run it with llama-imatrix's `--parse-special`, so the template's special tokens are tokens.
@@ -19,15 +19,15 @@ import random
 import sys
 from pathlib import Path
 
-LARS = Path.home() / "Code" / "personal" / "lars"
-sys.path.insert(0, str(LARS / "src"))
+SDK = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SDK / "training" / "src"))
 
 from lars.labels import label_candidates  # noqa: E402
 from lars.render import TEMPLATES, compose_prompt, render_content  # noqa: E402
 from lars.train.data import read_records  # noqa: E402
 from lars.train.features import _render  # noqa: E402
 
-TRAIN = [LARS / "data" / "train-e-soft" / f"{name}.train.jsonl" for name in ("open-jev", "jev-bench", "tasksource-jev")]
+TRAIN = [SDK / "data" / "train-e-soft" / f"{name}.train.jsonl" for name in ("open-jev", "jev-bench", "tasksource-jev")]
 
 
 def template_fn(spec: str):

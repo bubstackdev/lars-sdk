@@ -2,6 +2,7 @@
 # mlx-lm is pinned: sweep/unshift_norms.py undoes this version's Qwen3.5 norm shift on fuse.
 mlx-lm==0.31.3
 huggingface_hub
+datasets
 numpy
 pydantic
 -e ./training

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import random
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass, field
@@ -135,6 +136,32 @@ def from_tasksource_jev(rows: Iterable[dict[str, Any]], source: str = "tasksourc
 # --------------------------------------------------------------------------- jev-bench
 
 
+def _soft_target(soft: Any, kind: str, keys: list[str]) -> list[float] | None:
+    """A jev-bench soft label as a target aligned with `keys`, or None to fall back to the hard label.
+
+    Decoded as the evaluation decodes it (sweep/analyze.py `decode_soft`): a noul's soft label is a
+    dict whose yes-keys ("1", "true", "yes") sum to P(yes), or a bare P(yes) (civil_comments); a
+    choice or score label is a dict by option key, or a list in option order (measuring_hate_speech).
+    """
+    if kind == "noul":
+        if isinstance(soft, dict):
+            yes = sum(float(v) for k, v in soft.items() if str(k).lower() in {"1", "true", "yes"})
+            vec = [yes, sum(float(v) for v in soft.values()) - yes]
+        elif isinstance(soft, (int, float)) and not isinstance(soft, bool):
+            vec = [float(soft), 1.0 - float(soft)]
+        else:
+            return None
+    elif isinstance(soft, dict):
+        vec = [float(soft.get(k, 0.0)) for k in keys]
+    elif isinstance(soft, list) and len(soft) == len(keys):
+        vec = [float(v) for v in soft]
+    else:
+        return None
+    if any(not math.isfinite(v) or v < 0 for v in vec) or sum(vec) <= 0:
+        return None
+    return _normalize(vec)
+
+
 def from_jev_bench(rows: Iterable[dict[str, Any]], config: str) -> Iterator[Record]:
     for i, row in enumerate(rows):
         question = row["question"] if isinstance(row["question"], dict) else json.loads(row["question"])
@@ -152,29 +179,22 @@ def from_jev_bench(rows: Iterable[dict[str, Any]], config: str) -> Iterator[Reco
         rid = _stable_id("jev-bench", config, str(i), label)
         if kind == "noul":
             yes = label in {"1", "true", "yes"}
-            target = [1.0 if yes else 0.0, 0.0 if yes else 1.0]
-            if isinstance(soft, dict) and "yes" in soft:
-                target = _normalize([float(soft.get("yes", 0.0)), float(soft.get("no", 0.0))])
+            target = _soft_target(soft, kind, list(NOUL_OPTIONS)) or [1.0 if yes else 0.0, 0.0 if yes else 1.0]
             record = Record(
                 rid, f"jev-bench/{config}", "noul", state, question["instructions"], list(NOUL_OPTIONS), target
             )
         elif kind == "choice":
             criteria = question["criteria"]
             keys = list(criteria)
-            if isinstance(soft, dict):
-                target = _normalize([float(soft.get(k, 0.0)) for k in keys])
-            else:
-                target = [1.0 if k == label else 0.0 for k in keys]
+            target = _soft_target(soft, kind, keys) or [1.0 if k == label else 0.0 for k in keys]
             descriptions = [criteria[k] if isinstance(criteria[k], str) else None for k in keys]
             record = Record(
                 rid, f"jev-bench/{config}", "choice", state, question["instructions"], keys, target, descriptions
             )
         else:
             levels = [str(c) for c in question["criteria"]]
-            if isinstance(soft, dict):
-                target = _normalize([float(soft.get(str(i), 0.0)) for i in range(len(levels))])
-            else:
-                target = [1.0 if str(i) == label else 0.0 for i in range(len(levels))]
+            target = _soft_target(soft, kind, [str(i) for i in range(len(levels))]) or \
+                [1.0 if str(i) == label else 0.0 for i in range(len(levels))]
             record = Record(rid, f"jev-bench/{config}", "score", state, question["instructions"], levels, target)
         record.validate()
         yield record

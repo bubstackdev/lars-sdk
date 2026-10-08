@@ -91,8 +91,8 @@ capture() {  # name (models/<name>.gguf)
 }
 
 # typed-decisions through a pack, with hidden states, then scores and the head simulation.
-typed_decisions() {  # pack-name
-    t_pack=$SDK/models/packs/$1/0.0.1
+typed_decisions() {  # pack-name [version, default 0.0.1]
+    t_pack=$SDK/models/packs/$1/${2:-0.0.1}
     t_dir=$OUT/heads/$1
     mkdir -p "$t_dir"
     for t_split in test train; do

@@ -392,13 +392,15 @@ def train(
             if step % 10 == 0:
                 print(json.dumps({"progress_step": step, "total_steps": total_steps, "loss": running / seen,
                                   "minutes": round((time.perf_counter() - started) / 60, 2)}), flush=True)
-            if step >= total_steps:
-                break
+            # Evaluate before stopping: a last step that falls on `eval_every` is checkpointed
+            # here, and the check after the epoch skips it.
             if eval_every and step % eval_every == 0:
                 model.eval()
                 checkpoint(epoch + 1)
                 running, seen = 0.0, 0
                 model.train()
+            if step >= total_steps:
+                break
         model.eval()
         if not eval_every or step % eval_every:
             checkpoint(epoch + 1)
