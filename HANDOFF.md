@@ -1,8 +1,57 @@
-# Handoff, 2026-10-08 07:45: paused
+# Handoff, 2026-10-08 18:00: rebuilding the packs
 
-## Stopped here
+## Running now
 
-The user paused the project; nothing is running. Read this section first.
+`sweep/rebuild.sh`, started 17:31 with nohup (log `sweep/out/rebuild.log`, results
+`sweep/out/rebuild-results.txt`). One GPU job at a time; stop it with `pkill -f sweep/rebuild.sh`
+and `pkill -f lars.train.lora`. It is resumable, but an interrupted training starts over.
+
+1. Qwen3.5-2B LoRA, 5,370 steps (about 7 h), then the imatrix Q4_K_M from the **final** step, the
+   build check, a jev-bench capture, pack `lars-2b-dev` 0.0.1 and typed-decisions. Was 0.716.
+2. Qwen3-8B the same way at Q3_K_M, pack `lars-8b-dev` 0.0.2 (about 9 h). Was 0.748.
+
+Expected done around midday 2026-10-09. Then: `sweep/release_packs.py` stages the 0.1.0 packs
+again (it reads `models/packs/<name>/<version>`), and the RC needs its macOS packages rebuilt.
+
+## What happened on 2026-10-08
+
+lars-sdk had been copied from a computer that died; everything gitignored was gone: the packs,
+`dist/`, `models/`, `checkpoints/`, `data/`, `sweep/out/`, the venvs and the llama.cpp checkout.
+Nothing was ever published, and no backup holds it (this Mac's Time Machine never had lars-sdk).
+
+**Rebuilt today:**
+- **Tools:** llama.cpp at its pinned commit, `lars-dev`, `llama-quantize`, `llama-imatrix`,
+  `.venv-train` (now with `datasets`), `sweep/.venv-convert`, `fixtures/.venv` (with pyarrow).
+- **Eval data:** `data/evals` (8,520 rows) and typed-decisions (`sweep/out/typed-decisions`).
+- **Base models:** Qwen3.5-2B and Qwen3-8B downloaded in full (offline lookups need complete
+  snapshots; Qwen3-0.6B's cache entry needed its ref and README).
+- **Corpus E, reconstructed** (`training/README.md`, `lars.train.corpus_e`):
+  - `build.py` reproduces lars's 2026-09-22 corpus byte for byte (all 11 files).
+  - The "soft-target repair": `data.py` only read dict soft labels, so civil_comments (a bare
+    P(yes)) and measuring_hate_speech (a list) trained on hard labels. `_soft_target` decodes them
+    as the evaluation does.
+  - Corpus E = `build.py` defaults, then without jev-bench sst5/yelp5/stsb and tasksource ANLI
+    (the release NOTICE's list). Filtering after the caps matches the old runs' step counts:
+    4,449 for the 1.7B (2 h 35 min at 2.1 s per step, as logged) and 5,370 for the 2B (logged
+    5,279). Not byte-verified.
+- **The 0.6B check** (`sweep/retrain06.sh`): 0.625 from the step selection chose (2,500), **0.637**
+  (Brier 0.418) from the final step (4,449), against the lost pack's 0.650 (Brier 0.419). Agreed:
+  close enough; packs now build from the final step. The lost trainer's selection fixes probably
+  explain part of the gap. `models/packs/lars-0.6b-dev/0.0.2` is the step-4,449 pack; the 2,500
+  one is in `lars-0.6b-dev-step2500/`.
+- **Fixed:** the trainer never checkpointed a last step that fell on `--eval-every`;
+  `analyze.py` split helpsteer2's rows on Unicode line separators; `analyze.py` and
+  `imatrix_text.py` read lars from the deleted checkout.
+
+**Still pointing at `~/Code/personal/lars`** (not needed by the rebuild): `train.sh`, `train4b.sh`,
+`train35.sh`, `train35_4b.sh`, `finish2b.sh`, `moe.sh`, `qwen35.sh`, `night.sh`, `imatrix.sh`,
+`moe_profile.py`, `fixtures/generate*.py`.
+
+**Lost for good:** the Qwen3.5-4B checkpoints (`lars-4b35-dev` would need a full retrain), every
+retired dev pack, `sweep/out`'s captures and heads data, and the RC's built packages.
+
+## Earlier notes, 2026-10-08 07:45 (before the second loss)
+
 
 **What happened.** On 2026-10-07 the old `~/Code/personal/lars` checkout was deleted. The user
 didn't know it was still in use. I had kept work this project depended on there: lars's
