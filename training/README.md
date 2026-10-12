@@ -29,3 +29,11 @@ offline from the Hugging Face cache):
 - Not byte-verified against the lost files. `build.py` does reproduce lars's 2026-09-22 corpus byte
   for byte at that corpus's sizes, and corpus E's step counts match the logged runs (`corpus_e.py`).
 - `sh sweep/retrain06.sh` retrains the 0.6B on it, the check that it reproduces the packs.
+
+## Base models
+
+The run scripts (`sweep/rebuild.sh`, `sweep/retrain06.sh`) read base models from lars-sdk's own
+cache, `.hf/hub` (gitignored), offline. The shared `~/.cache/huggingface` was pruned on 2026-10-09
+and took every Qwen base with it. Fetch a base before its run:
+
+    HF_HUB_CACHE=$PWD/.hf/hub .venv-train/bin/python -c "from huggingface_hub import snapshot_download as s; s('Qwen/Qwen3-8B')"

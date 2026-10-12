@@ -24,7 +24,8 @@ TD=$OUT/typed-decisions
 DATA=$SDK/data/evals
 RESULTS=$OUT/retrain06-results.txt
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.cargo/bin"
-export HF_HUB_OFFLINE=1 LARS_MLX_CACHE_GB=16 TMPDIR=${TMPDIR:-/tmp}
+# Base models live in lars-sdk's own cache (.hf/, gitignored), not the shared one, which gets pruned.
+export HF_HUB_OFFLINE=1 HF_HUB_CACHE=$SDK/.hf/hub LARS_MLX_CACHE_GB=16 TMPDIR=${TMPDIR:-/tmp}
 HOLDOUT=jev-bench/civil_comments,jev-bench/fever_evidence,jev-bench/helpsteer2_helpfulness,tasksource-jev/babi_nli/three-arg-relations
 SKIP=jev-bench/sst5,jev-bench/yelp5,jev-bench/stsb
 RECORDS="data/train-e-soft/open-jev.train.jsonl data/train-e-soft/jev-bench.train.jsonl data/train-e-soft/tasksource-jev.train.jsonl"

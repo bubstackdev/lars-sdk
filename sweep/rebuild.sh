@@ -26,7 +26,8 @@ TD=$OUT/typed-decisions
 DATA=$SDK/data/evals
 RESULTS=$OUT/rebuild-results.txt
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.cargo/bin"
-export HF_HUB_OFFLINE=1 LARS_MLX_CACHE_GB=16 TMPDIR=${TMPDIR:-/tmp}
+# Base models live in lars-sdk's own cache (.hf/, gitignored), not the shared one, which gets pruned.
+export HF_HUB_OFFLINE=1 HF_HUB_CACHE=$SDK/.hf/hub LARS_MLX_CACHE_GB=16 TMPDIR=${TMPDIR:-/tmp}
 HOLDOUT=jev-bench/civil_comments,jev-bench/fever_evidence,jev-bench/helpsteer2_helpfulness,tasksource-jev/babi_nli/three-arg-relations
 SKIP=jev-bench/sst5,jev-bench/yelp5,jev-bench/stsb
 RECORDS="data/train-e-soft/open-jev.train.jsonl data/train-e-soft/jev-bench.train.jsonl data/train-e-soft/tasksource-jev.train.jsonl $TD/records/typed-decisions.train.jsonl"
@@ -65,6 +66,11 @@ one() {  # hub-model template-name quant pack version [CONVERT_ARGS]
     CKPT=$SDK/checkpoints/lora-$(echo "$2" | tr '[:upper:]' '[:lower:]')-sdk-etd-$SUFFIX
     [ "$SMOKE" = 1 ] && PACK=lars-smoke-dev || PACK=$4
     PACK_DIR=$SDK/models/packs/$PACK/$5
+    # A finished pack (packed, typed-decisions captured) is not rebuilt: its fused model is gone.
+    if [ -f "$PACK_DIR/pack.json" ] && [ -s "$OUT/heads/$PACK/typed-decisions.train.f32" ]; then
+        step "$PACK@$5 already built"
+        return 0
+    fi
     step "$NAME: train"
     train "$BASE" "$CKPT" "$OUT/train-$NAME.log" || { step "FAILED train $NAME (log: $OUT/train-$NAME.log)"; return 1; }
     ADAPTER=$(final_step "$CKPT")

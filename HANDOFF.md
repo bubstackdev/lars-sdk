@@ -1,17 +1,52 @@
-# Handoff, 2026-10-08 18:00: rebuilding the packs
+# Handoff, 2026-10-12 08:00: the 8B moves to a bigger machine
 
-## Running now
+## Where things stand
 
-`sweep/rebuild.sh`, started 17:31 with nohup (log `sweep/out/rebuild.log`, results
-`sweep/out/rebuild-results.txt`). One GPU job at a time; stop it with `pkill -f sweep/rebuild.sh`
-and `pkill -f lars.train.lora`. It is resumable, but an interrupted training starts over.
+- **Rebuilt on this Mac** (`models/packs/`, gitignored, not yet copied anywhere):
+  - `lars-0.6b-dev` 0.0.2: 0.637 macro accuracy, Brier 0.418 (lost pack: 0.650 / 0.419).
+  - `lars-2b-dev` 0.0.1: 0.713, Brier 0.331 (lost: 0.716 / 0.333); typed-decisions 0.757
+    (lost: 0.759). Build check MLX 0.8375, GGUF 0.85.
+- **Not rebuilt: `lars-8b-dev` 0.0.2** (Qwen3-8B, Q3_K_M, was 0.748). This 64 GB Mac can't train
+  it at the lost machine's speed: BF16 8B LoRA peaks at 63.4 GB here and swaps.
+  - 2026-10-10 night: 460 of 5,023 steps in 10 h (1.2 min per step; another app held 6.6 GB).
+  - 2026-10-11 night: 1,500 steps in 9.3 h (0.37 min per step), about 31 h for the epoch. Stopped
+    at 07:48 on 2026-10-12 to free the GPU.
+  - Its checkpoints at steps 500, 1,000 and 1,500 are in
+    `checkpoints/lora-qwen3-8b-sdk-etd-s0.steps` on this Mac. Step 1,500: selection macro 0.777
+    (untrained 0.653), held-out 0.740, Brier 0.299. Not a jev-bench number. Training can't resume
+    from it; it would only serve as a fallback pack.
+- Nothing is running, and the 22:00 LaunchAgent (`~/Library/LaunchAgents/dev.lars-sdk.rebuild.plist`)
+  unloaded itself after its last run. It is still on disk; `launchctl bootstrap gui/$(id -u)` with
+  that path would arm it again.
 
-1. Qwen3.5-2B LoRA, 5,370 steps (about 7 h), then the imatrix Q4_K_M from the **final** step, the
-   build check, a jev-bench capture, pack `lars-2b-dev` 0.0.1 and typed-decisions. Was 0.716.
-2. Qwen3-8B the same way at Q3_K_M, pack `lars-8b-dev` 0.0.2 (about 9 h). Was 0.748.
+## Running the 8B on the bigger machine
 
-Expected done around midday 2026-10-09. Then: `sweep/release_packs.py` stages the 0.1.0 packs
-again (it reads `models/packs/<name>/<version>`), and the RC needs its macOS packages rebuilt.
+The lost machine trained the 8B in about 9 h (it held a 9B at an 89 GB peak), so plan for 96 GB or
+more. Everything below is gitignored, so a fresh clone needs it rebuilt first:
+
+1. Tools: llama.cpp at its pinned commit, `cargo build --release` for `lars-dev`, the llama tools
+   in `target/llama-tools/bin`, `sh training/setup.sh` (`.venv-train`), `sweep/.venv-convert`,
+   `fixtures/.venv` (with pyarrow and scipy).
+2. Data: `tools/fetch_jevbench.py` (`data/evals`), the corpus (`training/README.md`, "The corpus"),
+   `python sweep/typed_decisions.py --convert` then `--records` (`sweep/out/typed-decisions`).
+3. Base model into the repo-local cache (`training/README.md`, "Base models"): `Qwen/Qwen3-8B`.
+4. `SMOKE=1 sh sweep/rebuild.sh`, then `nohup sh sweep/rebuild.sh > sweep/out/rebuild.log 2>&1 &`.
+   On a machine without the 2B pack, it trains the Qwen3.5-2B first (about 7 h); comment out that
+   `one` line to run the 8B alone, then copy the resulting `models/packs/lars-8b-dev/0.0.2` and
+   `sweep/out/heads/lars-8b-dev` back here.
+5. `LARS_MLX_CACHE_GB=16` in `rebuild.sh` is the MLX buffer cache; lower it on a tight machine.
+
+Then: `sweep/release_packs.py` stages the 0.1.0 packs again (from `models/packs/<name>/<version>`),
+the RC's macOS packages need rebuilding, and the packs need copying off this Mac: they exist
+nowhere else.
+
+## Changed since 2026-10-08
+
+- Base models live in `.hf/hub` inside lars-sdk (gitignored; `HF_HUB_CACHE` in `rebuild.sh` and
+  `retrain06.sh`). The shared `~/.cache/huggingface` was pruned on 2026-10-09, which failed that
+  night's 8B run. Only Qwen3-8B is in `.hf/hub` here; the 0.6B and 2B bases would need fetching
+  to retrain them.
+- `rebuild.sh` skips a pack that is already packed with typed-decisions captured.
 
 ## What happened on 2026-10-08
 
