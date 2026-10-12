@@ -1,6 +1,7 @@
 //! The Node addon: `@moedex/lars` loads it and wraps it in the typed API.
 //!
-//! A thin layer over `lars-runtime`. Promises resolve from the runtime's worker thread through a
+//! A thin layer over `lars-runtime`. Requests are queued on the calling (JS) thread, so a `cancel`
+//! right after a call finds it; promises resolve from the runtime's worker thread through a
 //! oneshot channel, so inference never occupies libuv's thread pool or blocks the event loop.
 //! Everything crosses as JSON text; a rejected promise's message is the runtime error as JSON,
 //! `{"message": ..., "error_type": ...}`, which the TypeScript layer turns into a `LarsError`.
@@ -9,7 +10,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use lars_runtime::{Error, Lars, OpenOptions};
-use napi::Status;
+use napi::bindgen_prelude::PromiseRaw;
+use napi::{Env, Status};
 use napi_derive::napi;
 use tokio::sync::oneshot;
 
@@ -87,14 +89,21 @@ impl NativeLars {
     }
 
     /// Answer a System One request (JSON); resolves with the response JSON. `cancel_token`, any
-    /// number the caller picks, lets `cancel` cancel it while it is queued.
-    #[napi]
-    pub async fn evaluate(&self, request_json: String, cancel_token: Option<u32>) -> napi::Result<String> {
+    /// number the caller picks, lets `cancel` cancel it while it is queued. The request is queued
+    /// before this returns (an `async fn` would queue it later, on the tokio runtime, and miss a
+    /// `cancel` made in between).
+    #[napi(ts_return_type = "Promise<string>")]
+    pub fn evaluate<'env>(
+        &self,
+        env: &'env Env,
+        request_json: String,
+        cancel_token: Option<u32>,
+    ) -> napi::Result<PromiseRaw<'env, String>> {
         let lars = self.lars()?;
         let (sender, receiver) = oneshot::channel();
         let id = lars.evaluate_async(&request_json, self.reply(cancel_token, sender));
         self.remember(cancel_token, id);
-        wait(receiver).await
+        env.spawn_future(wait(receiver))
     }
 
     /// Cancel the request submitted under `token` if it hasn't started: it rejects as
@@ -106,22 +115,23 @@ impl NativeLars {
     }
 
     /// Fit calibrator `name` on labeled examples (JSONL); resolves with
-    /// `{calibrator, examples, accuracy, certified}`.
-    #[napi]
-    pub async fn calibrate(
+    /// `{calibrator, examples, accuracy, certified}`. Queued before this returns, like `evaluate`.
+    #[napi(ts_return_type = "Promise<string>")]
+    pub fn calibrate<'env>(
         &self,
+        env: &'env Env,
         name: String,
         examples_jsonl: String,
         max_error: Option<f64>,
         cancel_token: Option<u32>,
-    ) -> napi::Result<String> {
+    ) -> napi::Result<PromiseRaw<'env, String>> {
         let lars = self.lars()?;
         let (sender, receiver) = oneshot::channel();
         let id = lars
             .calibrate_async(&name, &examples_jsonl, max_error, self.reply(cancel_token, sender))
             .map_err(js_error)?;
         self.remember(cancel_token, id);
-        wait(receiver).await
+        env.spawn_future(wait(receiver))
     }
 
     /// Load a saved calibrator (JSON, fitted on this pack) under `name`.
