@@ -222,14 +222,18 @@ describe("on a mock pack", () => {
     before.abort();
     await expect(isRefund("refund", { signal: before.signal })).rejects.toMatchObject({ type: "cancelled" });
 
+    // How many of these the worker thread reaches before the abort is a race between threads, so
+    // it is not asserted (as in the Rust, C and .NET suites): each call settles once, either
+    // answered or cancelled.
     const controller = new AbortController();
     const calls = Array.from({ length: 300 }, (_, i) => isRefund.decide(`queued ${i} refund`, { signal: controller.signal }));
     controller.abort();
     const settled = await Promise.allSettled(calls);
-    const cancelled = settled.filter((r) => r.status === "rejected");
-    expect(cancelled.length).toBeGreaterThan(0);
-    for (const r of cancelled) expect((r as PromiseRejectedResult).reason).toMatchObject({ type: "cancelled" });
     expect(settled.length).toBe(300);
+    for (const r of settled) {
+      if (r.status === "fulfilled") expect(typeof r.value.value).toBe("boolean");
+      else expect(r.reason).toMatchObject({ type: "cancelled" });
+    }
     expect(typeof (await isRefund("still answers"))).toBe("boolean");
   });
 

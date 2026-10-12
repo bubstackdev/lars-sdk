@@ -147,7 +147,7 @@ jobs:
       - run: cargo doc -p moedex-lars --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
-      - run: pnpm install --frozen-lockfile && pnpm docs
+      - run: pnpm install --frozen-lockfile && pnpm run docs
         working-directory: ts
       - run: mkdir -p target/api && cp -r target/doc target/api/rust
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
