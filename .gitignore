@@ -16,3 +16,17 @@ ts/native-dist/
 /data/
 /.venv-train/
 /.hf/
+
+# Bubstack security baseline (2026-10-12 audit): never commit keys, credentials, or release state.
+.DS_Store
+.build/
+.asc/
+.env
+.env.*
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+Config/Local.xcconfig
