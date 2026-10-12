@@ -39,4 +39,4 @@ continuations never run on the model's thread.
 Runs on macOS (arm64, x64; Metal), Linux (x64, arm64; glibc 2.28+) and Windows x64, with
 .NET 10. The native library for each is in the package's `runtimes/` folder.
 
-Docs, packs, calibration guide and limits: https://github.com/moedex/lars-sdk
+Docs, packs, calibration guide and limits: https://github.com/bubstackdev/lars-sdk

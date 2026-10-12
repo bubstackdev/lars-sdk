@@ -3,7 +3,7 @@
   "version": "0.1.0-rc.1",
   "description": "Typed decisions as functions in your code: calibrated answers from a small model running in-process",
   "license": "MIT",
-  "repository": "github:moedex/lars-sdk",
+  "repository": "github:bubstackdev/lars-sdk",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

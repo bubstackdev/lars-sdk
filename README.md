@@ -205,7 +205,7 @@ thread queue on it, and async calls never block the event loop or the thread poo
 Needs Rust (stable), CMake, and a C/C++ toolchain; Node 22+ and pnpm for TypeScript; .NET 10 for C#.
 
 ```sh
-git clone --recursive https://github.com/moedex/lars-sdk && cd lars-sdk
+git clone --recursive https://github.com/bubstackdev/lars-sdk && cd lars-sdk
 cargo test -p lars-core                       # the core, against the reference fixtures
 cargo test -p moedex-lars                     # the Rust SDK
 

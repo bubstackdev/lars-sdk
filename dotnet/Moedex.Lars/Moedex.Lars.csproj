@@ -12,7 +12,7 @@
     <Version>0.1.0-rc.1</Version>
     <Description>Typed decisions as functions in your code: calibrated answers from a small model running in-process.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/moedex/lars-sdk</RepositoryUrl>
+    <RepositoryUrl>https://github.com/bubstackdev/lars-sdk</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>llm;classification;calibration;decisions;local</PackageTags>
   </PropertyGroup>

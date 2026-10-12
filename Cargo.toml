@@ -6,7 +6,7 @@ members = ["crates/lars-core", "crates/lars-llama-sys", "crates/lars-llama", "cr
 version = "0.1.0-rc.1"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/moedex/lars-sdk"
+repository = "https://github.com/bubstackdev/lars-sdk"
 rust-version = "1.85"
 
 [workspace.dependencies]

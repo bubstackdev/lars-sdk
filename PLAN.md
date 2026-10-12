@@ -553,5 +553,5 @@ Answered 2026-10-02:
 ## Settled 2026-10-02
 
 1. Package names: npm `@moedex/lars` and NuGet `Moedex.Lars`.
-2. Repository: `moedex/lars-sdk` on GitHub. The TC GitLab copy is a fork of it.
+2. Repository: `bubstackdev/lars-sdk` on GitHub. The TC GitLab copy is a fork of it.
 3. `brew install cmake` when Phase 2 starts.

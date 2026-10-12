@@ -36,4 +36,4 @@ Requires Node 22+ or Bun on macOS (arm64, x64; Metal), Linux (x64, arm64; glibc 
 Windows x64. The native library comes in an optional `@moedex/lars-<platform>-<arch>` package
 that npm picks for your machine.
 
-Docs, packs, calibration guide and limits: https://github.com/moedex/lars-sdk
+Docs, packs, calibration guide and limits: https://github.com/bubstackdev/lars-sdk

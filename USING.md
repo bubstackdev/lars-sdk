@@ -20,11 +20,11 @@ input doesn't contain.
 
 ## Where it lives
 
-- **Code:** `~/Code/personal/lars-sdk`, which is github.com/moedex/lars-sdk (GitLab has a fork).
+- **Code:** `~/Code/bubstackdev/lars-sdk`, which is github.com/bubstackdev/lars-sdk (GitLab has a fork).
   The engine, benchmarks and training are in `~/Code/personal/lars`.
 - **Status: pre-release, nothing published.** No npm, NuGet, crates.io or model Hub yet, so use
   it from the local checkout as below. The API may still change before 1.0.
-- **Packs (model + calibrator):** `~/Code/personal/lars-sdk/models/packs/<name>/0.0.1`. Open
+- **Packs (model + calibrator):** `~/Code/bubstackdev/lars-sdk/models/packs/<name>/0.0.1`. Open
   them by path; names like `"lars-2b"` only work once packs are published.
 - **Platforms:** macOS on Metal. Linux and Windows run on the CPU, but are built only in CI so
   far. No browser or mobile before 1.0.
@@ -49,13 +49,13 @@ decisions unlike those.
 ## TypeScript (Node 22+)
 
 ```sh
-pnpm add link:$HOME/Code/personal/lars-sdk/ts      # or: npm install ~/Code/personal/lars-sdk/ts
+pnpm add link:$HOME/Code/bubstackdev/lars-sdk/ts      # or: npm install ~/Code/bubstackdev/lars-sdk/ts
 ```
 
 ```ts
 import { Lars } from "@moedex/lars";
 
-const lars = await Lars.open(`${process.env.HOME}/Code/personal/lars-sdk/models/packs/lars-2b-dev/0.0.1`);
+const lars = await Lars.open(`${process.env.HOME}/Code/bubstackdev/lars-sdk/models/packs/lars-2b-dev/0.0.1`);
 const urgent = lars.noul("urgent", "The message needs a reply today");
 const team = lars.choice("team", "Which team should handle this?", {
   billing: "Payments, charges, refunds",
@@ -71,11 +71,11 @@ const r = await lars.ask(message, { urgent, team }); // several questions, one p
 
 In the `.csproj`:
 ```xml
-<ProjectReference Include="$(HOME)/Code/personal/lars-sdk/dotnet/Moedex.Lars/Moedex.Lars.csproj" />
+<ProjectReference Include="$(HOME)/Code/bubstackdev/lars-sdk/dotnet/Moedex.Lars/Moedex.Lars.csproj" />
 ```
 
 Then build the native library once (`cargo build --release -p lars-ffi` in lars-sdk), and run
-with `LARS_NATIVE=$HOME/Code/personal/lars-sdk/target/release/liblars.dylib`.
+with `LARS_NATIVE=$HOME/Code/bubstackdev/lars-sdk/target/release/liblars.dylib`.
 
 ```csharp
 using Moedex.Lars;
@@ -96,7 +96,7 @@ Team team = await lars.Choice<Team>("team", "Which team should handle this?").As
 
 In `Cargo.toml` (the first build compiles llama.cpp, so it needs CMake and a C++ compiler):
 ```toml
-moedex-lars = { path = "/Users/ZKeown/Code/personal/lars-sdk/rust" }
+moedex-lars = { path = "/Users/ZKeown/Code/bubstackdev/lars-sdk/rust" }
 ```
 
 ```rust
