@@ -2,7 +2,9 @@
 
 ## Where things stand
 
-- **Rebuilt on this Mac** (`models/packs/`, gitignored, not yet copied anywhere):
+- **Rebuilt on this Mac** (`models/packs/`, gitignored), backed up on 2026-10-12 to the private
+  model repo `aether-models/lars-packs` on Hugging Face, under `packs/<name>/<version>/` (sizes
+  checked against the local files; `lars-0.6b-dev-step2500` too):
   - `lars-0.6b-dev` 0.0.2: 0.637 macro accuracy, Brier 0.418 (lost pack: 0.650 / 0.419).
   - `lars-2b-dev` 0.0.1: 0.713, Brier 0.331 (lost: 0.716 / 0.333); typed-decisions 0.757
     (lost: 0.759). Build check MLX 0.8375, GGUF 0.85.
@@ -37,8 +39,12 @@ more. Everything below is gitignored, so a fresh clone needs it rebuilt first:
 5. `LARS_MLX_CACHE_GB=16` in `rebuild.sh` is the MLX buffer cache; lower it on a tight machine.
 
 Then: `sweep/release_packs.py` stages the 0.1.0 packs again (from `models/packs/<name>/<version>`),
-the RC's macOS packages need rebuilding, and the packs need copying off this Mac: they exist
-nowhere else.
+the RC's macOS packages need rebuilding, and the new pack goes to `aether-models/lars-packs`
+beside the others:
+
+    .venv-train/bin/hf upload aether-models/lars-packs models/packs/lars-8b-dev packs/lars-8b-dev
+
+Add its row to that repo's README.
 
 ## Changed since 2026-10-08
 
