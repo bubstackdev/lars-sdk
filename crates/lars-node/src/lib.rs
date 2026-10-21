@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use lars_runtime::{Error, Lars, OpenOptions};
-use napi::bindgen_prelude::PromiseRaw;
+use napi::bindgen_prelude::{Buffer, PromiseRaw};
 use napi::{Env, Status};
 use napi_derive::napi;
 use tokio::sync::oneshot;
@@ -102,6 +102,22 @@ impl NativeLars {
         let lars = self.lars()?;
         let (sender, receiver) = oneshot::channel();
         let id = lars.evaluate_async(&request_json, self.reply(cancel_token, sender));
+        self.remember(cancel_token, id);
+        env.spawn_future(wait(receiver))
+    }
+
+    /// Binary image API v1. Copies the supplied buffer synchronously before queueing.
+    #[napi(ts_return_type = "Promise<string>")]
+    pub fn evaluate_image_v1<'env>(
+        &self,
+        env: &'env Env,
+        request_json: String,
+        image: Buffer,
+        cancel_token: Option<u32>,
+    ) -> napi::Result<PromiseRaw<'env, String>> {
+        let lars = self.lars()?;
+        let (sender, receiver) = oneshot::channel();
+        let id = lars.evaluate_image_async(&request_json, &image, self.reply(cancel_token, sender));
         self.remember(cancel_token, id);
         env.spawn_future(wait(receiver))
     }

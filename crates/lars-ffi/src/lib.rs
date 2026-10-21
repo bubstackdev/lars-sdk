@@ -173,6 +173,56 @@ pub unsafe extern "C" fn lars_evaluate_async(
     })
 }
 
+/// Binary image operation v1. The request's state is optional image context.
+/// # Safety
+/// As `lars_evaluate`; image must point to image_len readable bytes for this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lars_evaluate_image_v1(
+    engine: *const LarsEngine,
+    request_json: *const c_char,
+    image: *const u8,
+    image_len: usize,
+    error_json: *mut *mut c_char,
+) -> *mut c_char {
+    unsafe {
+        string_result(error_json, || {
+            if image.is_null() || image_len == 0 || image_len > 20 * 1024 * 1024 {
+                return Err(Error::invalid("image must point to 1 byte to 20 MiB"));
+            }
+            handle(engine)?
+                .evaluate_image(text(request_json, "request_json")?, std::slice::from_raw_parts(image, image_len))
+        })
+    }
+}
+
+/// Async image operation v1; copies image bytes before returning and replies exactly once.
+/// # Safety
+/// As `lars_evaluate_async`; image must point to image_len readable bytes until this returns.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lars_evaluate_image_async_v1(
+    engine: *const LarsEngine,
+    request_json: *const c_char,
+    image: *const u8,
+    image_len: usize,
+    callback: LarsCallback,
+    user_data: *mut c_void,
+) -> u64 {
+    guarded(|| unsafe {
+        if image.is_null() || image_len == 0 || image_len > 20 * 1024 * 1024 {
+            return Err(Error::invalid("image must point to 1 byte to 20 MiB"));
+        }
+        Ok(handle(engine)?.evaluate_image_async(
+            text(request_json, "request_json")?,
+            std::slice::from_raw_parts(image, image_len),
+            reply_to(callback, user_data),
+        ))
+    })
+    .unwrap_or_else(|error| {
+        reply_to(callback, user_data)(0, Err(error));
+        0
+    })
+}
+
 /// Fit a calibrator `name` on labeled examples (JSONL: state, question, label) and use it for
 /// questions whose request names it. With `max_error` > 0, also certify an acceptance threshold
 /// for that error budget. Returns `{calibrator, examples, accuracy, certified}`.

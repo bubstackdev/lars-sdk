@@ -48,6 +48,8 @@ pub struct Pack {
     pub version: String,
     pub backend: BackendKind,
     pub model_file: Option<PathBuf>,
+    pub projector_file: Option<PathBuf>,
+    pub image_max_tokens: i32,
     pub model_sha256: String,
     pub template: Template,
     pub layout: Layout,
@@ -84,7 +86,11 @@ pub fn sha256_file(path: &Path) -> Result<String> {
 
 /// A file a manifest lists: it must exist, have the listed size, and, with `verify`, the listed hash.
 fn listed_file(dir: &Path, manifest: &Value, key: &str, verify: bool) -> Result<PathBuf> {
-    let path = dir.join(text(manifest, &format!("{key}.file"))?);
+    let file = text(manifest, &format!("{key}.file"))?;
+    if file.contains(['/', '\\']) || file.starts_with('.') {
+        return Err(Error::pack(format!("pack.json lists an unsafe file name {file:?}")));
+    }
+    let path = dir.join(file);
     let metadata = std::fs::metadata(&path).map_err(|e| Error::pack(format!("{}: {e}", path.display())))?;
     if let Some(bytes) = manifest[key]["bytes"].as_u64() {
         if metadata.len() != bytes {
@@ -123,7 +129,8 @@ impl Pack {
             .map_err(|e| Error::pack(format!("{}: {e}", manifest_path.display())))?;
         let manifest: Value =
             serde_json::from_str(&raw).map_err(|e| Error::pack(format!("{}: {e}", manifest_path.display())))?;
-        if manifest["format"].as_u64() != Some(FORMAT) {
+        let format = manifest["format"].as_u64();
+        if !matches!(format, Some(1 | 2)) {
             return Err(Error::pack(format!("{}: unsupported pack format {}", dir.display(), manifest["format"])));
         }
         let backend = match text(&manifest, "backend")?.as_str() {
@@ -137,6 +144,36 @@ impl Pack {
             }
             BackendKind::Mock => (None, "mock".to_string()),
         };
+        let (projector_file, image_max_tokens) = if format == Some(2) {
+            for key in ["model", "projector"] {
+                let hash = text(&manifest, &format!("{key}.sha256"))?;
+                if hash.len() != 64
+                    || !hash.bytes().all(|b| b.is_ascii_hexdigit())
+                    || manifest[key]["bytes"].as_u64().filter(|n| *n > 0).is_none()
+                {
+                    return Err(Error::pack(format!("vision {key} must record positive bytes and a SHA-256 hash")));
+                }
+            }
+            if backend != BackendKind::LlamaCpp || manifest["vision"]["preprocessing"] != "stb-rgb-white-v1" {
+                return Err(Error::pack("vision packs require llamacpp and preprocessing stb-rgb-white-v1"));
+            }
+            let tokens = manifest["vision"]["max_tokens"]
+                .as_i64()
+                .filter(|n| (1..=4096).contains(n))
+                .ok_or_else(|| Error::pack("vision.max_tokens must be between 1 and 4096"))?;
+            if manifest["layout"].as_str() != Some("v1") {
+                return Err(Error::pack("vision packs require layout v1"));
+            }
+            if manifest["runtime"]["llama_cpp"].as_str() != Some(lars_llama::LLAMA_CPP_VERSION) {
+                return Err(Error::pack("vision pack runtime.llama_cpp must match the linked llama.cpp version"));
+            }
+            (Some(listed_file(dir, &manifest, "projector", verify)?), tokens as i32)
+        } else {
+            if !manifest["projector"].is_null() || !manifest["vision"].is_null() {
+                return Err(Error::pack("image components require pack format 2"));
+            }
+            (None, 0)
+        };
         let layout_name = manifest["layout"].as_str().unwrap_or("v1");
         let layout =
             Layout::parse(layout_name).ok_or_else(|| Error::pack(format!("unknown layout {layout_name:?}")))?;
@@ -146,6 +183,8 @@ impl Pack {
             version: text(&manifest, "version")?,
             backend,
             model_file,
+            projector_file,
+            image_max_tokens,
             model_sha256,
             template: template_from_json(manifest.get("template").unwrap_or(&json!("chatml")))?,
             layout,
@@ -166,7 +205,30 @@ impl Pack {
 
     /// What a calibrator fitted on this pack records about it.
     pub fn identity(&self) -> Value {
-        json!({"name": self.name, "version": self.version, "model_sha256": self.model_sha256})
+        let mut identity = json!({"name": self.name, "version": self.version, "model_sha256": self.model_sha256});
+        if self.projector_file.is_some() {
+            // Hash the entire manifest except evaluation and calibration artifacts, which do
+            // not affect inference. JSON maps retain order, so canonicalize before hashing.
+            fn canonical(value: &Value) -> Value {
+                match value {
+                    Value::Object(map) => {
+                        let mut entries: Vec<_> = map.iter().collect();
+                        entries.sort_by_key(|(k, _)| *k);
+                        Value::Object(entries.into_iter().map(|(k, v)| (k.clone(), canonical(v))).collect())
+                    }
+                    Value::Array(a) => Value::Array(a.iter().map(canonical).collect()),
+                    v => v.clone(),
+                }
+            }
+            let mut inference = self.manifest.clone();
+            inference["image_protocol"] = json!("vision-v1-serial-reencode");
+            inference["sdk_version"] = json!(env!("CARGO_PKG_VERSION"));
+            inference.as_object_mut().unwrap().remove("calibration");
+            inference.as_object_mut().unwrap().remove("evaluation");
+            let hash = Sha256::digest(canonical(&inference).to_string().as_bytes());
+            identity["inference_sha256"] = Value::String(format!("{hash:x}"));
+        }
+        identity
     }
 
     /// A calibrator from JSON, refused unless it records this pack (`"pack"`, as `calibrate` and
@@ -333,7 +395,7 @@ pub fn install(name: &str, version: Option<&str>) -> Result<PathBuf> {
                 manifest["name"], manifest["version"]
             )));
         }
-        for key in ["model", "calibration"] {
+        for key in ["model", "projector", "calibration"] {
             if manifest[key].is_null() {
                 continue;
             }

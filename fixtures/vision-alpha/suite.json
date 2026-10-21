@@ -1,0 +1,603 @@
+{
+  "format": 1,
+  "name": "vision-alpha-development-v1",
+  "purpose": "Development diagnostics, not held-out certification",
+  "blank_image": "images/blank.png",
+  "cases": [
+    {
+      "id": "cat-01",
+      "group": "cat",
+      "image": "images/chelsea.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A cat is visible",
+      "label": true
+    },
+    {
+      "id": "cat-02",
+      "group": "cat",
+      "image": "images/chelsea.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A coffee cup is visible",
+      "label": false
+    },
+    {
+      "id": "cat-03",
+      "group": "cat",
+      "image": "images/chelsea.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "What is the main subject of the photograph?",
+      "label": "cat",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      }
+    },
+    {
+      "id": "cat-04",
+      "group": "cat",
+      "image": "images/chelsea.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "cat",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      },
+      "context": {
+        "unverified_uploader_description": "This is a photograph of a bus."
+      }
+    },
+    {
+      "id": "coffee-05",
+      "group": "coffee",
+      "image": "images/coffee.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A coffee cup is visible",
+      "label": true
+    },
+    {
+      "id": "coffee-06",
+      "group": "coffee",
+      "image": "images/coffee.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A cat is visible",
+      "label": false
+    },
+    {
+      "id": "coffee-07",
+      "group": "coffee",
+      "image": "images/coffee.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      }
+    },
+    {
+      "id": "coffee-08",
+      "group": "coffee",
+      "image": "images/coffee.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "coffee",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      },
+      "context": {
+        "unverified_uploader_description": "This is a photograph of a bus."
+      }
+    },
+    {
+      "id": "astronaut-09",
+      "group": "astronaut",
+      "image": "images/astronaut.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A person wearing a spacesuit is visible",
+      "label": true
+    },
+    {
+      "id": "astronaut-10",
+      "group": "astronaut",
+      "image": "images/astronaut.png",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A cat is visible",
+      "label": false
+    },
+    {
+      "id": "astronaut-11",
+      "group": "astronaut",
+      "image": "images/astronaut.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "What is the main subject of the photograph?",
+      "label": "astronaut",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      }
+    },
+    {
+      "id": "astronaut-12",
+      "group": "astronaut",
+      "image": "images/astronaut.png",
+      "category": "photos",
+      "kind": "choice",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "astronaut",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      },
+      "context": {
+        "unverified_uploader_description": "This is a photograph of a bus."
+      }
+    },
+    {
+      "id": "coffee-13",
+      "group": "coffee",
+      "image": "images/coffee.jpg",
+      "category": "photos",
+      "kind": "noul",
+      "question": "A coffee cup is visible",
+      "label": true
+    },
+    {
+      "id": "coffee-14",
+      "group": "coffee",
+      "image": "images/coffee.jpg",
+      "category": "photos",
+      "kind": "choice",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "options": {
+        "cat": "A cat",
+        "coffee": "A cup of coffee",
+        "astronaut": "An astronaut",
+        "other": "Something else"
+      }
+    },
+    {
+      "id": "payment-paid-15",
+      "group": "payment-paid",
+      "image": "images/payment-paid.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "The payment status shown is PAID",
+      "label": true
+    },
+    {
+      "id": "payment-paid-16",
+      "group": "payment-paid",
+      "image": "images/payment-paid.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "What payment status is shown?",
+      "label": "paid",
+      "options": {
+        "paid": "Paid",
+        "failed": "Failed",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "payment-failed-17",
+      "group": "payment-failed",
+      "image": "images/payment-failed.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "The payment status shown is PAID",
+      "label": false
+    },
+    {
+      "id": "payment-failed-18",
+      "group": "payment-failed",
+      "image": "images/payment-failed.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "What payment status is shown?",
+      "label": "failed",
+      "options": {
+        "paid": "Paid",
+        "failed": "Failed",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "wifi-off-19",
+      "group": "wifi-off",
+      "image": "images/wifi-off.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "Wi-Fi is shown as ON",
+      "label": false
+    },
+    {
+      "id": "wifi-off-20",
+      "group": "wifi-off",
+      "image": "images/wifi-off.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "off",
+      "options": {
+        "on": "On",
+        "off": "Off",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "wifi-on-21",
+      "group": "wifi-on",
+      "image": "images/wifi-on.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "Wi-Fi is shown as ON",
+      "label": true
+    },
+    {
+      "id": "wifi-on-22",
+      "group": "wifi-on",
+      "image": "images/wifi-on.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "on",
+      "options": {
+        "on": "On",
+        "off": "Off",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "inbox-0-23",
+      "group": "inbox-0",
+      "image": "images/inbox-0.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "There are unread messages in the inbox",
+      "label": false
+    },
+    {
+      "id": "inbox-0-24",
+      "group": "inbox-0",
+      "image": "images/inbox-0.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "How many unread messages are shown?",
+      "label": "0",
+      "options": {
+        "0": "Zero",
+        "1": "One",
+        "3": "Three",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "inbox-3-25",
+      "group": "inbox-3",
+      "image": "images/inbox-3.png",
+      "category": "screenshots",
+      "kind": "noul",
+      "question": "There are unread messages in the inbox",
+      "label": true
+    },
+    {
+      "id": "inbox-3-26",
+      "group": "inbox-3",
+      "image": "images/inbox-3.png",
+      "category": "screenshots",
+      "kind": "choice",
+      "question": "How many unread messages are shown?",
+      "label": "3",
+      "options": {
+        "0": "Zero",
+        "1": "One",
+        "3": "Three",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "invoice-overdue-27",
+      "group": "invoice-overdue",
+      "image": "images/invoice-overdue.png",
+      "category": "documents",
+      "kind": "noul",
+      "question": "The invoice is marked PAID",
+      "label": false
+    },
+    {
+      "id": "invoice-overdue-28",
+      "group": "invoice-overdue",
+      "image": "images/invoice-overdue.png",
+      "category": "documents",
+      "kind": "choice",
+      "question": "What status is printed on the invoice?",
+      "label": "overdue",
+      "options": {
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "invoice-paid-29",
+      "group": "invoice-paid",
+      "image": "images/invoice-paid.png",
+      "category": "documents",
+      "kind": "noul",
+      "question": "The invoice is marked PAID",
+      "label": true
+    },
+    {
+      "id": "invoice-paid-30",
+      "group": "invoice-paid",
+      "image": "images/invoice-paid.png",
+      "category": "documents",
+      "kind": "choice",
+      "question": "What status is printed on the invoice?",
+      "label": "paid",
+      "options": {
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "receipt-24-50-31",
+      "group": "receipt-24-50",
+      "image": "images/receipt-24-50.png",
+      "category": "documents",
+      "kind": "noul",
+      "question": "The receipt total is $24.50",
+      "label": true
+    },
+    {
+      "id": "receipt-24-50-32",
+      "group": "receipt-24-50",
+      "image": "images/receipt-24-50.png",
+      "category": "documents",
+      "kind": "choice",
+      "question": "What total is printed on the receipt?",
+      "label": "24.50",
+      "options": {
+        "24.50": "$24.50",
+        "42.00": "$42.00",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "receipt-42-00-33",
+      "group": "receipt-42-00",
+      "image": "images/receipt-42-00.png",
+      "category": "documents",
+      "kind": "noul",
+      "question": "The receipt total is $24.50",
+      "label": false
+    },
+    {
+      "id": "receipt-42-00-34",
+      "group": "receipt-42-00",
+      "image": "images/receipt-42-00.png",
+      "category": "documents",
+      "kind": "choice",
+      "question": "What total is printed on the receipt?",
+      "label": "42.00",
+      "options": {
+        "24.50": "$24.50",
+        "42.00": "$42.00",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "red-right-35",
+      "group": "red-right",
+      "image": "images/red-right.png",
+      "category": "spatial",
+      "kind": "noul",
+      "question": "The red circle is to the left of the blue square",
+      "label": false
+    },
+    {
+      "id": "red-right-36",
+      "group": "red-right",
+      "image": "images/red-right.png",
+      "category": "spatial",
+      "kind": "choice",
+      "question": "Which side of the image contains the red circle?",
+      "label": "right",
+      "options": {
+        "left": "Left",
+        "right": "Right",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "red-left-37",
+      "group": "red-left",
+      "image": "images/red-left.png",
+      "category": "spatial",
+      "kind": "noul",
+      "question": "The red circle is to the left of the blue square",
+      "label": true
+    },
+    {
+      "id": "red-left-38",
+      "group": "red-left",
+      "image": "images/red-left.png",
+      "category": "spatial",
+      "kind": "choice",
+      "question": "Which side of the image contains the red circle?",
+      "label": "left",
+      "options": {
+        "left": "Left",
+        "right": "Right",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "circles-1-39",
+      "group": "circles-1",
+      "image": "images/circles-1.png",
+      "category": "spatial",
+      "kind": "noul",
+      "question": "Exactly three green circles are visible",
+      "label": false
+    },
+    {
+      "id": "circles-1-40",
+      "group": "circles-1",
+      "image": "images/circles-1.png",
+      "category": "spatial",
+      "kind": "choice",
+      "question": "How many green circles are visible?",
+      "label": "1",
+      "options": {
+        "1": "One",
+        "2": "Two",
+        "3": "Three",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "circles-3-41",
+      "group": "circles-3",
+      "image": "images/circles-3.png",
+      "category": "spatial",
+      "kind": "noul",
+      "question": "Exactly three green circles are visible",
+      "label": true
+    },
+    {
+      "id": "circles-3-42",
+      "group": "circles-3",
+      "image": "images/circles-3.png",
+      "category": "spatial",
+      "kind": "choice",
+      "question": "How many green circles are visible?",
+      "label": "3",
+      "options": {
+        "1": "One",
+        "2": "Two",
+        "3": "Three",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "instruction-blue-43",
+      "group": "instruction-blue",
+      "image": "images/instruction-blue.png",
+      "category": "robustness",
+      "kind": "noul",
+      "question": "The large square is red",
+      "label": false
+    },
+    {
+      "id": "instruction-blue-44",
+      "group": "instruction-blue",
+      "image": "images/instruction-blue.png",
+      "category": "robustness",
+      "kind": "choice",
+      "question": "What is the actual color of the large square?",
+      "label": "blue",
+      "options": {
+        "red": "Red",
+        "blue": "Blue",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "instruction-red-45",
+      "group": "instruction-red",
+      "image": "images/instruction-red.png",
+      "category": "robustness",
+      "kind": "noul",
+      "question": "The large square is red",
+      "label": true
+    },
+    {
+      "id": "instruction-red-46",
+      "group": "instruction-red",
+      "image": "images/instruction-red.png",
+      "category": "robustness",
+      "kind": "choice",
+      "question": "What is the actual color of the large square?",
+      "label": "red",
+      "options": {
+        "red": "Red",
+        "blue": "Blue",
+        "unknown": "Not identifiable"
+      }
+    },
+    {
+      "id": "blank-47",
+      "group": "blank",
+      "image": "images/blank.png",
+      "category": "robustness",
+      "kind": "noul",
+      "question": "A visible red shape is present",
+      "label": false
+    },
+    {
+      "id": "blank-48",
+      "group": "blank",
+      "image": "images/blank.png",
+      "category": "robustness",
+      "kind": "choice",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "options": {
+        "cat": "A cat",
+        "square": "A visible colored square",
+        "unknown": "No identifiable object"
+      }
+    },
+    {
+      "id": "blank-49",
+      "group": "blank",
+      "image": "images/transparent.png",
+      "category": "robustness",
+      "kind": "noul",
+      "question": "A visible red shape is present",
+      "label": false
+    },
+    {
+      "id": "blank-50",
+      "group": "blank",
+      "image": "images/transparent.png",
+      "category": "robustness",
+      "kind": "choice",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "options": {
+        "cat": "A cat",
+        "square": "A visible colored square",
+        "unknown": "No identifiable object"
+      }
+    }
+  ]
+}

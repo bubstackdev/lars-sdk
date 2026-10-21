@@ -55,6 +55,10 @@ internal static unsafe partial class Native
         delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void> callback, IntPtr userData);
 
     [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial ulong lars_evaluate_image_async_v1(EngineHandle engine, string requestJson,
+        byte* image, nuint imageLength, delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void> callback, IntPtr userData);
+
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
     internal static partial ulong lars_calibrate_async(EngineHandle engine, string name, string examplesJsonl,
         double maxError, delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void> callback, IntPtr userData);
 
@@ -135,6 +139,20 @@ internal static unsafe partial class Native
 
     internal static ulong EvaluateAsync(EngineHandle engine, string request, IntPtr callback, IntPtr user) =>
         lars_evaluate_async(engine, request, (delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void>)callback, user);
+
+    internal static ulong EvaluateImageAsync(EngineHandle engine, string request, byte[] image, IntPtr callback, IntPtr user)
+    {
+        try
+        {
+            fixed (byte* bytes = image)
+                return lars_evaluate_image_async_v1(engine, request, bytes, (nuint)image.Length,
+                    (delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void>)callback, user);
+        }
+        catch (EntryPointNotFoundException)
+        {
+            throw new LarsException("invalid_request", "this native library does not support images; rebuild or upgrade it");
+        }
+    }
 
     internal static ulong CalibrateAsync(EngineHandle engine, string name, string examples, double maxError, IntPtr callback, IntPtr user) =>
         lars_calibrate_async(engine, name, examples, maxError, (delegate* unmanaged[Cdecl]<IntPtr, ulong, IntPtr, IntPtr, void>)callback, user);

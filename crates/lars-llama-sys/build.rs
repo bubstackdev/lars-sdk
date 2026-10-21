@@ -11,7 +11,11 @@ fn main() {
         panic!("llama.cpp is missing: run `git submodule update --init --depth 1`");
     }
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=llama-cpp-revision.txt");
     println!("cargo:rerun-if-changed=llama.cpp/include/llama.h");
+    println!("cargo:rerun-if-changed=vision.cpp");
+    println!("cargo:rerun-if-changed=llama.cpp/tools/mtmd/mtmd.h");
+    println!("cargo:rerun-if-changed=llama.cpp/tools/mtmd/mtmd-helper.h");
     println!("cargo:rerun-if-env-changed=LARS_LLAMA_NATIVE");
     println!("cargo:rustc-env=LARS_LLAMA_CPP_VERSION={}", version(&source));
 
@@ -24,6 +28,8 @@ fn main() {
         .define("LLAMA_BUILD_COMMON", "OFF")
         .define("LLAMA_BUILD_TESTS", "OFF")
         .define("LLAMA_BUILD_TOOLS", "OFF")
+        .define("LLAMA_BUILD_MTMD", "ON")
+        .define("MTMD_VIDEO", "OFF")
         .define("LLAMA_BUILD_EXAMPLES", "OFF")
         .define("LLAMA_BUILD_SERVER", "OFF")
         .define("LLAMA_BUILD_APP", "OFF")
@@ -37,6 +43,17 @@ fn main() {
         config.define("GGML_METAL", "ON").define("GGML_METAL_EMBED_LIBRARY", "ON").define("GGML_BLAS", "OFF");
     }
     let out = config.build();
+
+    cc::Build::new()
+        .cpp(true)
+        .std("c++17")
+        .flag_if_supported("-Wno-unused-function")
+        .file(root.join("vision.cpp"))
+        .include(source.join("include"))
+        .include(source.join("ggml/include"))
+        .include(source.join("tools/mtmd"))
+        .include(source.join("vendor"))
+        .compile("lars-vision");
 
     for dir in ["lib", "lib64"] {
         println!("cargo:rustc-link-search=native={}", out.join(dir).display());
@@ -73,22 +90,36 @@ fn static_libs(out: &Path) -> Vec<String> {
     }
     // llama needs ggml, ggml registers the backends, and everything needs ggml-base.
     let rank = |l: &str| match l {
-        "llama" => 0,
-        "ggml" => 1,
-        "ggml-base" => 3,
-        l if l.starts_with("ggml-") => 2,
-        _ => 4,
+        "mtmd" => 0,
+        "llama" => 1,
+        "ggml" => 2,
+        "ggml-base" => 4,
+        l if l.starts_with("ggml-") => 3,
+        _ => 5,
     };
     libs.sort_by_key(|l| (rank(l), l.clone()));
     libs
 }
 
 fn version(source: &Path) -> String {
-    Command::new("git")
-        .args(["-C", &source.display().to_string(), "describe", "--tags", "--always"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_else(|| "unknown".into())
+    let pinned = std::fs::read_to_string(source.parent().unwrap().join("llama-cpp-revision.txt"))
+        .expect("missing llama-cpp-revision.txt")
+        .trim()
+        .to_string();
+    assert!(pinned.len() == 40 && pinned.bytes().all(|b| b.is_ascii_hexdigit()), "invalid llama.cpp revision");
+    // Source archives intentionally contain no Git metadata. Their pinned stamp is part
+    // of the checksummed source bundle; a checkout additionally verifies its submodule.
+    if source.join(".git").exists() {
+        let actual = Command::new("git")
+            .args(["-C", &source.display().to_string(), "rev-parse", "HEAD"])
+            .output()
+            .expect("cannot read llama.cpp revision");
+        assert!(actual.status.success(), "cannot read llama.cpp revision");
+        assert_eq!(
+            String::from_utf8_lossy(&actual.stdout).trim(),
+            pinned,
+            "update llama-cpp-revision.txt when intentionally changing the submodule"
+        );
+    }
+    pinned
 }

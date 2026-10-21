@@ -16,6 +16,7 @@ ts/native-dist/
 /data/
 /.venv-train/
 /.hf/
+/.local/vision-smoke/
 
 # Bubstack security baseline (2026-10-12 audit): never commit keys, credentials, or release state.
 .DS_Store

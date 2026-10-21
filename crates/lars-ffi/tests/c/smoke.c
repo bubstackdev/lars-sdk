@@ -81,6 +81,18 @@ int main(int argc, char **argv) {
     lars_engine *engine = lars_open(argv[1], "{\"threads\": 2}", &err);
     CHECK(engine && !err, "open: %s", err ? err : "?");
 
+    CHECK(!lars_evaluate_image_v1(engine, REQUEST, NULL, 0, &err) && strstr(err, "invalid_request"), "NULL image");
+    lars_string_free(err);
+    err = NULL;
+    const uint8_t image[] = {1, 2, 3};
+    CHECK(!lars_evaluate_image_v1(engine, REQUEST, image, sizeof(image), &err) && strstr(err, "does not support images"), "text pack rejects image");
+    lars_string_free(err);
+    err = NULL;
+    int before_images = atomic_load(&parse_errors);
+    CHECK(lars_evaluate_image_async_v1(engine, REQUEST, image, sizeof(image), on_parse_error, NULL) == 0, "unsupported image replies immediately");
+    CHECK(atomic_load(&parse_errors) == before_images + 1, "image callback ran exactly once");
+    atomic_store(&parse_errors, before_images);
+
     char *answer = lars_evaluate(engine, REQUEST, &err);
     CHECK(answer && strstr(answer, "\"refund\""), "evaluate: %s", err ? err : "?");
     lars_string_free(answer);

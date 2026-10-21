@@ -12,6 +12,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 import { type NativeLars, native } from "./native.js";
+import { ImageInput, imageData } from "./image.js";
+export { ImageInput } from "./image.js";
+export type InputState = Content | ImageInput;
 import type {
   ChoiceAnswer,
   Certified,
@@ -88,7 +91,7 @@ export interface OpenOptions {
 interface PredicateOptions<I> {
   /** What the model reads for an input: default the string itself, or the object as JSON. Pick
    *  the fields that matter, so whole records (and the personal data in them) stay out of prompts. */
-  state?: (input: I) => Content;
+  state?: (input: I) => InputState;
   /** Name the version of what `state` reads, e.g. "tickets-v2". Saved calibrations record it, and
    *  loading one for a predicate whose version differs is refused: change the fields a predicate
    *  reads, bump the version, and calibrations fitted on the old fields can't be used by mistake.
@@ -119,6 +122,8 @@ export interface ScoreOptions<I> extends PredicateOptions<I> {}
 export interface MultiOptions<I> extends PredicateOptions<I> {}
 
 interface Decision {
+  /** Present for image answers. False means these are raw, uncalibrated probabilities. */
+  calibrated?: boolean;
   /** The top probability: how likely the answer is right, once calibrated. Thresholds compare to it. */
   confidence: number;
   /** False when this predicate has a certificate and the confidence is below its threshold, or
@@ -182,7 +187,7 @@ export interface CalibrationResult {
 interface Spec<I> {
   name: string;
   question: Question;
-  stateOf: (input: I) => Content;
+  stateOf: (input: I) => InputState;
   extensions: (lars: Lars) => SystemOneRequest["lars"];
 }
 
@@ -237,7 +242,8 @@ function callable<F extends (...args: never[]) => unknown, P extends object, Q e
   return fn as F & P & Q;
 }
 
-function defaultState(input: unknown): Content {
+function defaultState(input: unknown): InputState {
+  if (input instanceof ImageInput) return input;
   if (typeof input === "string" || input === null) return input;
   if (typeof input === "object") return input as Content;
   return String(input);
@@ -298,6 +304,10 @@ export class Lars {
   static version(): string {
     return native().version();
   }
+
+  /** Snapshot one encoded JPEG/PNG. Image answers are experimental. */
+  static imageBytes(bytes: Uint8Array): ImageInput { return ImageInput.fromBytes(bytes); }
+  static imageFile(path: string): Promise<ImageInput> { return ImageInput.fromFile(path); }
 
   /** A yes/no predicate: resolves to true when the claim holds of the input. */
   noul<I = string>(name: string, instructions: Content, options: NoulOptions<I> = {}): Noul<I> {
@@ -392,12 +402,28 @@ export class Lars {
       questions[p.name] = p.question;
       if (this.#calibrated.has(p.name)) calibrators[p.name] = p.name;
     }
-    const request: SystemOneRequest = {
-      state: first[SPEC].stateOf(input),
+    const state = first[SPEC].stateOf(input);
+    let imageExtensions: SystemOneRequest["lars"];
+    if (state instanceof ImageInput || (input as unknown) instanceof ImageInput) {
+      const states = [state, ...entries.slice(1).map(([, p]) => p[SPEC].stateOf(input))];
+      if (!(state instanceof ImageInput) || states.some(s => !(s instanceof ImageInput) || imageData(s).identity !== imageData(state).identity)) {
+        throw new LarsError("invalid_request", "image predicates in ask must select the same image and context");
+      }
+      if (entries.some(([, p]) => p[SPEC].extensions(this)?.explain)) {
+        throw new LarsError("invalid_request", "image explain is not supported");
+      }
+      const configs = entries.map(([, p]) => p[SPEC].extensions(this));
+      if (configs.some(c => JSON.stringify(c) !== JSON.stringify(configs[0]))) {
+        throw new LarsError("invalid_request", "image predicates in ask must use the same request options");
+      }
+      imageExtensions = configs[0];
+    }
+    const request = {
+      state,
       questions,
-      lars: { calibrators, ...(options.constraints && { constraints: options.constraints }) },
+      lars: { ...imageExtensions, calibrators, ...(options.constraints && { constraints: options.constraints }) },
     };
-    const response = await this.evaluate(request, options);
+    const response = await this.#evaluateState(request, options);
     const out: Record<string, unknown> = {};
     for (const [key, p] of entries) out[key] = this.#decoders.get(p.name)!(response.answers[p.name]);
     return out as { [K in keyof P]: DecisionOf<P[K]> };
@@ -407,6 +433,22 @@ export class Lars {
   async evaluate(request: SystemOneRequest, options: CallOptions = {}): Promise<SystemOneResponse> {
     const json = JSON.stringify(request);
     return JSON.parse(await this.#cancellable(options.signal, (token) => this.#native.evaluate(json, token)));
+  }
+
+  /** Binary image operation; request.state is optional text/JSON context. */
+  async evaluateImage(image: ImageInput, request: Omit<SystemOneRequest, "state">, options: CallOptions = {}): Promise<SystemOneResponse> {
+    if (typeof this.#native.evaluateImageV1 !== "function") {
+      throw new LarsError("invalid_request", "this native library does not support images; rebuild or upgrade it");
+    }
+    const data = imageData(image);
+    const json = JSON.stringify({ ...request, state: data.context });
+    return JSON.parse(await this.#cancellable(options.signal,
+      token => this.#native.evaluateImageV1!(json, data.bytes, token)));
+  }
+
+  async #evaluateState(request: Omit<SystemOneRequest, "state"> & { state: InputState }, options: CallOptions): Promise<SystemOneResponse> {
+    const { state, ...rest } = request;
+    return state instanceof ImageInput ? this.evaluateImage(state, rest, options) : this.evaluate({ ...rest, state }, options);
   }
 
   /** Every calibrator fitted or loaded on this handle, with the question each was fitted for and
@@ -508,13 +550,14 @@ export class Lars {
     }
   }
 
-  #decision<D extends { confidence: number }>(name: string, partial: D, answer: { abstain?: boolean; evidence?: Evidence[] }) {
+  #decision<D extends { confidence: number }>(name: string, partial: D, answer: { abstain?: boolean; evidence?: Evidence[]; calibrated?: boolean }) {
     // No certificate: everything is accepted. A failed one (null threshold): nothing is.
     const certified = this.#certified.get(name);
     const accepted = certified === undefined || (certified.threshold != null && partial.confidence >= certified.threshold);
     return {
       ...partial,
       accepted,
+      ...(answer.calibrated !== undefined && { calibrated: answer.calibrated }),
       ...(answer.abstain !== undefined && { abstain: answer.abstain }),
       ...(answer.evidence && { evidence: answer.evidence }),
     };
@@ -542,10 +585,10 @@ export class Lars {
       ...(options.explain && { explain: true }),
       ...(lars.#calibrated.has(name) && { calibrators: { [name]: name } }),
     });
-    const spec: Spec<I> = { name, question, stateOf: stateOf as (input: I) => Content, extensions };
+    const spec: Spec<I> = { name, question, stateOf: stateOf as (input: I) => InputState, extensions };
     const decide = async (input: I, call: CallOptions = {}): Promise<D> => {
       const request = { state: spec.stateOf(input), questions: { [name]: question }, lars: extensions(this) };
-      const response = await this.evaluate(request, call);
+      const response = await this.#evaluateState(request, call);
       return decode(response.answers[name] as A);
     };
     return { decide, name, question, [SPEC]: spec };

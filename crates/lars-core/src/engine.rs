@@ -153,12 +153,13 @@ pub struct Engine {
     pub named_calibrators: IndexMap<String, Calibrator>,
     options: EngineOptions,
     labels: Vec<String>,
+    image_active: bool,
 }
 
 impl Engine {
     pub fn new(backend: Box<dyn Backend>, calibrator: Calibrator, options: EngineOptions) -> Result<Engine> {
         let labels = assign_labels(MAX_CHOICE_OPTIONS, |label| backend.is_single_token(label))?;
-        Ok(Engine { backend, calibrator, named_calibrators: IndexMap::new(), options, labels })
+        Ok(Engine { backend, calibrator, named_calibrators: IndexMap::new(), options, labels, image_active: false })
     }
 
     pub fn with_named_calibrators(mut self, named: IndexMap<String, Calibrator>) -> Engine {
@@ -188,6 +189,27 @@ impl Engine {
         Ok(Response { model: model_id, answers, usage })
     }
 
+    /// Experimental image decisions. Image state is always cleared, including on errors.
+    pub fn evaluate_image(&mut self, request: &Request, bytes: &[u8]) -> Result<Response> {
+        if request.lars.explain || request.questions.values().any(|q| !matches!(q.kind(), Kind::Noul | Kind::Choice)) {
+            return Err(Error::Invalid("image inputs support noul and choice, without explain".into()));
+        }
+        if self.options.layout != Layout::V1 {
+            return Err(Error::Invalid("image inputs require the v1 image-first layout".into()));
+        }
+        self.backend.set_image(bytes)?;
+        self.image_active = true;
+        let result = self.evaluate(request);
+        self.image_active = false;
+        self.backend.clear_image();
+        result
+    }
+
+    fn state_text(&self, request: &Request) -> String {
+        let text = render_content(&request.state);
+        if self.image_active { format!("\u{1e}LARS_IMAGE\u{1e}\n{text}") } else { text }
+    }
+
     /// Rows and usage for a request, after the model-name and budget checks.
     pub fn plan(&self, request: &Request, model_id: &str) -> Result<(Vec<Row>, Usage)> {
         if !DEFAULT_ALIASES.contains(&request.model.as_str()) && request.model != model_id {
@@ -206,7 +228,7 @@ impl Engine {
                 rows.len()
             )));
         }
-        let usage = self.usage(request, &rows);
+        let usage = self.usage(request, &rows)?;
         if let Some(max) = self.options.max_input_tokens.filter(|max| usage.input_tokens > *max) {
             return Err(Error::Budget(format!(
                 "request needs {} input tokens, over the budget of {max}; shorten the state or turn off explain",
@@ -298,12 +320,16 @@ impl Engine {
                 })
                 .unzip()
         };
-        let base_state = render_content(&request.state);
+        let base_state = self.state_text(request);
         let template = self.backend.template().clone();
         let mut groups: IndexMap<String, Vec<(usize, String)>> = IndexMap::new();
         for (index, row) in rows.iter().enumerate() {
             let state_text = row.state_text.as_deref().unwrap_or(&base_state);
-            let (prefix, suffix) = self.options.layout.compose(&template, state_text, &row.suffix_body);
+            let (prefix, suffix) = if self.image_active {
+                crate::render::compose_image_prompt(&template, state_text, &row.suffix_body)
+            } else {
+                self.options.layout.compose(&template, state_text, &row.suffix_body)
+            };
             groups.entry(prefix).or_default().push((index, suffix));
         }
         let mut scored: Vec<Option<Scored>> = (0..rows.len()).map(|_| None).collect();
@@ -491,20 +517,24 @@ impl Engine {
 
     // ----------------------------------------------------------------- usage
 
-    fn usage(&self, request: &Request, rows: &[Row]) -> Usage {
+    fn usage(&self, request: &Request, rows: &[Row]) -> Result<Usage> {
         let template = self.backend.template();
-        let base_state = render_content(&request.state);
+        let base_state = self.state_text(request);
         let mut seen: IndexSet<String> = IndexSet::new();
         let mut tokens = 0;
         for row in rows {
             let state_text = row.state_text.as_deref().unwrap_or(&base_state);
-            let (prefix, suffix) = self.options.layout.compose(template, state_text, &row.suffix_body);
-            tokens += self.backend.count_tokens(&suffix);
+            let (prefix, suffix) = if self.image_active {
+                crate::render::compose_image_prompt(template, state_text, &row.suffix_body)
+            } else {
+                self.options.layout.compose(template, state_text, &row.suffix_body)
+            };
+            tokens += self.backend.count_input_tokens(&suffix)?;
             if seen.insert(prefix.clone()) {
-                tokens += self.backend.count_tokens(&prefix);
+                tokens += self.backend.count_input_tokens(&prefix)?;
             }
         }
-        Usage { input_tokens: tokens, output_tokens: rows.len() }
+        Ok(Usage { input_tokens: tokens, output_tokens: rows.len() })
     }
 }
 

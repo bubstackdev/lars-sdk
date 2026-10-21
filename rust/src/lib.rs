@@ -38,8 +38,10 @@
 extern crate self as moedex_lars;
 
 mod ask;
+mod image;
 mod pending;
 mod predicate;
+pub use image::ImageInput;
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
@@ -342,6 +344,56 @@ impl Lars {
     /// Send a raw System One request.
     pub fn evaluate(&self, request: &Value) -> Pending<Value> {
         self.submit(request.clone(), Ok)
+    }
+
+    /// Experimental binary image request. Context comes from `image`, not request.state.
+    pub fn evaluate_image(&self, image: &ImageInput, request: &Value) -> Pending<Value> {
+        self.submit_image(image, request.clone(), Ok)
+    }
+
+    /// Several typed predicates about one image. Selectors are bypassed explicitly; all
+    /// predicates read the image and its context. Only noul/choice are supported.
+    pub fn ask_image<I: ?Sized, Q: Questions<I>>(&self, image: &ImageInput, questions: Q) -> Pending<Q::Decisions> {
+        let parts = questions.parts();
+        if parts.is_empty() {
+            return Pending::ready(Err(Error::invalid("ask_image needs at least one predicate")));
+        }
+        let mut asked = Map::new();
+        let mut image_extensions: Option<Value> = None;
+        for part in parts {
+            if image_extensions.as_ref().is_some_and(|e| e != &part.image_extensions) {
+                return Pending::ready(Err(Error::invalid(
+                    "image predicates in ask_image must use the same request options",
+                )));
+            }
+            image_extensions = Some(part.image_extensions);
+            if let Err(error) = self.register(part.name, part.question, part.state_version) {
+                return Pending::ready(Err(error));
+            }
+            if self.is_calibrated(part.name) {
+                return Pending::ready(Err(Error::invalid("image predicate calibration is not supported yet")));
+            }
+            asked.insert(part.name.into(), part.question.clone());
+        }
+        let decoder = questions.decoder();
+        self.submit_image(image, json!({"questions": asked, "lars": image_extensions}), move |r| {
+            decoder(&r["answers"], &|_, _| true)
+        })
+    }
+
+    pub(crate) fn submit_image<T: Send + 'static>(
+        &self,
+        image: &ImageInput,
+        mut request: Value,
+        decode: impl FnOnce(Value) -> Result<T> + Send + 'static,
+    ) -> Pending<T> {
+        request["state"] = image.context.clone();
+        let (pending, filler) = Pending::new();
+        let reply = Box::new(move |_, result: Result<String>| {
+            filler.fill(result.and_then(|text| guarded(|| decode(parse(&text)?))));
+        });
+        let id = self.inner.runtime.evaluate_image_async(&request.to_string(), &image.bytes, reply);
+        pending.cancels(self, id)
     }
 
     pub(crate) fn submit<T: Send + 'static>(

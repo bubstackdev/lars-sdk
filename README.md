@@ -73,6 +73,13 @@ const urgent = lars.noul<Ticket>("urgent", "The ticket needs a reply today",
   { state: (t) => ({ subject: t.subject, body: t.body }) });
 ```
 
+**Experimental image inputs:** ask `noul` and `choice` questions about one JPEG/PNG with a local
+vision pack. TypeScript uses `ImageInput`; Rust and C# expose image predicate methods. Existing
+text packs stay text-only. Setup, limits, and examples: [image answers](docs/images.md).
+
+For the macOS Apple Silicon developer alpha, see the [tester guide](packaging/vision-alpha/START-HERE.md).
+The alpha has a pinned model setup, a labeled diagnostic suite, and a local package/source bundle builder.
+
 C# choices are enums; `[Option]` gives each member the description the model reads:
 
 ```csharp

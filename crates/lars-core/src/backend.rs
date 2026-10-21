@@ -19,6 +19,15 @@ pub type LogitsAndHidden = (Vec<Vec<f64>>, Vec<Vec<f32>>);
 /// IDs. `label_logits` returns, for each suffix, the next-token logits restricted to its labels,
 /// in label order.
 pub trait Backend: Send {
+    /// Prepare one owned request's encoded image. Unsupported backends fail explicitly.
+    fn set_image(&mut self, _bytes: &[u8]) -> Result<()> {
+        Err(crate::error::Error::Invalid("this backend does not support image inputs".into()))
+    }
+    fn clear_image(&mut self) {}
+    /// Input accounting may include image embeddings, not just text tokens.
+    fn count_input_tokens(&self, text: &str) -> Result<usize> {
+        Ok(self.count_tokens(text))
+    }
     fn name(&self) -> &str;
     fn model_name(&self) -> &str;
     fn template(&self) -> &Template;

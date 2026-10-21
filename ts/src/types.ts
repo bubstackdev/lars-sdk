@@ -37,6 +37,7 @@ export interface Evidence {
 }
 
 export interface NoulAnswer {
+  calibrated?: boolean;
   type: "noul";
   noul: number;
   abstain?: boolean;
@@ -44,6 +45,7 @@ export interface NoulAnswer {
 }
 
 export interface ChoiceAnswer {
+  calibrated?: boolean;
   type: "choice";
   choice: string;
   probabilities: Record<string, number>;
@@ -73,6 +75,8 @@ export interface MultiAnswer {
 export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | MultiAnswer;
 
 export interface SystemOneResponse {
+  /** Present for experimental image requests. */
+  image?: { format: 1; calibrated: boolean; execution: "serial" };
   model: string;
   answers: Record<string, Answer>;
   usage: { input_tokens: number; output_tokens: number };
