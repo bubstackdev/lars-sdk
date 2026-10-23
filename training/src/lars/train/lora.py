@@ -59,6 +59,7 @@ class Example:
     label_ids: list[int]
     target: np.ndarray
     source: str
+    kind: str = "choice"
 
 
 def encode(backend: Any, record: Record, labels: list[str], order: list[int]) -> Example:
@@ -70,7 +71,7 @@ def encode(backend: Any, record: Record, labels: list[str], order: list[int]) ->
     if any(i is None for i in label_ids):
         raise ValueError(f"labels not single-token for this tokenizer: {labels[:k]}")
     target = np.asarray([record.target[i] for i in order], np.float32)
-    return Example(backend._encode(prefix + suffix), label_ids, target, record.source)
+    return Example(backend._encode(prefix + suffix), label_ids, target, record.source, record.kind)
 
 
 def presentations(backend: Any, records: list[Record], labels: list[str], rng: random.Random | None,
@@ -107,7 +108,7 @@ def batches(examples: list[Example], batch_tokens: int, rng: random.Random | Non
     return groups
 
 
-def collate(mx: Any, batch: list[Example]):
+def collate(mx: Any, batch: list[Example], include_ordinal: bool = False):
     """Right-pad token ids and label ids. Causal attention means padding after a row's last token never reaches it."""
     t_max = max(len(e.ids) for e in batch)
     k_max = max(len(e.label_ids) for e in batch)
@@ -123,7 +124,10 @@ def collate(mx: Any, batch: list[Example]):
         kmask[row, :k] = True
         target[row, :k] = e.target
         lengths[row] = len(e.ids)
-    return mx.array(ids), mx.array(lengths), mx.array(label_ids), mx.array(kmask), mx.array(target)
+    arrays = mx.array(ids), mx.array(lengths), mx.array(label_ids), mx.array(kmask), mx.array(target)
+    if include_ordinal:
+        return (*arrays, mx.array([e.kind == "score" for e in batch]))
+    return arrays
 
 
 def text_stack(model: Any) -> Any:
@@ -152,12 +156,28 @@ def _log_softmax(mx: Any, logits):
     return logits - mx.logsumexp(logits, axis=-1, keepdims=True)
 
 
-def loss_fn(mx: Any, model: Any, ids, lengths, label_ids, kmask, target, brier_weight: float):
+def ordinal_loss(mx: Any, p, target, kmask, score_mask):
+    """Ranked probability score on ordered rows only, normalized by their K-1 boundaries.
+
+    Padded boundaries and non-score rows contribute nothing. Cumulative probabilities
+    are monotone by construction; no extra serving head or changed prompt is needed.
+    """
+    boundaries = kmask & (mx.cumsum(kmask.astype(mx.int32), axis=-1) < kmask.sum(-1, keepdims=True))
+    delta = mx.cumsum(p - target, axis=-1)
+    per_row = (delta**2 * boundaries).sum(-1) / mx.maximum(boundaries.sum(-1), 1)
+    return (per_row * score_mask).sum() / mx.maximum(score_mask.sum(), 1)
+
+
+def loss_fn(mx: Any, model: Any, ids, lengths, label_ids, kmask, target, brier_weight: float,
+            score_mask=None, ordinal_weight: float = 0.0):
     logp = _log_softmax(mx, readout(mx, model, ids, lengths, label_ids, kmask))
     ce = -(target * mx.where(kmask, logp, 0.0)).sum(-1).mean()
     p = mx.exp(logp)
     brier = (((p - target) ** 2) * kmask).sum(-1).mean()
-    return ce + brier_weight * brier
+    loss = ce + brier_weight * brier
+    if ordinal_weight and score_mask is not None:
+        loss = loss + ordinal_weight * ordinal_loss(mx, p, target, kmask, score_mask)
+    return loss
 
 
 def macro_by_source(mx: Any, model: Any, examples: list[Example], batch_tokens: int,
@@ -285,6 +305,7 @@ def train(
     keys: list[str] | None = None,
     select_records: list[Record] | None = None,
     max_steps: int = 0,
+    ordinal_weight: float = 0.0,
 ) -> list[dict[str, Any]]:
     import mlx.core as mx
     import mlx.nn as nn
@@ -302,7 +323,8 @@ def train(
     stop_router_index_gradients()
     config = add_lora(model, num_layers, rank, scale, dropout, keys)
     config["lars"] = {**(meta or {}), "lr": lr, "epochs": epochs, "brier_weight": brier_weight,
-                        "batch_tokens": batch_tokens, "max_tokens": max_tokens, "seed": seed}
+                        "batch_tokens": batch_tokens, "max_tokens": max_tokens, "seed": seed,
+                        "ordinal_weight": ordinal_weight}
     if grad_checkpoint:
         # Recompute each block's activations in the backward pass instead of keeping them;
         # patches the block class, so only do it in a training process.
@@ -338,8 +360,9 @@ def train(
     print(f"train {len(first_epoch)} presentations ({skipped} over {max_tokens} tokens), heldout {len(heldout)} "
           f"({skipped_heldout} skipped), {steps_per_epoch} steps per epoch", flush=True)
 
-    def step_loss(model, ids, lengths, label_ids, kmask, target):
-        return loss_fn(mx, model, ids, lengths, label_ids, kmask, target, brier_weight)
+    def step_loss(model, ids, lengths, label_ids, kmask, target, score_mask):
+        return loss_fn(mx, model, ids, lengths, label_ids, kmask, target, brier_weight,
+                       score_mask, ordinal_weight)
 
     grad_fn = nn.value_and_grad(model, step_loss)
     history: list[dict[str, Any]] = []
@@ -384,7 +407,7 @@ def train(
             backend, train_records, labels, rng=rng, max_tokens=max_tokens)[0]
         model.train()
         for batch in batches(examples, batch_tokens, rng=rng):
-            loss, grads = grad_fn(model, *collate(mx, batch))
+            loss, grads = grad_fn(model, *collate(mx, batch, include_ordinal=True))
             grads, _ = optim.clip_grad_norm(grads, max_norm=1.0)
             optimizer.update(model, grads)
             mx.eval(model.trainable_parameters(), optimizer.state, loss)
@@ -438,6 +461,8 @@ def main() -> int:
     parser.add_argument("--dropout", type=float, default=0.0)
     parser.add_argument("--num-layers", type=int, default=-1, help="blocks to adapt, counted from the top; -1 for all")
     parser.add_argument("--brier-weight", type=float, default=1.0)
+    parser.add_argument("--ordinal-weight", type=float, default=0.0,
+                        help="auxiliary ranked probability score loss on score records only")
     parser.add_argument("--batch-tokens", type=int, default=4096, help="padded tokens per step")
     parser.add_argument("--max-tokens", type=int, default=2048, help="skip prompts longer than this")
     parser.add_argument("--eval-every", type=int, default=500, help="steps between held-out evaluations")
@@ -457,6 +482,8 @@ def main() -> int:
                         help="comma list of sources to leave out of selection, e.g. the license-dropped ones")
     parser.add_argument("--out", default="checkpoints/lora")
     args = parser.parse_args()
+    if args.ordinal_weight < 0 or not np.isfinite(args.ordinal_weight):
+        parser.error("--ordinal-weight must be finite and nonnegative")
 
     rng = random.Random(args.seed)
     records: list[Record] = []
@@ -495,7 +522,7 @@ def main() -> int:
           scale=args.scale, dropout=args.dropout, num_layers=args.num_layers, brier_weight=args.brier_weight,
           batch_tokens=args.batch_tokens, max_tokens=args.max_tokens, eval_every=args.eval_every,
           grad_checkpoint=not args.no_grad_checkpoint, seed=args.seed, keys=KEY_PRESETS[args.keys],
-          select_records=select_records, max_steps=args.max_steps,
+          select_records=select_records, max_steps=args.max_steps, ordinal_weight=args.ordinal_weight,
           meta={"model": args.model, "keys": args.keys, "records": args.records, "limit": args.limit,
                 "holdout_fraction": args.holdout_fraction,
                 "heldout_sources": sorted({r.source for r in heldout_records}),

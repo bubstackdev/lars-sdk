@@ -731,3 +731,300 @@ label shift, not noise:
 Cross-validation inside the labels can't see a shift between labels and use, so this is a
 documentation fix (docs/calibration.md): label a representative mix.
 
+## 2026-10-20: accuracy experiments and a feature-readout correction
+
+**The three-seed pilot completed at 14:37 MDT. Distillation improved jev-bench modestly;
+the results do not establish a broad accuracy improvement.**
+`sweep/accuracy_ladder.py` runs matched baseline, ordinal-loss, targeted-distillation, and
+shared-residual-scorer experiments sequentially on the M5 Max (128 GB). Configuration:
+4,000 source/kind-balanced training decisions, 250 LoRA steps, seeds 0/1/2, and fixed
+whole-source holdouts. There are 770 score training records. This is a short pilot rather
+than a reproduction of the full-corpus packs.
+
+- **Ordinal:** an auxiliary ranked probability score on cumulative probabilities across
+  the ordered score boundaries, weight 1; the default trainer retains weight 0.
+- **Distillation:** cached Qwen3.5-9B teacher, targeted at student mistakes/uncertainty.
+  A source must outperform the trained baseline on validation; each changed training
+  target also requires teacher/gold argmax agreement. Mix 50% gold and 50% teacher,
+  at most 500 changed targets per source, retaining all other gold targets.
+- **Shared scorer:** the existing pointer residual head on the adapted baseline's features,
+  selected on held-out sources, evaluated through the numpy serving implementation.
+
+Validation states are split between checkpoint selection and recipe comparison. Training,
+selection, comparison, and test state overlaps were checked explicitly. The recipe is
+selected by mean validation macro accuracy across seeds before final comparisons on
+jev-bench test, typed-decisions test, and 1,000 independent Open-Jev OOD records.
+Captures, data hashes, environment versions, commands, and stage status live under
+`sweep/out/accuracy-pilot/`. All GPU stages use this session's jobs only.
+
+**Initial teacher check:** on 630 validation decisions (21 configs, 30 each), uncalibrated
+MLX macro accuracy/Brier is 0.394/0.640 for the untrained 2B and 0.637/0.422 for the 9B.
+These are not pack scores or evidence that the teacher beats a trained 2B overall.
+
+**A confound fixed before comparing heads.** The Python MLX feature path reconstructed
+label logits using numpy float32 output-embedding rows and hidden states, bypassing the
+model's BF16 output projection. On 79 distinct smoke decisions this moved probabilities
+by up to 0.0220 and flipped 3 labels relative to ordinary inference. Feature extraction now
+uses the model's projection and dtype. `training/check_features.py` verifies **80/80 prompts
+with exactly equal probabilities and zero flipped labels** after the correction. Only this
+session's pilot jobs were stopped for the fix; the pilot restarted with the corrected code.
+
+Eleven tests pass, including ordinal gradients/padding, teacher gates, held-out-state
+exclusion, matched-seed comparisons, option permutation, numpy/Metal head agreement,
+and the BF16 projection regression. Pilot reports use raw MLX probabilities; full-corpus
+training, separate calibration, GGUF conversion, and SDK evaluation are still required
+before a new recipe becomes a shipping pack.
+
+**Completed results (mean across the three matched seeds).** All final rows were scored:
+4,400 jev-bench, 2,000 typed-decisions, and 1,000 Open-Jev OOD records per model/seed.
+Distillation was selected using validation before test evaluation.
+
+| final suite | baseline accuracy | distilled accuracy | change | baseline Brier | distilled Brier |
+|---|---|---|---|---|---|
+| jev-bench, macro over 22 configs | 0.5910 | 0.6021 | +1.11 points | 0.4929 | 0.4841 |
+| typed-decisions, macro over 4 workflows | 0.5720 | 0.5708 | -0.12 points | 0.1625 | 0.1654 |
+| Open-Jev OOD sample | 0.6027 | 0.6070 | +0.43 points | 0.5104 | 0.5432 |
+
+jev-bench exact score accuracy rises from 0.4281 to 0.4731 (+4.50 points), and score absolute
+error falls from 0.8872 to 0.8261. The overall jev-bench accuracy deltas by seed are +0.66,
++3.00, and -0.32 points; only seed 1's paired example-bootstrap interval excludes zero.
+The OOD gain is inconsistent across seeds (+5.3, -2.9, -1.1 points), and its Brier worsens.
+These are descriptive results on fixed source suites, not a seed-robust generalization claim.
+
+On the 630 validation comparison decisions, ordinal weight 1 loses 9.95 accuracy points
+on average (0.5217 versus 0.6212), regressing on every seed. The shared scorer ties baseline
+accuracy on average while reducing Brier from 0.4760 to 0.4530. Neither recipe was selected
+for final test evaluation. This ordinal setting should not be adopted; a smaller weight is
+an untested hypothesis, not an established fix.
+
+No new pack was promoted. The next useful confirmation is against a reproduced full-corpus
+baseline; this short pilot's raw MLX scores cannot be compared directly with the README's
+calibrated GGUF pack scores. Complete captures and per-seed/per-source metrics remain in
+`sweep/out/accuracy-pilot/{audit,final,typed-final,ood}-results.json`.
+
+## 2026-10-20: full-corpus confirmation launched
+
+**Resumed on explicit user request, 2026-10-21, after a brief pause at 12:13 MDT.** Both seed-0 models finished training,
+conversion and calibration. Baseline reproduction passed: accuracy 0.7118181818 versus
+reference 0.7134090909, Brier 0.3309798733 versus 0.3312996024. Baseline certificate
+capture completed; fresh confirmation capture was interrupted. No complete paired
+comparison or confirmed accuracy gain is available. Seeds 1/2 have not started.
+The prior runner and its child exited cleanly. A new detached runner now continues
+the saved stages using the same frozen configuration. See `HANDOFF.md`.
+
+`sweep.full_accuracy` runs the baseline/distillation comparison on the full
+corpus through quantized GGUFs and independent SDK calibration. `sweep/out/accuracy-full/`
+holds the frozen protocol, datasets, per-stage commands/hashes, and persistent run log.
+
+**Reference verified through the SDK:** the restored 2B pack gives 0.7134090909 macro
+accuracy (exactly its recorded value) and 0.3312996024 Brier (recorded 0.3312935317).
+This is the reproduction reference, rather than the pilot's undertrained raw MLX baseline.
+
+**Pilot diagnosis:** three-seed distillation gains concentrate in mmlu (+9.83 accuracy points),
+arc_challenge (+5.00), and score tasks; regressions include go_emotions (-6.17),
+fever_evidence (-4.83), clinc150 (-3.83), and massive (-3.33). On OOD, choice loses
+3.99 points and noul 2.70 while scores gain 8.01. Choice Brier worsens by 0.0668 and
+noul by 0.0336 even as average confidence decreases. Thus OOD regression involves decision
+quality, not simply overconfident probabilities. These are descriptive pilot results, not
+causal evidence for a particular training mechanism. Detailed source/score-level tables
+are retained as `pilot-breakdown.json`.
+
+**Fixed design before training:** 39,846 training decisions, seeds 0/1/2, one epoch,
+4,096-token batches, final checkpoint. Baselines must reproduce the backed-up pack within
+1 accuracy point and +0.015 Brier before distillation proceeds. The teacher is calibrated
+on separate rows and must beat the full baseline on development accuracy for each eligible
+source. Only gold-agreeing teacher targets are mixed (50%, at most 500 per source); every
+other training target remains intact.
+
+The independent calibration set has 1,836 decisions, certificates 3,371, and primary fresh
+jev-bench confirmation 4,397. Fresh OOD and Open-Jev test sets have 1,000 each. None of
+these confirmation states was examined in the pilot. The already seen typed-decisions
+test is retained as an explicit regression check. Soft targets are used for probability
+losses and calibration; accuracy uses the original hard labels.
+
+Promotion needs +1 accuracy point, or +3 exact-score points with overall accuracy within
+0.2 points of baseline, a positive paired bootstrap lower bound and improvement in at least
+two seeds. Each suite must avoid losses over 0.5 accuracy points or +0.005 Brier; certified
+coverage may fall at most 1 point and must be measurable, with accepted-error upper bounds
+at most 5% on every candidate seed. Seeds and paired state clusters are resampled together.
+Full details are frozen in `protocol.json`; the pipeline never promotes or publishes a pack.
+
+Seventeen tests and the complete tiny training-to-SDK workflow pass. Actual SDK serving
+preserves the CLI's tested labels, with maximum probability differences below 0.0001
+against the predeclared 0.001 serving tolerance. Full-corpus results are still pending.
+
+
+
+### 2026-10-21: SDK verification false positive resolved
+
+The first baseline's actual SDK check initially stopped on one apparent label flip in
+80 prompts. Root cause was in the experiment checker: it recomputed choice argmax from
+public probabilities rounded to four decimals. Two Banking77 options both rounded to
+0.1343; the SDK's explicit choice correctly matched the full-precision evaluator.
+The checker now uses that returned choice. Three regression tests pass; the actual
+80-prompt rerun has zero label flips and maximum probability difference 0.0003596867,
+within the unchanged 0.001 tolerance. No model or serving behavior changed. Full paired
+accuracy evidence remains pending.
+
+
+### 2026-10-21: first matched pair complete; sweep stopped for investigation
+
+Seed 0: primary confirmation accuracy 71.5331% baseline vs 70.8293% distilled,
+Brier 0.335167 vs 0.341007; typed regression 74.35% vs 73.55%; fresh OOD
+80.9% vs 81.6%; Open-Jev test 71.5% vs 74.0%. Primary paired accuracy CI95
+[-1.5673, +0.1619] percentage points. The completed seed fails primary gain, primary
+accuracy/Brier regression and typed accuracy checks. No promotion.
+
+The user agreed to stop the sweep and investigate; the runner and its seed-1 training
+child exited. Record audit: only targets changed, 1724 records across ARC/MMLU/MNLI/
+HelpSteer verbosity, with population/order preserved. Both models' small heldout Brier
+peaked at step 2500; broader development checkpoint comparison remains to be done.
+See `INVESTIGATION.md` and `sweep/out/accuracy-full/investigation-seed0.json`.
+
+
+### 2026-10-21: development checkpoint comparison complete
+
+The frozen selection metric (equal seen/unseen source macro hard-label accuracy)
+selects final step 5366 for both recipes over step 2500. Baseline improves 67.1689%
+to 67.6593%; distilled improves 65.0518% to 66.4957%. Distilled final trails baseline
+by 1.1636 points: seen-source macro accuracy 78.6580% vs 78.4852%, unseen 54.3333%
+vs 56.8333%. Raw MLX probabilities, identical 2642 selection examples, no calibration
+or quantization. These development results do not establish fresh test performance.
+Switching to the tested earlier checkpoint does not resolve the regression. Both
+runners are stopped/completed; no new training was launched. See INVESTIGATION.md.
+
+
+### 2026-10-22: five-arm ablation complete
+
+All five full-epoch seed-0 training/evaluation arms completed overnight and the
+runner stopped automatically. No additional GPU job or training sweep was launched.
+Frozen development selection results (raw MLX, same 2642 rows):
+
+| Recipe | Selection score | Change vs baseline |
+| --- | ---: | ---: |
+| verbosity-only-mix50 | 67.924% | +0.265 points |
+| baseline | 67.659% | +0.000 points |
+| all-mix25 | 67.180% | -0.479 points |
+| mmlu-only-mix50 | 66.933% | -0.727 points |
+| arc-only-mix50 | 66.689% | -0.971 points |
+| all-mix50 | 66.496% | -1.164 points |
+| mnli-only-mix50 | 66.355% | -1.305 points |
+
+Only verbosity-only mix50 beats baseline, by 0.265 points. Its seen-source accuracy
+is 78.5152% vs baseline 78.4852%; unseen 57.3333% vs 56.8333%. Macro Brier improves
+0.298820 -> 0.293878. Lowering the combined mix to 25% reduces the combined recipe's
+loss but does not beat baseline. All three other isolated sources lose selection score;
+MNLI is worst. These are descriptive, adaptively examined, single-seed development
+results. They do not establish reproducible gain or causal effects beyond this seed;
+source interactions and differences in changed-record counts remain relevant.
+
+Next candidate, if authorized: freeze verbosity-only as the sole candidate, replicate
+on matched seeds and evaluate on independent development/confirmation evidence with
+serving/regression gates. The +0.265-point development gain alone is insufficient for
+promotion. Do not automatically launch more work. Full metrics and captures are in
+`sweep/out/distillation-ablation-s0/results.json` and that directory.
+
+
+## 2026-10-23: source-documented queue calibration pilot
+
+42 cases /41 dependence groups from361 retrieved Codegraph stories and histories;
+one representative per family, frozen25 fitting /16held-out groups. Observations
+precede the recorded action; later source records supply the actual final
+redelivery-versus-removal mechanism.29 cases contain diagnostic evidence;13
+contain only early alerts/symptoms, reported separately. No independent human
+adjudication or prospective production estimate is claimed.
+
+Existing2B pack:10/16 (62.5%).10-label draws:12/16,12/16,10/16 (70.8% mean).
+25labels:12/16 (75%), matching the constant class-prior baseline. Diagnostic
+accuracy stays9/11; calibrated discard outcomes0/4. Prior-only Brier/log loss
+.378/.567 beats fitted .400/.587. Paired25-label accuracy delta95% [-12.5,+37.5]
+percentage points. No meaningful judgment gain established; the higher overall
+accuracy is consistent with learning the majority preference.
+
+Eight native controls match exactly;41captures took8.18s.37 relevant Python
+tests and8read-only browser checks pass. Backbone training, export, certificate,
+and deployment: none. Artifacts: sweep/out/codegraph-judgment/queue-pilot-20261023/.
+
+
+2026-10-23 — structured pre-action exploration COMPLETE (fitting-only).
+User authorized brief current-2B inference, not 8B training. Fresh artifacts:
+sweep/out/codegraph-judgment/queue-structured-20261023/{study-plan,results,manifest}.json.
+Exactly 25 original fit groups; old 16 examined test groups excluded before extraction.
+Original quotes retained; literal structured matches carry exact quote evidence;
+unrecorded fields explicitly unknown. No outcome/current-description fields used.
+Original versus structured pack: 16/25 versus13/25 accuracy; AUC .64 versus .78;
+balanced accuracy .625 versus .70. Fixed-penalty fivefold stratified group OOF
+calibration: both19/25 (76%), discard1/5; structured Brier .310/logloss .484 versus
+original .353/.530. Jeffreys class-prior baseline20/25 (80%), Brier .320/logloss .501.
+Simple exploratory rules decide6/25, all6 match source actions; prior fallback22/25.
+Rule design saw fitting cases/labels: neither six-of-six nor22/25 validates rules.
+Seven cases are sparse alerts/symptoms. Ownership mismatch coverage0/25; no facts
+were inferred to fill gaps. All figures exploratory; no independent accuracy gain.
+Ranking is mildly encouraging, accuracy is not. Next useful experiment is a fresh,
+independent, timestamp-audited holdout with both outcomes; freeze these features,
+prompt, rules, and calibration procedure first. No retuning on old16 or claiming
+this cross-validation validates human feature selection. No further GPU run started.
+25 native captures+8 controls took4.469s; parity probability delta0, flips0; worker
+exited. 15 targeted Python tests PASS. Frozen input/output hashes verified.
+No model weights, shipped pack, certificate, UI or external systems changed.
+Other sessions untouched; 8B stays paused. Existing audit UI shows prior pilot,
+not these new fitting-only results. See results.json for detailed class metrics.
+
+2026-10-23 — fresh validation admission audit COMPLETE; evidence gate FAILED.
+Frozen structured extractor/prompt/rules and affine(a=.9827921721,b=1.2155592281)
+from original25 fit groups BEFORE fresh searches. Pack choice temperature1.3810558844;
+Jeffreys reprocess prior20.5/26. Old361 full stories excluded, old16 test remains spent.
+Artifacts: sweep/out/codegraph-judgment/queue-fresh-validation-20261023/.
+16 prespecified/extended searches fully paginated (43 pages; no pagination truncation),
+377 unseen full stories saved sanitized,14 selected histories audited. This is bounded
+search coverage, NOT all Codegraph. Four source-backed independent groups admitted:
+113637 discard(diagnostic);119161 reprocess(diagnostic);116075 reprocess(queue-count
+symptom);132446 reprocess(customer symptom). All exact input quotes precede outcome
+record; no same-note diagnostic enrichment. Actual execution clocks often unavailable.
+Full formal-link/parent/shared-PagerDuty/shared-MR/commit graph over old+new snapshots
+excludes24 new stories dependent on prior work. Four admitted remain independent.
+No_verified_completed_queue_disposition is a screening exclusion, not an exhaustive
+historical proof of no action. Explicit exclusions distinguish proposals, action before
+first record, domain portfolio purges and unclear final mechanisms.
+Gate requires20 groups,>=5 per mechanism,>=10 diagnostic. Actual4 groups (3reprocess,
+1discard),2diagnostic. Insufficient: NO scoring, comparison, fitting or GPU work started.
+Fresh cases quarantined; do not tune on them. Never relax timing to fill the cohort.
+prospective-case-template.json captures immutable pre-action checkpoint, source links,
+related incidents/fixes and separate post-action outcome; collect all eligible consecutive
+incidents. Need at least16 additional independent groups, including4 discard and8
+additional diagnostic groups, before this small pilot can run. More needed for precision.
+New sweep/queue_validation.py records admission gate, evidence and dependence audit;
+explicit past return to consumer queue is accepted, generic 'cleared' alone is not.
+19 targeted tests PASS; all artifact/source hashes and four timelines verified.
+8B paused; other sessions untouched; existing UI still displays prior25-label pilot.
+
+2026-10-23 — prospective collection and target-utility review SET UP.
+Local UI http://127.0.0.1:8766/ is RUNNING. Own PID34912, saved under
+sweep/out/codegraph-judgment/queue-prospective-20261023/server.pid and server.log.
+New sweep/queue_collection.py + judgment_review_ui/collection.html. Fresh append-only
+collection.sqlite3 starts EMPTY. No synthetic QA or historical cases in live journal.
+User saves literal observations and source links BEFORE queue action. Current local
+UTC checkpoint immutable; new decision checkpoint IDs for changed facts, same family.
+Separate assessment supports reprocess_only/discard_only/either/insufficient, confidence,
+rationale and checkpoint-only attestation. Other reviewers' answers and actual action
+absent from assessment API. Reviewer identity/blinding self-reported, not authenticated.
+Outcome requires explicit source quote and reported action start strictly after saved
+checkpoint and no later than now. Success separate. SQLite immutable triggers + journal
+hash chain check; not independent trusted execution-time proof. Low confidence<.8,
+either/insufficient cases get review_needed in export. No automatic fitting promotion.
+Target review begins at20 completed cases with2 reviewers; candidate threshold80%
+single-action agreement is a discussion trigger, not validation. Inspect both-acceptable,
+insufficient evidence, reviewer disagreement and observed-action disagreement. Family,
+source timing and class support audits still mandatory before any scoring.
+No automatic ingestion is connected. This is a local capture/review tool, not a claim
+that future cases are accumulating unattended. No messages sent or systems changed.
+Available Codegraph tools have no Slack/PagerDuty reader. Limited read-only probes:
+resolved Grafana incidents(limit10) returnednone; DomainInventoryApi Republish logs
+2026-10-22T00Z..2026-10-23T00Z returned0. Not exhaustive; source-access-probes.json saved.
+Existing four historical candidates remain quarantined; old audit UI8765 unchanged.
+Frozen20-group/5-per-label/10-diagnostic validation gate remains; model unchanged.
+25 targeted Python tests +10 isolated browser workflow/security/mobile checks PASS.
+Live HTTP checks PASS, empty journal. protocol.json pins code/UI/test hashes; validation
+and desktop/mobile screenshots saved. 8B paused, GPU untouched; other sessions untouched.
+Export: .venv-train/bin/python -m sweep.queue_collection export --db
+sweep/out/codegraph-judgment/queue-prospective-20261023/collection.sqlite3

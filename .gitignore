@@ -15,6 +15,7 @@ ts/native-dist/
 /checkpoints/
 /data/
 /.venv-train/
+/sweep/.venv-convert/
 /.hf/
 
 # Bubstack security baseline (2026-10-12 audit): never commit keys, credentials, or release state.

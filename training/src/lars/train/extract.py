@@ -48,6 +48,8 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=3000, help="records sampled across --records")
     parser.add_argument("--test-limit", type=int, default=0)
     parser.add_argument("--holdout-fraction", type=float, default=0.2)
+    parser.add_argument("--holdout-sources", default=None, help="fixed source holdout, matching the LoRA run")
+    parser.add_argument("--max-tokens", type=int, default=0, help="skip long prompts before feature extraction")
     parser.add_argument("--shuffles", type=int, default=1)
     parser.add_argument("--proj-dim", type=int, default=512)
     parser.add_argument("--max-options", type=int, default=64, help="skip records with more options")
@@ -67,7 +69,8 @@ def main() -> int:
     records = [r for r in records if len(r.options) <= args.max_options]
     rng.shuffle(records)
     records = records[: args.limit]
-    train, heldout = split_by_group(records, args.holdout_fraction, seed=args.seed)
+    held = args.holdout_sources.split(",") if args.holdout_sources else None
+    train, heldout = split_by_group(records, args.holdout_fraction, seed=args.seed, sources_to_hold=held)
     print(f"records: {len(records)} -> train {len(train)} / heldout {len(heldout)} "
           f"(held-out sources: {sorted({r.source for r in heldout})[:8]}...)", flush=True)
 
@@ -92,6 +95,15 @@ def main() -> int:
             path.unlink(missing_ok=True)
 
     backend = MLXBackend(args.model, adapter=args.adapter)
+    if args.max_tokens:
+        from lars.labels import assign_labels
+        from lars.train.lora import presentations
+
+        labels = assign_labels(max(len(r.options) for r in records), backend.is_single_token)
+        def within_limit(subset):
+            return [r for r in subset if presentations(backend, [r], labels, rng=None,
+                                                     max_tokens=args.max_tokens)[0]]
+        train, heldout, test = (within_limit(subset) for subset in (train, heldout, test))
     proj = projection(backend.hidden_size, args.proj_dim, seed=args.seed)
     np.save(out / "projection.npy", proj)
 

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LARS · Case review</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header class="topbar"><div class="brand"><span class="mark">L</span><strong>LARS</strong><span class="divider"></span><span>Domain review</span></div><div class="top-actions"><span class="local"><i></i> Local workspace</span><button id="export" class="button subtle">Export reviews ↗</button></div></header>
+<main>
+<section class="intro"><div><p class="eyebrow">EVIDENCE BEFORE ADAPTATION</p><h1>A second look, where it matters.</h1><p class="lede">Review uncertain decisions, correct the facts, and build a dependable case set.</p></div><div class="reviewer"><label for="reviewer">Reviewing as</label><input id="reviewer" placeholder="Your name" autocomplete="name"></div></section>
+<section class="stats" aria-label="Review progress"><div><span id="stat-uncertain">—</span><p>Need your judgment</p></div><div><span id="stat-reviewed">—</span><p>Reviewed by you</p></div><div><span id="stat-corrected">—</span><p>Corrections saved</p></div><div><span id="stat-total">—</span><p>Cases available</p></div><div class="progress-wrap"><span id="progress-label">Loading cases…</span><progress id="progress" max="100" value="0"></progress><p>Agent confidence is a judgment estimate, not a measured probability.</p></div></section>
+<section class="workbench">
+<aside class="queue"><div class="queue-head"><h2>Review queue <span id="queue-count"></span></h2><label class="sr-only" for="search">Search cases</label><input id="search" type="search" placeholder="Search report or evidence…"><label class="sr-only" for="filter">Filter queue</label><select id="filter"><option value="uncertain">Needs your judgment · &lt; 0.8</option><option value="all">All cases</option><option value="confident">Agent confidence ≥ 0.8</option><option value="pending">All pending</option><option value="reviewed">Reviewed</option><option value="deferred">Deferred</option><option value="excluded">Excluded</option></select></div><div id="case-list" class="case-list"></div><p class="queue-foot">Lowest confidence first <span>J / K to navigate</span></p></aside>
+<section class="case" id="case-panel"><div class="empty">Loading the local case set…</div></section>
+<aside class="decision" id="decision-panel"></aside>
+</section>
+<p class="footer-note">Corrections are saved to this machine. Original evidence and frozen case splits are preserved.</p>
+</main><div id="toast" role="status" aria-live="polite"></div>
+<dialog id="leave-dialog"><h2>Keep your changes?</h2><p>This case has unsaved edits. Stay to save them, or discard them and continue.</p><div class="dialog-actions"><button id="stay" class="button">Stay here</button><button id="discard" class="button danger">Discard edits</button></div></dialog>
+</body></html>

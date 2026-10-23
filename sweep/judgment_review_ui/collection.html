@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LARS · Prospective queue cases</title>
+<style>
+:root{font:16px/1.5 system-ui;color:#1a2934;background:#f4f6f7}*{box-sizing:border-box}body{max-width:1080px;margin:auto;padding:28px}h1{font-size:28px;margin-bottom:8px}h2{font-size:21px}p{max-width:78ch}.muted{color:#566773}.card{background:white;border:1px solid #cdd7dc;border-radius:12px;padding:24px;margin:20px 0}label{display:block;margin:15px 0 5px;font-weight:600}input,textarea,select,button{font:inherit}input,textarea,select{width:100%;padding:9px;border:1px solid #9eafb9;border-radius:5px}textarea{min-height:100px}button{background:#175966;color:white;border:0;border-radius:6px;padding:10px 16px;margin-top:18px;cursor:pointer}button:disabled{opacity:.6}nav{display:flex;gap:10px;flex-wrap:wrap}nav button{background:#e0e9ed;color:#153b45}nav button[aria-selected=true]{background:#175966;color:white}.hidden{display:none!important}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5f6;padding:15px}#message{padding:12px;border-radius:6px;position:sticky;top:8px;z-index:2;background:#e7f2ed}#message.error{background:#ffeded;color:#8d2020}.check{display:flex;align-items:flex-start;gap:10px}.check input{width:auto;margin-top:7px}.row{display:grid;grid-template-columns:1fr 1fr;gap:20px}a{color:#175966}#empty{padding:15px;background:#f2f5f6}@media(max-width:650px){body{padding:16px}.card{padding:18px}.row{grid-template-columns:1fr}}
+</style>
+<h1>Prospective queue cases</h1>
+<p class="muted">Freeze the facts before the queue action. Assess what those facts support, then record what happened. This journal collects evidence; it does not operate queues.</p>
+<p id="stats" aria-live="polite">Loading local journal…</p><div id="message" role="status" class="hidden"></div>
+<nav aria-label="Collection steps"><button data-tab="checkpoint" aria-selected="true">1 · Freeze facts</button><button data-tab="assessment" aria-selected="false">2 · Assess the target</button><button data-tab="outcome" aria-selected="false">3 · Record action</button><button data-tab="summary" aria-selected="false">Review progress</button></nav>
+<section id="checkpoint" class="card panel"><h2>Save a pre-action checkpoint</h2>
+<p>Include every eligible incident, regardless of likely outcome. Record only facts already known. If the facts change, create a new checkpoint ID and link it to the same incident; it remains one family.</p>
+<form id="checkpoint-form"><label for="incident">Incident / decision checkpoint ID</label><input id="incident" name="incident_id" required maxlength="160" placeholder="Incident ID plus checkpoint identifier">
+<label for="source">Timestamped source URL</label><input id="source" name="source_url" type="url" required placeholder="https://…">
+<label for="observations">Available observations — one per line</label><textarea id="observations" name="observations" required placeholder="Error, current domain state, completed work, known retry behavior. Leave unrecorded facts out."></textarea>
+<label for="refs">Related incidents, tickets or fixes — one per line</label><textarea id="refs" name="related_refs"></textarea>
+<label for="captured">Captured by</label><input id="captured" name="captured_by" required maxlength="120">
+<p class="muted">Saving records the current local time and freezes these observations. Completed incidents cannot be backdated into this prospective journal. Remove credentials before saving.</p>
+<button>Freeze checkpoint</button></form></section>
+<section id="assessment" class="card panel hidden"><h2>Does this evidence support a single action?</h2>
+<p>Use only the frozen checkpoint below. The recorded action and other reviewers’ answers are hidden here. “Either” means both mechanisms are reasonable; “insufficient” means the evidence cannot establish that.</p>
+<p class="muted">Assess the final cleanup mechanism, including any repair already supported by the checkpoint. Do not assume a future fix. If repair requirements or remaining work are unknown, choose “insufficient.”</p>
+<form id="assessment-form"><label for="assess-case">Checkpoint</label><select id="assess-case" name="incident_id" required></select><pre id="assess-evidence">No checkpoint selected.</pre>
+<label for="reviewer">Reviewer</label><input id="reviewer" name="reviewer" required maxlength="120">
+<label for="rating">Supported action</label><select id="rating" name="rating" required><option value="">Select…</option value="reprocess_only">Reprocess only</option><option value="discard_only">Discard only</option><option value="either">Either action is reasonable</option><option value="insufficient">Insufficient evidence</option></select>
+<label for="confidence">Confidence in this assessment</label><input id="confidence" name="confidence" type="number" min="0" max="1" step="0.01" value="0.5" required>
+<label for="rationale">Supporting evidence, missing facts and rationale</label><textarea id="rationale" name="rationale" required></textarea>
+<label class="check"><input name="checkpoint_only" type="checkbox" required><span>I used only this checkpoint and did not consult the action or another reviewer’s answer.</span></label>
+<p class="muted">Use two different people when possible. Reviewer identities and blinding are self-reported; this page cannot verify independence. Each reviewer’s assessment is frozen once saved.</p><button>Save assessment</button></form></section>
+<section id="outcome" class="card panel hidden"><h2>Record the completed action</h2>
+<p>Record the queue mechanism separately from whether it succeeded. The action must have started after the checkpoint was saved.</p>
+<form id="outcome-form"><label for="outcome-case">Checkpoint</label><select id="outcome-case" name="incident_id" required></select><pre id="outcome-evidence">No checkpoint selected.</pre>
+<label for="action-time">Actual action start — include timezone</label><input id="action-time" name="action_started_at" required placeholder="2026-10-23T14:30:00-06:00">
+<label for="mechanism">Final completed queue mechanism</label><select id="mechanism" name="mechanism" required><option value="">Select…</option><option value="reprocess">Consumer redelivery / reprocess</option><option value="discard">Remove / discard messages</option></select>
+<label for="outcome-source">Outcome evidence URL</label><input id="outcome-source" name="source_url" type="url" required>
+<label for="quote">Exact completed-action quote</label><textarea id="quote" name="quote" required></textarea>
+<label for="success">Success of the operation</label><select id="success" name="success"><option value="unknown">Unknown / not confirmed</option><option value="confirmed">Confirmed</option><option value="failed">Failed</option></select>
+<label for="recorded-by">Recorded by</label><input id="recorded-by" name="recorded_by" required maxlength="120"><button>Save outcome</button></form></section>
+<section id="summary" class="card panel hidden"><h2>Target review and collection progress</h2><p>Start target review after 20 completed cases have two checkpoint-only assessments. Look for frequent “either,” missing evidence or reviewer disagreement before treating this as a binary accuracy task. Related incidents still need a family audit.</p><p>No cases are automatically exported for fitting. The four historical candidates remain in their separate audit.</p><button id="load-report">Show collection report, including outcomes</button><pre id="report" class="hidden"></pre><p><a href="/api/export" download="queue-collection.json">Download evidence journal export</a></p></section>
+<script>
+'use strict';let snapshot={cases:[]},token='';const $=s=>document.querySelector(s);
+function message(t,error=false){const e=$('#message');e.textContent=t;e.className=error?'error':'';}
+function lines(v){return v.split('\n').map(x=>x.trim()).filter(Boolean)}
+async function refresh(){const r=await fetch('/api/cases');if(!r.ok)throw Error('Cannot load local journal.');snapshot=await r.json();token=snapshot.token;$('#stats').textContent=`${snapshot.cases.length} frozen checkpoints · ${snapshot.cases.filter(c=>c.outcome_recorded).length} completed actions · GPU idle`;
+ for(const id of ['assess','outcome']){const select=$('#'+id+'-case'),old=select.value;select.replaceChildren();const blank=document.createElement('option');blank.value='';blank.textContent='Select a checkpoint…';select.append(blank);for(const c of snapshot.cases){if(id==='outcome'&&c.outcome_recorded)continue;const o=document.createElement('option');o.value=c.incident_id;o.textContent=c.incident_id;select.append(o);}select.value=old;evidence(id);}}
+function evidence(id){const c=snapshot.cases.find(c=>c.incident_id===$('#'+id+'-case').value);$('#'+id+'-evidence').textContent=c?`Saved: ${c.recorded_at}\nSource: ${c.source_url}\n\n${c.observations.join('\n\n')}`:'No checkpoint selected.';}
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('hidden',p.id!==b.dataset.tab));document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));});
+for(const id of ['assess','outcome'])$('#'+id+'-case').onchange=()=>evidence(id);
+for(const kind of ['checkpoint','assessment','outcome'])$('#'+kind+'-form').onsubmit=async e=>{e.preventDefault();const form=e.target,button=form.querySelector('button');button.disabled=true;try{const data=Object.fromEntries(new FormData(form));if(kind==='checkpoint'){data.observations=lines(data.observations);data.related_refs=lines(data.related_refs);}if(kind==='assessment'){data.confidence=Number(data.confidence);data.checkpoint_only=form.elements.checkpoint_only.checked;}const r=await fetch('/api/'+kind,{method:'POST',headers:{'Content-Type':'application/json','X-Collection-Token':token},body:JSON.stringify(data)}),v=await r.json();if(!r.ok)throw Error(v.error);message(`Saved ${kind} for ${v.incident_id} at ${v.recorded_at}. This entry is frozen.`);form.reset();await refresh();}catch(err){message(err.message,true)}finally{button.disabled=false}};
+$('#load-report').onclick=async()=>{try{const r=await fetch('/api/export');if(!r.ok)throw Error('Could not load report.');$('#report').textContent=JSON.stringify(await r.json(),null,2);$('#report').classList.remove('hidden')}catch(err){message(err.message,true)}};
+refresh().catch(e=>message(e.message,true));
+</script></html>
