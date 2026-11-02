@@ -240,9 +240,16 @@ class MLXBackend(Backend):
                 continue
 
             hidden = self._hidden_forward(run_ids, cache)  # (T_run, hidden)
-            rows = self.label_rows(list(row_labels))  # (K, hidden)
             h_ans = np.asarray(hidden[-1].astype(mx.float32))
-            z = (rows @ h_ans).astype(np.float64)
+            # Keep the model's projection and dtype. Recomputing selected rows in numpy
+            # float32 bypasses the BF16/quantized readout, which can flip near-tied labels.
+            if self._text.args.tie_word_embeddings:
+                vocab = self._text.model.embed_tokens.as_linear(hidden)
+            else:
+                vocab = self._text.lm_head(hidden)
+            last = vocab[-1, mx.array(ids)].astype(mx.float32)
+            mx.eval(last)
+            z = np.asarray(last).astype(np.float64)
             offsets = self.token_offsets(prefix + suffix)
             if row_ends:
                 if len(row_ends) != len(row_labels):

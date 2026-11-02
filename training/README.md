@@ -37,3 +37,18 @@ cache, `.hf/hub` (gitignored), offline. The shared `~/.cache/huggingface` was pr
 and took every Qwen base with it. Fetch a base before its run:
 
     HF_HUB_CACHE=$PWD/.hf/hub .venv-train/bin/python -c "from huggingface_hub import snapshot_download as s; s('Qwen/Qwen3-8B')"
+
+## Feature readout and ordinal loss
+
+`label_logits_with_features` (used by `lars.train.extract` for pointer-head features) reads label
+logits through the model's own output projection and dtype, matching ordinary inference. It
+previously recomputed the selected rows in numpy float32, bypassing BF16/quantized rounding, which
+could flip near-tied answers. `training/check_features.py --model <dir> --records <jsonl> --out
+<json>` checks that both readouts agree on real prompts before a new backbone uses this path.
+
+`lars.train.extract` takes `--holdout-sources` (the same fixed source holdout as the LoRA run) and
+`--max-tokens` (skip prompts longer than the trainer would). `lars.train.lora --ordinal-weight W`
+adds a ranked-probability-score loss on score records only; the default 0 keeps the original
+CE+Brier objective. Model-free tests (MLX on CPU is enough):
+
+    PYTHONPATH=training/src .venv-train/bin/python -m unittest discover -s training/tests -p test_training_fixes.py -v
