@@ -4,6 +4,9 @@ version = "0.0.0"
 description = "LARS training: the reference engine's source at ab59a0b (recovered from fixtures/.reference) with the SDK's changes"
 requires-python = ">=3.11"
 
+[project.optional-dependencies]
+calibration-study = ["numpy>=1.26", "scipy>=1.14"]
+
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
