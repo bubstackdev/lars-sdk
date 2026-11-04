@@ -105,3 +105,8 @@ The command:
 
 The packs' models come from `sweep/train.sh`: a LoRA trained with lars, fused, converted to GGUF
 and quantized with this repository's pinned llama.cpp.
+
+`tools/check_pack.mjs` checks a built pack end to end: it opens the pack through the Node SDK
+(`verify: true`), evaluates each row, and compares the answers with calibrated `lars-core`
+evaluation of the same rows (no label flips, probabilities within 0.001). It loads the pack's
+model; `node --test tools/check_pack.test.mjs` runs its model-free tests.
