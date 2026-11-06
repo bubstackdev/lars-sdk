@@ -61,6 +61,12 @@ fn main() {
     for lib in static_libs(&out) {
         println!("cargo:rustc-link-lib=static={lib}");
     }
+    // mtmd's installed archive references vendor-hash, which llama.cpp builds but does not install.
+    // Link the CMake output explicitly, including the configuration directory used by Visual Studio.
+    let hash_dir = out.join("build/vendor/hash");
+    println!("cargo:rustc-link-search=native={}", hash_dir.display());
+    println!("cargo:rustc-link-search=native={}", hash_dir.join("Release").display());
+    println!("cargo:rustc-link-lib=static=vendor-hash");
     if apple {
         for framework in ["Foundation", "Metal", "MetalKit", "Accelerate"] {
             println!("cargo:rustc-link-lib=framework={framework}");

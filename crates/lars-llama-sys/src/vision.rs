@@ -22,3 +22,16 @@ unsafe extern "C" {
         batch: i32,
     ) -> i32;
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn vision_links_and_refuses_a_missing_projector_without_a_model() {
+        let missing = std::env::temp_dir().join(format!("lars-missing-projector-{}.gguf", std::process::id()));
+        assert!(!missing.exists());
+        let path = std::ffi::CString::new(missing.to_str().unwrap()).unwrap();
+        // Loading a missing file must fail before dereferencing the model; no model or inference is involved.
+        let ctx = unsafe { super::lars_vision_open(path.as_ptr(), std::ptr::null(), false, 1, 1) };
+        assert!(ctx.is_null());
+    }
+}
