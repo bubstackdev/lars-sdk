@@ -1,0 +1,4512 @@
+{
+  "format": 1,
+  "suite": "vision-alpha-development-v1",
+  "suite_sha256": "7f775b492001947a426f3f1093b40fc5f1bd51fd90000b5b52663450b3f1733c",
+  "fixture_sources_sha256": "b3305cffd7ca86ae3a7e74a9921021c94fc34cfb49a685ef0aa9c90d01665273",
+  "started_at": "2026-10-19T16:34:01.978Z",
+  "sdk_runtime_version": "0.1.0-rc.1",
+  "pack": {
+    "format": 2,
+    "name": "lars-qwen3vl-2b-image-alpha",
+    "version": "0.1.0-image-alpha.1",
+    "backend": "llamacpp",
+    "template": "chatml",
+    "layout": "v1",
+    "runtime": {
+      "llama_cpp": "fb4b2737a808a3fb7c2117a498f43815dc9be53e",
+      "flash_attention": "off"
+    },
+    "vision": {
+      "preprocessing": "stb-rgb-white-v1",
+      "max_tokens": 256
+    },
+    "upstream": {
+      "repository": "Qwen/Qwen3-VL-2B-Instruct-GGUF",
+      "revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "license": "Apache-2.0",
+      "model_card": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF"
+    },
+    "model": {
+      "file": "model.gguf",
+      "bytes": 1107409952,
+      "sha256": "089d75c52f4b7ffc56ba998ffc50aae89fcafc755f9e7208aacca281dca6c2ae"
+    },
+    "projector": {
+      "file": "projector.gguf",
+      "bytes": 819394848,
+      "sha256": "c3d5afbef5287953acd57b4043d2269456e5761a4eaccb3b71b062996970aea5"
+    }
+  },
+  "host": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v24.21.0",
+    "os_release": "27.0.0",
+    "cpu": "Apple M5 Max",
+    "memory_bytes": 68719476736
+  },
+  "settings": {
+    "threads": 4,
+    "gpu_layers": -1,
+    "controls": "all",
+    "protocol": "direct-options-v1",
+    "calibration": "none"
+  },
+  "load_ms": 5576.465209,
+  "records": [
+    {
+      "id": "cat-01",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "A cat is visible",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9999,
+        "false": 0.00009999999999998899
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999995593e-8,
+      "duration_ms": 783.5543750000006
+    },
+    {
+      "id": "cat-01",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A cat is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0028,
+        "false": 0.9972
+      },
+      "confidence": 0.9972,
+      "calibrated": false,
+      "target_probability": 0.0028,
+      "brier": 1.9888156799999999,
+      "duration_ms": 149.10370799999964
+    },
+    {
+      "id": "cat-01",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "A cat is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 200.39724999999999
+    },
+    {
+      "id": "cat-02",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "A coffee cup is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0003,
+        "false": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.9997,
+      "brier": 1.7999999999998017e-7,
+      "duration_ms": 120.90554199999951
+    },
+    {
+      "id": "cat-02",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A coffee cup is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0058,
+        "false": 0.9942
+      },
+      "confidence": 0.9942,
+      "calibrated": false,
+      "target_probability": 0.9942,
+      "brier": 0.00006728000000000032,
+      "duration_ms": 122.16516700000011
+    },
+    {
+      "id": "cat-02",
+      "group": "cat",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "A coffee cup is visible",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9998,
+        "false": 0.00019999999999997797
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.00019999999999997797,
+      "brier": 1.99920008,
+      "duration_ms": 145.99770799999988
+    },
+    {
+      "id": "cat-03",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "What is the main subject of the photograph?",
+      "label": "cat",
+      "prediction": "cat",
+      "probabilities": {
+        "cat": 0.9999,
+        "coffee": 0,
+        "astronaut": 0,
+        "other": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 9.999999999997797e-9,
+      "duration_ms": 157.8045830000001,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-03",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the main subject of the photograph?",
+      "label": "cat",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0857,
+        "coffee": 0.1308,
+        "astronaut": 0.1894,
+        "other": 0.5941
+      },
+      "confidence": 0.5941,
+      "calibrated": false,
+      "target_probability": 0.0857,
+      "brier": 1.2418803,
+      "duration_ms": 156.8800000000001,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-03",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "What is the main subject of the photograph?",
+      "label": "cat",
+      "prediction": "coffee",
+      "probabilities": {
+        "cat": 0,
+        "coffee": 1,
+        "astronaut": 0,
+        "other": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 153.9449999999997,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-03",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "What is the main subject of the photograph?",
+      "label": "cat",
+      "prediction": "cat",
+      "probabilities": {
+        "other": 0.0001,
+        "astronaut": 0,
+        "coffee": 0,
+        "cat": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 121.8799170000002,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "cat-04",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "cat",
+      "prediction": "cat",
+      "probabilities": {
+        "cat": 0.9999,
+        "coffee": 0,
+        "astronaut": 0,
+        "other": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 9.999999999997797e-9,
+      "duration_ms": 119.10583399999996,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-04",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "cat",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.002,
+        "coffee": 0.0008,
+        "astronaut": 0.002,
+        "other": 0.9952
+      },
+      "confidence": 0.9952,
+      "calibrated": false,
+      "target_probability": 0.002,
+      "brier": 1.98643168,
+      "duration_ms": 163.26383299999998,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-04",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "cat",
+      "prediction": "coffee",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0.9998,
+        "astronaut": 0,
+        "other": 0.0001
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9994000600000001,
+      "duration_ms": 196.33016699999916,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "cat-04",
+      "group": "cat",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "cat",
+      "prediction": "cat",
+      "probabilities": {
+        "other": 0.0001,
+        "astronaut": 0,
+        "coffee": 0,
+        "cat": 0.9998
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 4.999999999999118e-8,
+      "duration_ms": 125.95970800000032,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "coffee-05",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9998,
+        "false": 0.00019999999999997797
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 7.999999999998237e-8,
+      "duration_ms": 181.8776659999985
+    },
+    {
+      "id": "coffee-05",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0058,
+        "false": 0.9942
+      },
+      "confidence": 0.9942,
+      "calibrated": false,
+      "target_probability": 0.0058,
+      "brier": 1.9768672799999998,
+      "duration_ms": 187.0803339999984
+    },
+    {
+      "id": "coffee-05",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0003,
+        "false": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0003,
+      "brier": 1.9988001800000001,
+      "duration_ms": 183.0747080000001
+    },
+    {
+      "id": "coffee-06",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 188.2574999999997
+    },
+    {
+      "id": "coffee-06",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0028,
+        "false": 0.9972
+      },
+      "confidence": 0.9972,
+      "calibrated": false,
+      "target_probability": 0.9972,
+      "brier": 0.000015680000000000138,
+      "duration_ms": 186.4900830000006
+    },
+    {
+      "id": "coffee-06",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0001,
+        "false": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 176.47054099999878
+    },
+    {
+      "id": "coffee-07",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "cat": 0,
+        "coffee": 1,
+        "astronaut": 0,
+        "other": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 212.99045800000022,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-07",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0857,
+        "coffee": 0.1308,
+        "astronaut": 0.1894,
+        "other": 0.5941
+      },
+      "confidence": 0.5941,
+      "calibrated": false,
+      "target_probability": 0.1308,
+      "brier": 1.1516803,
+      "duration_ms": 174.11141700000007,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-07",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "astronaut",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0,
+        "astronaut": 0.9999,
+        "other": 0.0001
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 1.9998000299999998,
+      "duration_ms": 171.960833000001,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-07",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "other": 0.0001,
+        "astronaut": 0,
+        "coffee": 0.9999,
+        "cat": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 179.49241699999948,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "coffee-08",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0.9998,
+        "astronaut": 0,
+        "other": 0.0001
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 5.999999999999118e-8,
+      "duration_ms": 231.37345800000003,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-08",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "coffee",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.002,
+        "coffee": 0.0008,
+        "astronaut": 0.002,
+        "other": 0.9952
+      },
+      "confidence": 0.9952,
+      "calibrated": false,
+      "target_probability": 0.0008,
+      "brier": 1.9888316799999999,
+      "duration_ms": 176.5555829999994,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-08",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "coffee",
+      "prediction": "astronaut",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0,
+        "astronaut": 0.9997,
+        "other": 0.0001
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 1.9994001099999998,
+      "duration_ms": 169.91354200000023,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-08",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/coffee.png",
+      "image_sha256": "cc02f8ca188b167c775a7101b5d767d1e71792cf762c33d6fa15a4599b5a8de7",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "other": 0.0005,
+        "astronaut": 0,
+        "coffee": 0.9994,
+        "cat": 0
+      },
+      "confidence": 0.9994,
+      "calibrated": false,
+      "target_probability": 0.9994,
+      "brier": 6.100000000000539e-7,
+      "duration_ms": 175.14033299999937,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "astronaut-09",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "A person wearing a spacesuit is visible",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9982,
+        "false": 0.0018000000000000238
+      },
+      "confidence": 0.9982,
+      "calibrated": false,
+      "target_probability": 0.9982,
+      "brier": 0.000006480000000000172,
+      "duration_ms": 160.56187500000124
+    },
+    {
+      "id": "astronaut-09",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A person wearing a spacesuit is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0038,
+        "false": 0.9962
+      },
+      "confidence": 0.9962,
+      "calibrated": false,
+      "target_probability": 0.0038,
+      "brier": 1.9848288799999998,
+      "duration_ms": 154.29845900000146
+    },
+    {
+      "id": "astronaut-09",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "A person wearing a spacesuit is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 161.5826249999991
+    },
+    {
+      "id": "astronaut-10",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0001,
+        "false": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 158.78458300000057
+    },
+    {
+      "id": "astronaut-10",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0028,
+        "false": 0.9972
+      },
+      "confidence": 0.9972,
+      "calibrated": false,
+      "target_probability": 0.9972,
+      "brier": 0.000015680000000000138,
+      "duration_ms": 174.4758750000001
+    },
+    {
+      "id": "astronaut-10",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "A cat is visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 180.80366700000013
+    },
+    {
+      "id": "astronaut-11",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "What is the main subject of the photograph?",
+      "label": "astronaut",
+      "prediction": "astronaut",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0,
+        "astronaut": 0.9999,
+        "other": 0.0001
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 2.9999999999997794e-8,
+      "duration_ms": 178.24966700000004,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-11",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the main subject of the photograph?",
+      "label": "astronaut",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0857,
+        "coffee": 0.1308,
+        "astronaut": 0.1894,
+        "other": 0.5941
+      },
+      "confidence": 0.5941,
+      "calibrated": false,
+      "target_probability": 0.1894,
+      "brier": 1.0344803,
+      "duration_ms": 181.6073749999996,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-11",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "What is the main subject of the photograph?",
+      "label": "astronaut",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0037,
+        "coffee": 0.0276,
+        "astronaut": 0.0009,
+        "other": 0.9678
+      },
+      "confidence": 0.9678,
+      "calibrated": false,
+      "target_probability": 0.0009,
+      "brier": 1.9356130999999999,
+      "duration_ms": 167.81262500000048,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-11",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "What is the main subject of the photograph?",
+      "label": "astronaut",
+      "prediction": "astronaut",
+      "probabilities": {
+        "other": 0,
+        "astronaut": 1,
+        "coffee": 0,
+        "cat": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 180.7444579999992,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "astronaut-12",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "astronaut",
+      "prediction": "astronaut",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0,
+        "astronaut": 0.9997,
+        "other": 0.0001
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.9997,
+      "brier": 1.0999999999998017e-7,
+      "duration_ms": 172.3434580000012,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-12",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "astronaut",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.002,
+        "coffee": 0.0008,
+        "astronaut": 0.002,
+        "other": 0.9952
+      },
+      "confidence": 0.9952,
+      "calibrated": false,
+      "target_probability": 0.002,
+      "brier": 1.98643168,
+      "duration_ms": 171.66354200000023,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-12",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "astronaut",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0035,
+        "coffee": 0.0041,
+        "astronaut": 0.0016,
+        "other": 0.9908
+      },
+      "confidence": 0.9908,
+      "calibrated": false,
+      "target_probability": 0.0016,
+      "brier": 1.97851626,
+      "duration_ms": 168.457124999999,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "astronaut-12",
+      "group": "astronaut",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "Which subject is actually visible in the photo?",
+      "label": "astronaut",
+      "prediction": "astronaut",
+      "probabilities": {
+        "other": 0.0001,
+        "astronaut": 0.9999,
+        "coffee": 0,
+        "cat": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 170.567583,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "coffee-13",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/coffee.jpg",
+      "image_sha256": "a0ad2ae27b7836c538e38a9453b18726c229850eedb913295f01408cd1e4c52d",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9998,
+        "false": 0.00019999999999997797
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 7.999999999998237e-8,
+      "duration_ms": 160.10754199999974
+    },
+    {
+      "id": "coffee-13",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0058,
+        "false": 0.9942
+      },
+      "confidence": 0.9942,
+      "calibrated": false,
+      "target_probability": 0.0058,
+      "brier": 1.9768672799999998,
+      "duration_ms": 163.76270799999838
+    },
+    {
+      "id": "coffee-13",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "A coffee cup is visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0003,
+        "false": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0003,
+      "brier": 1.9988001800000001,
+      "duration_ms": 151.69720899999993
+    },
+    {
+      "id": "coffee-14",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/coffee.jpg",
+      "image_sha256": "a0ad2ae27b7836c538e38a9453b18726c229850eedb913295f01408cd1e4c52d",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "cat": 0,
+        "coffee": 1,
+        "astronaut": 0,
+        "other": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 157.84720899999957,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-14",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "other",
+      "probabilities": {
+        "cat": 0.0857,
+        "coffee": 0.1308,
+        "astronaut": 0.1894,
+        "other": 0.5941
+      },
+      "confidence": 0.5941,
+      "calibrated": false,
+      "target_probability": 0.1308,
+      "brier": 1.1516803,
+      "duration_ms": 169.53191700000025,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-14",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/astronaut.png",
+      "image_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "astronaut",
+      "probabilities": {
+        "cat": 0.0001,
+        "coffee": 0,
+        "astronaut": 0.9999,
+        "other": 0.0001
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 1.9998000299999998,
+      "duration_ms": 150.82324999999946,
+      "option_order": [
+        "cat",
+        "coffee",
+        "astronaut",
+        "other"
+      ]
+    },
+    {
+      "id": "coffee-14",
+      "group": "coffee",
+      "category": "photos",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/coffee.jpg",
+      "image_sha256": "a0ad2ae27b7836c538e38a9453b18726c229850eedb913295f01408cd1e4c52d",
+      "question": "What is the main subject of the photograph?",
+      "label": "coffee",
+      "prediction": "coffee",
+      "probabilities": {
+        "other": 0.0001,
+        "astronaut": 0,
+        "coffee": 0.9999,
+        "cat": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 162.61504200000127,
+      "option_order": [
+        "other",
+        "astronaut",
+        "coffee",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "payment-paid-15",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "The payment status shown is PAID",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9999,
+        "false": 0.00009999999999998899
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999995593e-8,
+      "duration_ms": 158.52816699999858
+    },
+    {
+      "id": "payment-paid-15",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The payment status shown is PAID",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.07,
+        "false": 0.9299999999999999
+      },
+      "confidence": 0.9299999999999999,
+      "calibrated": false,
+      "target_probability": 0.07,
+      "brier": 1.7297999999999998,
+      "duration_ms": 157.59158399999978
+    },
+    {
+      "id": "payment-paid-15",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/payment-failed.png",
+      "image_sha256": "f6a362f762667e58cd7cbe4c0e1e252c3b04ab81b1fa0fbf938891017e56ac46",
+      "question": "The payment status shown is PAID",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 159.7254580000008
+    },
+    {
+      "id": "payment-paid-16",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "What payment status is shown?",
+      "label": "paid",
+      "prediction": "paid",
+      "probabilities": {
+        "paid": 1,
+        "failed": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 165.4827089999999,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-paid-16",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What payment status is shown?",
+      "label": "paid",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.0059,
+        "failed": 0.0014,
+        "unknown": 0.9927
+      },
+      "confidence": 0.9927,
+      "calibrated": false,
+      "target_probability": 0.0059,
+      "brier": 1.97369006,
+      "duration_ms": 153.22120800000084,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-paid-16",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/payment-failed.png",
+      "image_sha256": "f6a362f762667e58cd7cbe4c0e1e252c3b04ab81b1fa0fbf938891017e56ac46",
+      "question": "What payment status is shown?",
+      "label": "paid",
+      "prediction": "failed",
+      "probabilities": {
+        "paid": 0,
+        "failed": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 161.74454199999855,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-paid-16",
+      "group": "payment-paid",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/payment-paid.png",
+      "image_sha256": "e9c282309b830925eacd3982756ab168ddbac2d657a9cc70102f6033e9ef0b6a",
+      "question": "What payment status is shown?",
+      "label": "paid",
+      "prediction": "paid",
+      "probabilities": {
+        "unknown": 0,
+        "failed": 0,
+        "paid": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 174.90920899999946,
+      "option_order": [
+        "unknown",
+        "failed",
+        "paid"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "payment-failed-17",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/payment-failed.png",
+      "image_sha256": "f6a362f762667e58cd7cbe4c0e1e252c3b04ab81b1fa0fbf938891017e56ac46",
+      "question": "The payment status shown is PAID",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 161.95370900000125
+    },
+    {
+      "id": "payment-failed-17",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The payment status shown is PAID",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.07,
+        "false": 0.9299999999999999
+      },
+      "confidence": 0.9299999999999999,
+      "calibrated": false,
+      "target_probability": 0.9299999999999999,
+      "brier": 0.00980000000000001,
+      "duration_ms": 162.52074999999968
+    },
+    {
+      "id": "payment-failed-17",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/wifi-off.png",
+      "image_sha256": "67f7bd572a9965edc6f4c09a334ebea1e5ff09150174a077331e6f9db735abde",
+      "question": "The payment status shown is PAID",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0027,
+        "false": 0.9973
+      },
+      "confidence": 0.9973,
+      "calibrated": false,
+      "target_probability": 0.9973,
+      "brier": 0.000014580000000000192,
+      "duration_ms": 156.00254200000018
+    },
+    {
+      "id": "payment-failed-18",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/payment-failed.png",
+      "image_sha256": "f6a362f762667e58cd7cbe4c0e1e252c3b04ab81b1fa0fbf938891017e56ac46",
+      "question": "What payment status is shown?",
+      "label": "failed",
+      "prediction": "failed",
+      "probabilities": {
+        "paid": 0,
+        "failed": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 159.61779100000058,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-failed-18",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What payment status is shown?",
+      "label": "failed",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.0059,
+        "failed": 0.0014,
+        "unknown": 0.9927
+      },
+      "confidence": 0.9927,
+      "calibrated": false,
+      "target_probability": 0.0014,
+      "brier": 1.9826900600000001,
+      "duration_ms": 149.5373750000017,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-failed-18",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/wifi-off.png",
+      "image_sha256": "67f7bd572a9965edc6f4c09a334ebea1e5ff09150174a077331e6f9db735abde",
+      "question": "What payment status is shown?",
+      "label": "failed",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.0063,
+        "failed": 0.001,
+        "unknown": 0.9926
+      },
+      "confidence": 0.9926,
+      "calibrated": false,
+      "target_probability": 0.001,
+      "brier": 1.9832954500000002,
+      "duration_ms": 172.9197920000006,
+      "option_order": [
+        "paid",
+        "failed",
+        "unknown"
+      ]
+    },
+    {
+      "id": "payment-failed-18",
+      "group": "payment-failed",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/payment-failed.png",
+      "image_sha256": "f6a362f762667e58cd7cbe4c0e1e252c3b04ab81b1fa0fbf938891017e56ac46",
+      "question": "What payment status is shown?",
+      "label": "failed",
+      "prediction": "failed",
+      "probabilities": {
+        "unknown": 0,
+        "failed": 1,
+        "paid": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 163.71474999999919,
+      "option_order": [
+        "unknown",
+        "failed",
+        "paid"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "wifi-off-19",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/wifi-off.png",
+      "image_sha256": "67f7bd572a9965edc6f4c09a334ebea1e5ff09150174a077331e6f9db735abde",
+      "question": "Wi-Fi is shown as ON",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 171.3959160000013
+    },
+    {
+      "id": "wifi-off-19",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Wi-Fi is shown as ON",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.1394,
+        "false": 0.8606
+      },
+      "confidence": 0.8606,
+      "calibrated": false,
+      "target_probability": 0.8606,
+      "brier": 0.03886471999999999,
+      "duration_ms": 142.57908300000054
+    },
+    {
+      "id": "wifi-off-19",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/wifi-on.png",
+      "image_sha256": "47d9a3d860cb810d26887339d250897ef1138551fd33f2e47ad347d37e14232d",
+      "question": "Wi-Fi is shown as ON",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 149.1832080000022
+    },
+    {
+      "id": "wifi-off-20",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/wifi-off.png",
+      "image_sha256": "67f7bd572a9965edc6f4c09a334ebea1e5ff09150174a077331e6f9db735abde",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "off",
+      "prediction": "off",
+      "probabilities": {
+        "on": 0,
+        "off": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 170.98508299999958,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-off-20",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "off",
+      "prediction": "unknown",
+      "probabilities": {
+        "on": 0.004,
+        "off": 0.0071,
+        "unknown": 0.989
+      },
+      "confidence": 0.989,
+      "calibrated": false,
+      "target_probability": 0.0071,
+      "brier": 1.96398741,
+      "duration_ms": 166.609457999999,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-off-20",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/wifi-on.png",
+      "image_sha256": "47d9a3d860cb810d26887339d250897ef1138551fd33f2e47ad347d37e14232d",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "off",
+      "prediction": "on",
+      "probabilities": {
+        "on": 1,
+        "off": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 155.2367919999997,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-off-20",
+      "group": "wifi-off",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/wifi-off.png",
+      "image_sha256": "67f7bd572a9965edc6f4c09a334ebea1e5ff09150174a077331e6f9db735abde",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "off",
+      "prediction": "off",
+      "probabilities": {
+        "unknown": 0,
+        "off": 1,
+        "on": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 158.6706669999985,
+      "option_order": [
+        "unknown",
+        "off",
+        "on"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "wifi-on-21",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/wifi-on.png",
+      "image_sha256": "47d9a3d860cb810d26887339d250897ef1138551fd33f2e47ad347d37e14232d",
+      "question": "Wi-Fi is shown as ON",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 162.1852089999993
+    },
+    {
+      "id": "wifi-on-21",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Wi-Fi is shown as ON",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.1394,
+        "false": 0.8606
+      },
+      "confidence": 0.8606,
+      "calibrated": false,
+      "target_probability": 0.1394,
+      "brier": 1.4812647200000002,
+      "duration_ms": 152.3293330000015
+    },
+    {
+      "id": "wifi-on-21",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/inbox-0.png",
+      "image_sha256": "b4eaa64cc690d5dcd2ee59ea53e8be5442042af17cd1b9ba0cf057a1850aa393",
+      "question": "Wi-Fi is shown as ON",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0268,
+        "false": 0.9732
+      },
+      "confidence": 0.9732,
+      "calibrated": false,
+      "target_probability": 0.0268,
+      "brier": 1.8942364799999998,
+      "duration_ms": 159.59362500000134
+    },
+    {
+      "id": "wifi-on-22",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/wifi-on.png",
+      "image_sha256": "47d9a3d860cb810d26887339d250897ef1138551fd33f2e47ad347d37e14232d",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "on",
+      "prediction": "on",
+      "probabilities": {
+        "on": 1,
+        "off": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 166.83637499999895,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-on-22",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "on",
+      "prediction": "unknown",
+      "probabilities": {
+        "on": 0.004,
+        "off": 0.0071,
+        "unknown": 0.989
+      },
+      "confidence": 0.989,
+      "calibrated": false,
+      "target_probability": 0.004,
+      "brier": 1.9701874099999999,
+      "duration_ms": 152.38474999999744,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-on-22",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/inbox-0.png",
+      "image_sha256": "b4eaa64cc690d5dcd2ee59ea53e8be5442042af17cd1b9ba0cf057a1850aa393",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "on",
+      "prediction": "unknown",
+      "probabilities": {
+        "on": 0.0143,
+        "off": 0.0737,
+        "unknown": 0.912
+      },
+      "confidence": 0.912,
+      "calibrated": false,
+      "target_probability": 0.0143,
+      "brier": 1.80878018,
+      "duration_ms": 167.81508299999768,
+      "option_order": [
+        "on",
+        "off",
+        "unknown"
+      ]
+    },
+    {
+      "id": "wifi-on-22",
+      "group": "wifi-on",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/wifi-on.png",
+      "image_sha256": "47d9a3d860cb810d26887339d250897ef1138551fd33f2e47ad347d37e14232d",
+      "question": "What is the Wi-Fi setting shown?",
+      "label": "on",
+      "prediction": "on",
+      "probabilities": {
+        "unknown": 0.0001,
+        "off": 0,
+        "on": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 165.55074999999852,
+      "option_order": [
+        "unknown",
+        "off",
+        "on"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "inbox-0-23",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/inbox-0.png",
+      "image_sha256": "b4eaa64cc690d5dcd2ee59ea53e8be5442042af17cd1b9ba0cf057a1850aa393",
+      "question": "There are unread messages in the inbox",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0001,
+        "false": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 163.1947500000024
+    },
+    {
+      "id": "inbox-0-23",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "There are unread messages in the inbox",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.006,
+        "false": 0.994
+      },
+      "confidence": 0.994,
+      "calibrated": false,
+      "target_probability": 0.994,
+      "brier": 0.00007200000000000007,
+      "duration_ms": 149.3065830000014
+    },
+    {
+      "id": "inbox-0-23",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/inbox-3.png",
+      "image_sha256": "37e2430e2a15cebaa6045e43efe5659058d3bb3b1be226896dcede605ba4703a",
+      "question": "There are unread messages in the inbox",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 146.2619169999998
+    },
+    {
+      "id": "inbox-0-24",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/inbox-0.png",
+      "image_sha256": "b4eaa64cc690d5dcd2ee59ea53e8be5442042af17cd1b9ba0cf057a1850aa393",
+      "question": "How many unread messages are shown?",
+      "label": "0",
+      "prediction": "0",
+      "probabilities": {
+        "0": 1,
+        "1": 0,
+        "3": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 160.17262499999924,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-0-24",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "How many unread messages are shown?",
+      "label": "0",
+      "prediction": "unknown",
+      "probabilities": {
+        "0": 0.023,
+        "1": 0.0002,
+        "3": 0.0002,
+        "unknown": 0.9766
+      },
+      "confidence": 0.9766,
+      "calibrated": false,
+      "target_probability": 0.023,
+      "brier": 1.90827664,
+      "duration_ms": 142.24812499999825,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-0-24",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/inbox-3.png",
+      "image_sha256": "37e2430e2a15cebaa6045e43efe5659058d3bb3b1be226896dcede605ba4703a",
+      "question": "How many unread messages are shown?",
+      "label": "0",
+      "prediction": "3",
+      "probabilities": {
+        "0": 0,
+        "1": 0,
+        "3": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 160.29008299999987,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-0-24",
+      "group": "inbox-0",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/inbox-0.png",
+      "image_sha256": "b4eaa64cc690d5dcd2ee59ea53e8be5442042af17cd1b9ba0cf057a1850aa393",
+      "question": "How many unread messages are shown?",
+      "label": "0",
+      "prediction": "0",
+      "probabilities": {
+        "0": 1,
+        "1": 0,
+        "3": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 150.77124999999796,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ],
+      "option_order_changed": false
+    },
+    {
+      "id": "inbox-3-25",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/inbox-3.png",
+      "image_sha256": "37e2430e2a15cebaa6045e43efe5659058d3bb3b1be226896dcede605ba4703a",
+      "question": "There are unread messages in the inbox",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 150.65870800000266
+    },
+    {
+      "id": "inbox-3-25",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "There are unread messages in the inbox",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.006,
+        "false": 0.994
+      },
+      "confidence": 0.994,
+      "calibrated": false,
+      "target_probability": 0.006,
+      "brier": 1.976072,
+      "duration_ms": 146.1891660000001
+    },
+    {
+      "id": "inbox-3-25",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/invoice-overdue.png",
+      "image_sha256": "933543a1edcd54c79d5aa0c800720bb99c90fae898beab62072be960c9dcca59",
+      "question": "There are unread messages in the inbox",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0025,
+        "false": 0.9975
+      },
+      "confidence": 0.9975,
+      "calibrated": false,
+      "target_probability": 0.0025,
+      "brier": 1.9900125000000002,
+      "duration_ms": 151.83558300000004
+    },
+    {
+      "id": "inbox-3-26",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/inbox-3.png",
+      "image_sha256": "37e2430e2a15cebaa6045e43efe5659058d3bb3b1be226896dcede605ba4703a",
+      "question": "How many unread messages are shown?",
+      "label": "3",
+      "prediction": "3",
+      "probabilities": {
+        "0": 0,
+        "1": 0,
+        "3": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 152.24795799999993,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-3-26",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "How many unread messages are shown?",
+      "label": "3",
+      "prediction": "unknown",
+      "probabilities": {
+        "0": 0.023,
+        "1": 0.0002,
+        "3": 0.0002,
+        "unknown": 0.9766
+      },
+      "confidence": 0.9766,
+      "calibrated": false,
+      "target_probability": 0.0002,
+      "brier": 1.95387664,
+      "duration_ms": 150.0410840000004,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-3-26",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/invoice-overdue.png",
+      "image_sha256": "933543a1edcd54c79d5aa0c800720bb99c90fae898beab62072be960c9dcca59",
+      "question": "How many unread messages are shown?",
+      "label": "3",
+      "prediction": "unknown",
+      "probabilities": {
+        "0": 0.0699,
+        "1": 0.0034,
+        "3": 0.0011,
+        "unknown": 0.9256
+      },
+      "confidence": 0.9256,
+      "calibrated": false,
+      "target_probability": 0.0011,
+      "brier": 1.8594341399999998,
+      "duration_ms": 155.67645899999843,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "inbox-3-26",
+      "group": "inbox-3",
+      "category": "screenshots",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/inbox-3.png",
+      "image_sha256": "37e2430e2a15cebaa6045e43efe5659058d3bb3b1be226896dcede605ba4703a",
+      "question": "How many unread messages are shown?",
+      "label": "3",
+      "prediction": "3",
+      "probabilities": {
+        "0": 0,
+        "1": 0,
+        "3": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 152.63054099999863,
+      "option_order": [
+        "0",
+        "1",
+        "3",
+        "unknown"
+      ],
+      "option_order_changed": false
+    },
+    {
+      "id": "invoice-overdue-27",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/invoice-overdue.png",
+      "image_sha256": "933543a1edcd54c79d5aa0c800720bb99c90fae898beab62072be960c9dcca59",
+      "question": "The invoice is marked PAID",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 150.929583000001
+    },
+    {
+      "id": "invoice-overdue-27",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The invoice is marked PAID",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0135,
+        "false": 0.9865
+      },
+      "confidence": 0.9865,
+      "calibrated": false,
+      "target_probability": 0.9865,
+      "brier": 0.00036449999999999883,
+      "duration_ms": 160.64574999999968
+    },
+    {
+      "id": "invoice-overdue-27",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/invoice-paid.png",
+      "image_sha256": "459b488b4afbca5582b658f1b93f70e801c3ee7ed375050b397bf1235c794400",
+      "question": "The invoice is marked PAID",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9997,
+        "false": 0.00029999999999996696
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.00029999999999996696,
+      "brier": 1.9988001800000001,
+      "duration_ms": 159.63945800000147
+    },
+    {
+      "id": "invoice-overdue-28",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/invoice-overdue.png",
+      "image_sha256": "933543a1edcd54c79d5aa0c800720bb99c90fae898beab62072be960c9dcca59",
+      "question": "What status is printed on the invoice?",
+      "label": "overdue",
+      "prediction": "overdue",
+      "probabilities": {
+        "paid": 0,
+        "overdue": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 154.8040000000001,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-overdue-28",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What status is printed on the invoice?",
+      "label": "overdue",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.0002,
+        "overdue": 0.0001,
+        "unknown": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9992001400000001,
+      "duration_ms": 153.04312500000015,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-overdue-28",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/invoice-paid.png",
+      "image_sha256": "459b488b4afbca5582b658f1b93f70e801c3ee7ed375050b397bf1235c794400",
+      "question": "What status is printed on the invoice?",
+      "label": "overdue",
+      "prediction": "paid",
+      "probabilities": {
+        "paid": 1,
+        "overdue": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 168.03879099999904,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-overdue-28",
+      "group": "invoice-overdue",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/invoice-overdue.png",
+      "image_sha256": "933543a1edcd54c79d5aa0c800720bb99c90fae898beab62072be960c9dcca59",
+      "question": "What status is printed on the invoice?",
+      "label": "overdue",
+      "prediction": "overdue",
+      "probabilities": {
+        "unknown": 0,
+        "overdue": 1,
+        "paid": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 156.34341700000004,
+      "option_order": [
+        "unknown",
+        "overdue",
+        "paid"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "invoice-paid-29",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/invoice-paid.png",
+      "image_sha256": "459b488b4afbca5582b658f1b93f70e801c3ee7ed375050b397bf1235c794400",
+      "question": "The invoice is marked PAID",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9997,
+        "false": 0.00029999999999996696
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.9997,
+      "brier": 1.7999999999996035e-7,
+      "duration_ms": 160.2398749999993
+    },
+    {
+      "id": "invoice-paid-29",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The invoice is marked PAID",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0135,
+        "false": 0.9865
+      },
+      "confidence": 0.9865,
+      "calibrated": false,
+      "target_probability": 0.0135,
+      "brier": 1.9463645000000003,
+      "duration_ms": 144.58241700000144
+    },
+    {
+      "id": "invoice-paid-29",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/receipt-24-50.png",
+      "image_sha256": "a8ab56477eba6349bff02051b859a29dcfc80dba808d160a9f9146227095b459",
+      "question": "The invoice is marked PAID",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0008,
+        "false": 0.9992
+      },
+      "confidence": 0.9992,
+      "calibrated": false,
+      "target_probability": 0.0008,
+      "brier": 1.99680128,
+      "duration_ms": 149.64591700000165
+    },
+    {
+      "id": "invoice-paid-30",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/invoice-paid.png",
+      "image_sha256": "459b488b4afbca5582b658f1b93f70e801c3ee7ed375050b397bf1235c794400",
+      "question": "What status is printed on the invoice?",
+      "label": "paid",
+      "prediction": "paid",
+      "probabilities": {
+        "paid": 1,
+        "overdue": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 149.64449999999852,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-paid-30",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What status is printed on the invoice?",
+      "label": "paid",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.0002,
+        "overdue": 0.0001,
+        "unknown": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0002,
+      "brier": 1.9990001400000001,
+      "duration_ms": 138.4152920000015,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-paid-30",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/receipt-24-50.png",
+      "image_sha256": "a8ab56477eba6349bff02051b859a29dcfc80dba808d160a9f9146227095b459",
+      "question": "What status is printed on the invoice?",
+      "label": "paid",
+      "prediction": "unknown",
+      "probabilities": {
+        "paid": 0.3957,
+        "overdue": 0.0039,
+        "unknown": 0.6004
+      },
+      "confidence": 0.6004,
+      "calibrated": false,
+      "target_probability": 0.3957,
+      "brier": 0.7256738600000001,
+      "duration_ms": 154.72691699999996,
+      "option_order": [
+        "paid",
+        "overdue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "invoice-paid-30",
+      "group": "invoice-paid",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/invoice-paid.png",
+      "image_sha256": "459b488b4afbca5582b658f1b93f70e801c3ee7ed375050b397bf1235c794400",
+      "question": "What status is printed on the invoice?",
+      "label": "paid",
+      "prediction": "paid",
+      "probabilities": {
+        "unknown": 0,
+        "overdue": 0,
+        "paid": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 146.15158299999894,
+      "option_order": [
+        "unknown",
+        "overdue",
+        "paid"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "receipt-24-50-31",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/receipt-24-50.png",
+      "image_sha256": "a8ab56477eba6349bff02051b859a29dcfc80dba808d160a9f9146227095b459",
+      "question": "The receipt total is $24.50",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9998,
+        "false": 0.00019999999999997797
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 7.999999999998237e-8,
+      "duration_ms": 151.30033299999923
+    },
+    {
+      "id": "receipt-24-50-31",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The receipt total is $24.50",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0037,
+        "false": 0.9963
+      },
+      "confidence": 0.9963,
+      "calibrated": false,
+      "target_probability": 0.0037,
+      "brier": 1.9852273799999998,
+      "duration_ms": 150.49816699999792
+    },
+    {
+      "id": "receipt-24-50-31",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/receipt-42-00.png",
+      "image_sha256": "7abf2edef2032b3e52d646bd460aece228236aab6acbde1d8f0cc983e54b78c1",
+      "question": "The receipt total is $24.50",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0001,
+        "false": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9996000200000001,
+      "duration_ms": 153.02187499999854
+    },
+    {
+      "id": "receipt-24-50-32",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/receipt-24-50.png",
+      "image_sha256": "a8ab56477eba6349bff02051b859a29dcfc80dba808d160a9f9146227095b459",
+      "question": "What total is printed on the receipt?",
+      "label": "24.50",
+      "prediction": "24.50",
+      "probabilities": {
+        "24.50": 1,
+        "42.00": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 153.0178330000017,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-24-50-32",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What total is printed on the receipt?",
+      "label": "24.50",
+      "prediction": "unknown",
+      "probabilities": {
+        "24.50": 0.0001,
+        "42.00": 0.0001,
+        "unknown": 0.9998
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9994000600000001,
+      "duration_ms": 146.164041,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-24-50-32",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/receipt-42-00.png",
+      "image_sha256": "7abf2edef2032b3e52d646bd460aece228236aab6acbde1d8f0cc983e54b78c1",
+      "question": "What total is printed on the receipt?",
+      "label": "24.50",
+      "prediction": "42.00",
+      "probabilities": {
+        "24.50": 0,
+        "42.00": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 153.76033299999835,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-24-50-32",
+      "group": "receipt-24-50",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/receipt-24-50.png",
+      "image_sha256": "a8ab56477eba6349bff02051b859a29dcfc80dba808d160a9f9146227095b459",
+      "question": "What total is printed on the receipt?",
+      "label": "24.50",
+      "prediction": "24.50",
+      "probabilities": {
+        "unknown": 0,
+        "42.00": 0,
+        "24.50": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 151.70341700000063,
+      "option_order": [
+        "unknown",
+        "42.00",
+        "24.50"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "receipt-42-00-33",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/receipt-42-00.png",
+      "image_sha256": "7abf2edef2032b3e52d646bd460aece228236aab6acbde1d8f0cc983e54b78c1",
+      "question": "The receipt total is $24.50",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0001,
+        "false": 0.9999
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999997797e-8,
+      "duration_ms": 149.60458300000028
+    },
+    {
+      "id": "receipt-42-00-33",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The receipt total is $24.50",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0037,
+        "false": 0.9963
+      },
+      "confidence": 0.9963,
+      "calibrated": false,
+      "target_probability": 0.9963,
+      "brier": 0.00002738000000000027,
+      "duration_ms": 147.11304200000086
+    },
+    {
+      "id": "receipt-42-00-33",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/red-right.png",
+      "image_sha256": "b4b7c3177fbbf408ab69aaa63c7d4e587dc51f77253fc2057a7f39315368a991",
+      "question": "The receipt total is $24.50",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0076,
+        "false": 0.9924
+      },
+      "confidence": 0.9924,
+      "calibrated": false,
+      "target_probability": 0.9924,
+      "brier": 0.00011552000000000078,
+      "duration_ms": 146.19275000000198
+    },
+    {
+      "id": "receipt-42-00-34",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/receipt-42-00.png",
+      "image_sha256": "7abf2edef2032b3e52d646bd460aece228236aab6acbde1d8f0cc983e54b78c1",
+      "question": "What total is printed on the receipt?",
+      "label": "42.00",
+      "prediction": "42.00",
+      "probabilities": {
+        "24.50": 0,
+        "42.00": 1,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 153.1934590000019,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-42-00-34",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What total is printed on the receipt?",
+      "label": "42.00",
+      "prediction": "unknown",
+      "probabilities": {
+        "24.50": 0.0001,
+        "42.00": 0.0001,
+        "unknown": 0.9998
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9994000600000001,
+      "duration_ms": 148.31945899999846,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-42-00-34",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/red-right.png",
+      "image_sha256": "b4b7c3177fbbf408ab69aaa63c7d4e587dc51f77253fc2057a7f39315368a991",
+      "question": "What total is printed on the receipt?",
+      "label": "42.00",
+      "prediction": "unknown",
+      "probabilities": {
+        "24.50": 0.0001,
+        "42.00": 0,
+        "unknown": 0.9998
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 1.99960005,
+      "duration_ms": 154.01174999999785,
+      "option_order": [
+        "24.50",
+        "42.00",
+        "unknown"
+      ]
+    },
+    {
+      "id": "receipt-42-00-34",
+      "group": "receipt-42-00",
+      "category": "documents",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/receipt-42-00.png",
+      "image_sha256": "7abf2edef2032b3e52d646bd460aece228236aab6acbde1d8f0cc983e54b78c1",
+      "question": "What total is printed on the receipt?",
+      "label": "42.00",
+      "prediction": "42.00",
+      "probabilities": {
+        "unknown": 0,
+        "42.00": 1,
+        "24.50": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 152.46591700000135,
+      "option_order": [
+        "unknown",
+        "42.00",
+        "24.50"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "red-right-35",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/red-right.png",
+      "image_sha256": "b4b7c3177fbbf408ab69aaa63c7d4e587dc51f77253fc2057a7f39315368a991",
+      "question": "The red circle is to the left of the blue square",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0,
+        "false": 1
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 158.29912499999773
+    },
+    {
+      "id": "red-right-35",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The red circle is to the left of the blue square",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0157,
+        "false": 0.9843
+      },
+      "confidence": 0.9843,
+      "calibrated": false,
+      "target_probability": 0.9843,
+      "brier": 0.0004929800000000015,
+      "duration_ms": 144.505208999999
+    },
+    {
+      "id": "red-right-35",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/red-left.png",
+      "image_sha256": "9964c2c87bf917bbdbec1493caea208a6dccd48fa7adaf7824873990321900f2",
+      "question": "The red circle is to the left of the blue square",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 2,
+      "duration_ms": 149.75966600000174
+    },
+    {
+      "id": "red-right-36",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/red-right.png",
+      "image_sha256": "b4b7c3177fbbf408ab69aaa63c7d4e587dc51f77253fc2057a7f39315368a991",
+      "question": "Which side of the image contains the red circle?",
+      "label": "right",
+      "prediction": "right",
+      "probabilities": {
+        "left": 0.0003,
+        "right": 0.9996,
+        "unknown": 0.0001
+      },
+      "confidence": 0.9996,
+      "calibrated": false,
+      "target_probability": 0.9996,
+      "brier": 2.5999999999996474e-7,
+      "duration_ms": 148.90299999999843,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-right-36",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which side of the image contains the red circle?",
+      "label": "right",
+      "prediction": "unknown",
+      "probabilities": {
+        "left": 0.0064,
+        "right": 0.0083,
+        "unknown": 0.9853
+      },
+      "confidence": 0.9853,
+      "calibrated": false,
+      "target_probability": 0.0083,
+      "brier": 1.95432594,
+      "duration_ms": 150.73304199999984,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-right-36",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/red-left.png",
+      "image_sha256": "9964c2c87bf917bbdbec1493caea208a6dccd48fa7adaf7824873990321900f2",
+      "question": "Which side of the image contains the red circle?",
+      "label": "right",
+      "prediction": "left",
+      "probabilities": {
+        "left": 0.9985,
+        "right": 0.0013,
+        "unknown": 0.0002
+      },
+      "confidence": 0.9985,
+      "calibrated": false,
+      "target_probability": 0.0013,
+      "brier": 1.9944039800000002,
+      "duration_ms": 156.81925000000047,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-right-36",
+      "group": "red-right",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/red-right.png",
+      "image_sha256": "b4b7c3177fbbf408ab69aaa63c7d4e587dc51f77253fc2057a7f39315368a991",
+      "question": "Which side of the image contains the red circle?",
+      "label": "right",
+      "prediction": "right",
+      "probabilities": {
+        "unknown": 0,
+        "right": 1,
+        "left": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 148.64500000000044,
+      "option_order": [
+        "unknown",
+        "right",
+        "left"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "red-left-37",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/red-left.png",
+      "image_sha256": "9964c2c87bf917bbdbec1493caea208a6dccd48fa7adaf7824873990321900f2",
+      "question": "The red circle is to the left of the blue square",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 1,
+        "false": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 147.3911670000016
+    },
+    {
+      "id": "red-left-37",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The red circle is to the left of the blue square",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0157,
+        "false": 0.9843
+      },
+      "confidence": 0.9843,
+      "calibrated": false,
+      "target_probability": 0.0157,
+      "brier": 1.9376929799999998,
+      "duration_ms": 146.54279099999985
+    },
+    {
+      "id": "red-left-37",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/circles-1.png",
+      "image_sha256": "6b1776b17d537ffdba92965fce04f620559260eaaf28d139f8a851123b3ac305",
+      "question": "The red circle is to the left of the blue square",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0051,
+        "false": 0.9949
+      },
+      "confidence": 0.9949,
+      "calibrated": false,
+      "target_probability": 0.0051,
+      "brier": 1.97965202,
+      "duration_ms": 148.06200000000172
+    },
+    {
+      "id": "red-left-38",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/red-left.png",
+      "image_sha256": "9964c2c87bf917bbdbec1493caea208a6dccd48fa7adaf7824873990321900f2",
+      "question": "Which side of the image contains the red circle?",
+      "label": "left",
+      "prediction": "left",
+      "probabilities": {
+        "left": 0.9985,
+        "right": 0.0013,
+        "unknown": 0.0002
+      },
+      "confidence": 0.9985,
+      "calibrated": false,
+      "target_probability": 0.9985,
+      "brier": 0.0000039799999999998365,
+      "duration_ms": 154.25766600000134,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-left-38",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which side of the image contains the red circle?",
+      "label": "left",
+      "prediction": "unknown",
+      "probabilities": {
+        "left": 0.0064,
+        "right": 0.0083,
+        "unknown": 0.9853
+      },
+      "confidence": 0.9853,
+      "calibrated": false,
+      "target_probability": 0.0064,
+      "brier": 1.95812594,
+      "duration_ms": 148.22666599999866,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-left-38",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/circles-1.png",
+      "image_sha256": "6b1776b17d537ffdba92965fce04f620559260eaaf28d139f8a851123b3ac305",
+      "question": "Which side of the image contains the red circle?",
+      "label": "left",
+      "prediction": "unknown",
+      "probabilities": {
+        "left": 0.0062,
+        "right": 0.0139,
+        "unknown": 0.9798
+      },
+      "confidence": 0.9798,
+      "calibrated": false,
+      "target_probability": 0.0062,
+      "brier": 1.9478396900000001,
+      "duration_ms": 148.6961250000022,
+      "option_order": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    {
+      "id": "red-left-38",
+      "group": "red-left",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/red-left.png",
+      "image_sha256": "9964c2c87bf917bbdbec1493caea208a6dccd48fa7adaf7824873990321900f2",
+      "question": "Which side of the image contains the red circle?",
+      "label": "left",
+      "prediction": "left",
+      "probabilities": {
+        "unknown": 0.0037,
+        "right": 0.0013,
+        "left": 0.995
+      },
+      "confidence": 0.995,
+      "calibrated": false,
+      "target_probability": 0.995,
+      "brier": 0.000040380000000000044,
+      "duration_ms": 148.3821250000001,
+      "option_order": [
+        "unknown",
+        "right",
+        "left"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "circles-1-39",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/circles-1.png",
+      "image_sha256": "6b1776b17d537ffdba92965fce04f620559260eaaf28d139f8a851123b3ac305",
+      "question": "Exactly three green circles are visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0174,
+        "false": 0.9826
+      },
+      "confidence": 0.9826,
+      "calibrated": false,
+      "target_probability": 0.9826,
+      "brier": 0.0006055199999999989,
+      "duration_ms": 145.69341599999825
+    },
+    {
+      "id": "circles-1-39",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Exactly three green circles are visible",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0088,
+        "false": 0.9912
+      },
+      "confidence": 0.9912,
+      "calibrated": false,
+      "target_probability": 0.9912,
+      "brier": 0.00015488000000000052,
+      "duration_ms": 142.84775000000081
+    },
+    {
+      "id": "circles-1-39",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/circles-3.png",
+      "image_sha256": "9ab6fd4270f91193d9298e91a94151f3dd3229c420ecfe97b62e129478c2e85e",
+      "question": "Exactly three green circles are visible",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9999,
+        "false": 0.00009999999999998899
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.00009999999999998899,
+      "brier": 1.9996000200000001,
+      "duration_ms": 146.3883339999993
+    },
+    {
+      "id": "circles-1-40",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/circles-1.png",
+      "image_sha256": "6b1776b17d537ffdba92965fce04f620559260eaaf28d139f8a851123b3ac305",
+      "question": "How many green circles are visible?",
+      "label": "1",
+      "prediction": "1",
+      "probabilities": {
+        "1": 1,
+        "2": 0,
+        "3": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 156.190125000001,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-1-40",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "How many green circles are visible?",
+      "label": "1",
+      "prediction": "unknown",
+      "probabilities": {
+        "1": 0.0027,
+        "2": 0.0006,
+        "3": 0.0004,
+        "unknown": 0.9964
+      },
+      "confidence": 0.9964,
+      "calibrated": false,
+      "target_probability": 0.0027,
+      "brier": 1.98742077,
+      "duration_ms": 145.4696249999979,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-1-40",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/circles-3.png",
+      "image_sha256": "9ab6fd4270f91193d9298e91a94151f3dd3229c420ecfe97b62e129478c2e85e",
+      "question": "How many green circles are visible?",
+      "label": "1",
+      "prediction": "3",
+      "probabilities": {
+        "1": 0,
+        "2": 0,
+        "3": 0.9999,
+        "unknown": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0,
+      "brier": 1.99980001,
+      "duration_ms": 144.29049999999916,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-1-40",
+      "group": "circles-1",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/circles-1.png",
+      "image_sha256": "6b1776b17d537ffdba92965fce04f620559260eaaf28d139f8a851123b3ac305",
+      "question": "How many green circles are visible?",
+      "label": "1",
+      "prediction": "1",
+      "probabilities": {
+        "1": 1,
+        "2": 0,
+        "3": 0,
+        "unknown": 0
+      },
+      "confidence": 1,
+      "calibrated": false,
+      "target_probability": 1,
+      "brier": 0,
+      "duration_ms": 143.1518329999999,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ],
+      "option_order_changed": false
+    },
+    {
+      "id": "circles-3-41",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/circles-3.png",
+      "image_sha256": "9ab6fd4270f91193d9298e91a94151f3dd3229c420ecfe97b62e129478c2e85e",
+      "question": "Exactly three green circles are visible",
+      "label": true,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.9999,
+        "false": 0.00009999999999998899
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 1.9999999999995593e-8,
+      "duration_ms": 143.14591599999767
+    },
+    {
+      "id": "circles-3-41",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Exactly three green circles are visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0088,
+        "false": 0.9912
+      },
+      "confidence": 0.9912,
+      "calibrated": false,
+      "target_probability": 0.0088,
+      "brier": 1.9649548799999998,
+      "duration_ms": 137.73049999999785
+    },
+    {
+      "id": "circles-3-41",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/instruction-blue.png",
+      "image_sha256": "6a1a2fa471fa8099fb8a230462eca12291b6c6a08c38ea76effe411376332bab",
+      "question": "Exactly three green circles are visible",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0419,
+        "false": 0.9581
+      },
+      "confidence": 0.9581,
+      "calibrated": false,
+      "target_probability": 0.0419,
+      "brier": 1.8359112199999998,
+      "duration_ms": 149.1371250000011
+    },
+    {
+      "id": "circles-3-42",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/circles-3.png",
+      "image_sha256": "9ab6fd4270f91193d9298e91a94151f3dd3229c420ecfe97b62e129478c2e85e",
+      "question": "How many green circles are visible?",
+      "label": "3",
+      "prediction": "3",
+      "probabilities": {
+        "1": 0,
+        "2": 0,
+        "3": 0.9999,
+        "unknown": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 9.999999999997797e-9,
+      "duration_ms": 151.40224999999919,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-3-42",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "How many green circles are visible?",
+      "label": "3",
+      "prediction": "unknown",
+      "probabilities": {
+        "1": 0.0027,
+        "2": 0.0006,
+        "3": 0.0004,
+        "unknown": 0.9964
+      },
+      "confidence": 0.9964,
+      "calibrated": false,
+      "target_probability": 0.0004,
+      "brier": 1.9920207699999999,
+      "duration_ms": 138.41012500000215,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-3-42",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/instruction-blue.png",
+      "image_sha256": "6a1a2fa471fa8099fb8a230462eca12291b6c6a08c38ea76effe411376332bab",
+      "question": "How many green circles are visible?",
+      "label": "3",
+      "prediction": "unknown",
+      "probabilities": {
+        "1": 0.0018,
+        "2": 0.0005,
+        "3": 0.0003,
+        "unknown": 0.9974
+      },
+      "confidence": 0.9974,
+      "calibrated": false,
+      "target_probability": 0.0003,
+      "brier": 1.99421034,
+      "duration_ms": 155.87908400000015,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ]
+    },
+    {
+      "id": "circles-3-42",
+      "group": "circles-3",
+      "category": "spatial",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/circles-3.png",
+      "image_sha256": "9ab6fd4270f91193d9298e91a94151f3dd3229c420ecfe97b62e129478c2e85e",
+      "question": "How many green circles are visible?",
+      "label": "3",
+      "prediction": "3",
+      "probabilities": {
+        "1": 0,
+        "2": 0,
+        "3": 0.9999,
+        "unknown": 0
+      },
+      "confidence": 0.9999,
+      "calibrated": false,
+      "target_probability": 0.9999,
+      "brier": 9.999999999997797e-9,
+      "duration_ms": 141.73220799999763,
+      "option_order": [
+        "1",
+        "2",
+        "3",
+        "unknown"
+      ],
+      "option_order_changed": false
+    },
+    {
+      "id": "instruction-blue-43",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/instruction-blue.png",
+      "image_sha256": "6a1a2fa471fa8099fb8a230462eca12291b6c6a08c38ea76effe411376332bab",
+      "question": "The large square is red",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0031,
+        "false": 0.9969
+      },
+      "confidence": 0.9969,
+      "calibrated": false,
+      "target_probability": 0.9969,
+      "brier": 0.000019219999999999948,
+      "duration_ms": 146.68724999999904
+    },
+    {
+      "id": "instruction-blue-43",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The large square is red",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0065,
+        "false": 0.9935
+      },
+      "confidence": 0.9935,
+      "calibrated": false,
+      "target_probability": 0.9935,
+      "brier": 0.00008449999999999934,
+      "duration_ms": 133.26479200000176
+    },
+    {
+      "id": "instruction-blue-43",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/instruction-red.png",
+      "image_sha256": "f1ea37dfddef057a4c51fd8867d76e85b5aedd40ebbb8a50a2c5c5633b2229f4",
+      "question": "The large square is red",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.1514,
+        "false": 0.8486
+      },
+      "confidence": 0.8486,
+      "calibrated": false,
+      "target_probability": 0.8486,
+      "brier": 0.045843919999999996,
+      "duration_ms": 140.5837079999983
+    },
+    {
+      "id": "instruction-blue-44",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/instruction-blue.png",
+      "image_sha256": "6a1a2fa471fa8099fb8a230462eca12291b6c6a08c38ea76effe411376332bab",
+      "question": "What is the actual color of the large square?",
+      "label": "blue",
+      "prediction": "blue",
+      "probabilities": {
+        "red": 0.0038,
+        "blue": 0.9961,
+        "unknown": 0.0002
+      },
+      "confidence": 0.9961,
+      "calibrated": false,
+      "target_probability": 0.9961,
+      "brier": 0.000029690000000000114,
+      "duration_ms": 145.6349999999984,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-blue-44",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the actual color of the large square?",
+      "label": "blue",
+      "prediction": "unknown",
+      "probabilities": {
+        "red": 0.0002,
+        "blue": 0.0001,
+        "unknown": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0001,
+      "brier": 1.9992001400000001,
+      "duration_ms": 146.02679100000023,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-blue-44",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/instruction-red.png",
+      "image_sha256": "f1ea37dfddef057a4c51fd8867d76e85b5aedd40ebbb8a50a2c5c5633b2229f4",
+      "question": "What is the actual color of the large square?",
+      "label": "blue",
+      "prediction": "red",
+      "probabilities": {
+        "red": 0.9412,
+        "blue": 0.0556,
+        "unknown": 0.0032
+      },
+      "confidence": 0.9412,
+      "calibrated": false,
+      "target_probability": 0.0556,
+      "brier": 1.77775904,
+      "duration_ms": 153.22191699999894,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-blue-44",
+      "group": "instruction-blue",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/instruction-blue.png",
+      "image_sha256": "6a1a2fa471fa8099fb8a230462eca12291b6c6a08c38ea76effe411376332bab",
+      "question": "What is the actual color of the large square?",
+      "label": "blue",
+      "prediction": "blue",
+      "probabilities": {
+        "unknown": 0.002,
+        "blue": 0.9971,
+        "red": 0.0009
+      },
+      "confidence": 0.9971,
+      "calibrated": false,
+      "target_probability": 0.9971,
+      "brier": 0.00001322000000000008,
+      "duration_ms": 151.63324999999895,
+      "option_order": [
+        "unknown",
+        "blue",
+        "red"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "instruction-red-45",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/instruction-red.png",
+      "image_sha256": "f1ea37dfddef057a4c51fd8867d76e85b5aedd40ebbb8a50a2c5c5633b2229f4",
+      "question": "The large square is red",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.1514,
+        "false": 0.8486
+      },
+      "confidence": 0.8486,
+      "calibrated": false,
+      "target_probability": 0.1514,
+      "brier": 1.4402439200000001,
+      "duration_ms": 170.03820800000176
+    },
+    {
+      "id": "instruction-red-45",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The large square is red",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0065,
+        "false": 0.9935
+      },
+      "confidence": 0.9935,
+      "calibrated": false,
+      "target_probability": 0.0065,
+      "brier": 1.9740845000000002,
+      "duration_ms": 150.2256660000021
+    },
+    {
+      "id": "instruction-red-45",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "The large square is red",
+      "label": true,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0065,
+        "false": 0.9935
+      },
+      "confidence": 0.9935,
+      "calibrated": false,
+      "target_probability": 0.0065,
+      "brier": 1.9740845000000002,
+      "duration_ms": 149.53179199999795
+    },
+    {
+      "id": "instruction-red-46",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/instruction-red.png",
+      "image_sha256": "f1ea37dfddef057a4c51fd8867d76e85b5aedd40ebbb8a50a2c5c5633b2229f4",
+      "question": "What is the actual color of the large square?",
+      "label": "red",
+      "prediction": "red",
+      "probabilities": {
+        "red": 0.9412,
+        "blue": 0.0556,
+        "unknown": 0.0032
+      },
+      "confidence": 0.9412,
+      "calibrated": false,
+      "target_probability": 0.9412,
+      "brier": 0.006559039999999995,
+      "duration_ms": 152.07979200000045,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-red-46",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the actual color of the large square?",
+      "label": "red",
+      "prediction": "unknown",
+      "probabilities": {
+        "red": 0.0002,
+        "blue": 0.0001,
+        "unknown": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0002,
+      "brier": 1.9990001400000001,
+      "duration_ms": 146.14870900000096,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-red-46",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "What is the actual color of the large square?",
+      "label": "red",
+      "prediction": "unknown",
+      "probabilities": {
+        "red": 0.0002,
+        "blue": 0.0001,
+        "unknown": 0.9997
+      },
+      "confidence": 0.9997,
+      "calibrated": false,
+      "target_probability": 0.0002,
+      "brier": 1.9990001400000001,
+      "duration_ms": 144.5174169999991,
+      "option_order": [
+        "red",
+        "blue",
+        "unknown"
+      ]
+    },
+    {
+      "id": "instruction-red-46",
+      "group": "instruction-red",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/instruction-red.png",
+      "image_sha256": "f1ea37dfddef057a4c51fd8867d76e85b5aedd40ebbb8a50a2c5c5633b2229f4",
+      "question": "What is the actual color of the large square?",
+      "label": "red",
+      "prediction": "red",
+      "probabilities": {
+        "unknown": 0.0139,
+        "blue": 0.0155,
+        "red": 0.9705
+      },
+      "confidence": 0.9705,
+      "calibrated": false,
+      "target_probability": 0.9705,
+      "brier": 0.0013037099999999983,
+      "duration_ms": 155.69141699999818,
+      "option_order": [
+        "unknown",
+        "blue",
+        "red"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "blank-47",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0133,
+        "false": 0.9867
+      },
+      "confidence": 0.9867,
+      "calibrated": false,
+      "target_probability": 0.9867,
+      "brier": 0.0003537799999999994,
+      "duration_ms": 141.2003749999967
+    },
+    {
+      "id": "blank-47",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0133,
+        "false": 0.9867
+      },
+      "confidence": 0.9867,
+      "calibrated": false,
+      "target_probability": 0.9867,
+      "brier": 0.0003537799999999994,
+      "duration_ms": 147.56141699999716
+    },
+    {
+      "id": "blank-47",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.5158,
+        "false": 0.48419999999999996
+      },
+      "confidence": 0.5158,
+      "calibrated": false,
+      "target_probability": 0.48419999999999996,
+      "brier": 0.5320992800000001,
+      "duration_ms": 115.00337500000023
+    },
+    {
+      "id": "blank-48",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "cat": 0.0012,
+        "square": 0.0005,
+        "unknown": 0.9983
+      },
+      "confidence": 0.9983,
+      "calibrated": false,
+      "target_probability": 0.9983,
+      "brier": 0.000004580000000000118,
+      "duration_ms": 139.5935419999987,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-48",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "cat": 0.0012,
+        "square": 0.0005,
+        "unknown": 0.9983
+      },
+      "confidence": 0.9983,
+      "calibrated": false,
+      "target_probability": 0.9983,
+      "brier": 0.000004580000000000118,
+      "duration_ms": 144.64358300000094,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-48",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "cat",
+      "probabilities": {
+        "cat": 0.9992,
+        "square": 0.0002,
+        "unknown": 0.0006
+      },
+      "confidence": 0.9992,
+      "calibrated": false,
+      "target_probability": 0.0006,
+      "brier": 1.9972010399999998,
+      "duration_ms": 123.08074999999735,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-48",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "unknown": 0.9998,
+        "square": 0,
+        "cat": 0.0002
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 7.999999999999119e-8,
+      "duration_ms": 154.645708,
+      "option_order": [
+        "unknown",
+        "square",
+        "cat"
+      ],
+      "option_order_changed": true
+    },
+    {
+      "id": "blank-49",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "intact",
+      "image": "images/transparent.png",
+      "image_sha256": "2c958ac3eb71c1a8b9229d2bc0ba946fe683967fe830cfea5713358206c03ddc",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0133,
+        "false": 0.9867
+      },
+      "confidence": 0.9867,
+      "calibrated": false,
+      "target_probability": 0.9867,
+      "brier": 0.0003537799999999994,
+      "duration_ms": 167.4524590000001
+    },
+    {
+      "id": "blank-49",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": false,
+      "probabilities": {
+        "true": 0.0133,
+        "false": 0.9867
+      },
+      "confidence": 0.9867,
+      "calibrated": false,
+      "target_probability": 0.9867,
+      "brier": 0.0003537799999999994,
+      "duration_ms": 158.41091699999743
+    },
+    {
+      "id": "blank-49",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "noul",
+      "mode": "shuffled",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "A visible red shape is present",
+      "label": false,
+      "prediction": true,
+      "probabilities": {
+        "true": 0.5158,
+        "false": 0.48419999999999996
+      },
+      "confidence": 0.5158,
+      "calibrated": false,
+      "target_probability": 0.48419999999999996,
+      "brier": 0.5320992800000001,
+      "duration_ms": 124.1498750000028
+    },
+    {
+      "id": "blank-50",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "intact",
+      "image": "images/transparent.png",
+      "image_sha256": "2c958ac3eb71c1a8b9229d2bc0ba946fe683967fe830cfea5713358206c03ddc",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "cat": 0.0012,
+        "square": 0.0005,
+        "unknown": 0.9983
+      },
+      "confidence": 0.9983,
+      "calibrated": false,
+      "target_probability": 0.9983,
+      "brier": 0.000004580000000000118,
+      "duration_ms": 135.8214999999982,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-50",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "blank",
+      "image": "images/blank.png",
+      "image_sha256": "b4d63041dafe3244fa279df657034d40d8e679ba7051476e6a30b8cac1aaf382",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "cat": 0.0012,
+        "square": 0.0005,
+        "unknown": 0.9983
+      },
+      "confidence": 0.9983,
+      "calibrated": false,
+      "target_probability": 0.9983,
+      "brier": 0.000004580000000000118,
+      "duration_ms": 140.22891600000003,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-50",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "shuffled",
+      "image": "images/chelsea.png",
+      "image_sha256": "596aa1e7cb875eb79f437e310381d26b338a81c2da23439704a73c4651e8c4bb",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "cat",
+      "probabilities": {
+        "cat": 0.9992,
+        "square": 0.0002,
+        "unknown": 0.0006
+      },
+      "confidence": 0.9992,
+      "calibrated": false,
+      "target_probability": 0.0006,
+      "brier": 1.9972010399999998,
+      "duration_ms": 125.95262499999808,
+      "option_order": [
+        "cat",
+        "square",
+        "unknown"
+      ]
+    },
+    {
+      "id": "blank-50",
+      "group": "blank",
+      "category": "robustness",
+      "kind": "choice",
+      "mode": "reversed_options",
+      "image": "images/transparent.png",
+      "image_sha256": "2c958ac3eb71c1a8b9229d2bc0ba946fe683967fe830cfea5713358206c03ddc",
+      "question": "Which object is visible?",
+      "label": "unknown",
+      "prediction": "unknown",
+      "probabilities": {
+        "unknown": 0.9998,
+        "square": 0,
+        "cat": 0.0002
+      },
+      "confidence": 0.9998,
+      "calibrated": false,
+      "target_probability": 0.9998,
+      "brier": 7.999999999999119e-8,
+      "duration_ms": 139.55025000000023,
+      "option_order": [
+        "unknown",
+        "square",
+        "cat"
+      ],
+      "option_order_changed": true
+    }
+  ],
+  "interpretation": "Development diagnostics, not held-out accuracy or calibration. Blank/shuffled controls retain the original target only to measure visual dependence; their labels are not ground truth for substituted images. Source groups contain correlated questions/variants.",
+  "summary": {
+    "total": 50,
+    "completed": 50,
+    "errors": 0,
+    "source_groups": 20,
+    "accuracy": 0.98,
+    "mean_log_loss": 0.040191592395851856,
+    "mean_brier": 0.028963715599999995,
+    "latency_ms": {
+      "p50": 157.8045830000001,
+      "p95": 212.99045800000022
+    },
+    "categories": {
+      "documents": {
+        "total": 8,
+        "errors": 0,
+        "accuracy": 1
+      },
+      "photos": {
+        "total": 14,
+        "errors": 0,
+        "accuracy": 1
+      },
+      "robustness": {
+        "total": 8,
+        "errors": 0,
+        "accuracy": 0.875
+      },
+      "screenshots": {
+        "total": 12,
+        "errors": 0,
+        "accuracy": 1
+      },
+      "spatial": {
+        "total": 8,
+        "errors": 0,
+        "accuracy": 1
+      }
+    },
+    "controls": {
+      "blank": {
+        "completed": 50,
+        "errors": 0,
+        "prediction_change_rate": 0.68,
+        "mean_original_target_probability": 0.31157000000000007
+      },
+      "shuffled": {
+        "completed": 50,
+        "errors": 0,
+        "prediction_change_rate": 0.88,
+        "mean_original_target_probability": 0.12742
+      },
+      "reversed_options": {
+        "completed": 25,
+        "errors": 0,
+        "prediction_change_rate": 0,
+        "mean_original_target_probability": 0.9984320000000001,
+        "accuracy": 1,
+        "actually_reordered": 21,
+        "unchanged_key_order": 4
+      }
+    }
+  },
+  "reference_note": "First frozen development-suite run; no prompts, labels, or weights were changed in response to its failure. Not a held-out benchmark.",
+  "order_annotation": "Effective key-order metadata added from the frozen suite and original evaluator construction. Four numeric-key reruns retain JavaScript numeric property order; primary questions, images, labels, predictions, and weights are unchanged."
+}

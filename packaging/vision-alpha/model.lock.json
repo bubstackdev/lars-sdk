@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "pack_name": "lars-qwen3vl-2b-image-alpha",
+  "pack_version": "0.1.0-image-alpha.1",
+  "repository": "Qwen/Qwen3-VL-2B-Instruct-GGUF",
+  "revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+  "license": "Apache-2.0",
+  "model_card": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct-GGUF",
+  "llama_cpp": "fb4b2737a808a3fb7c2117a498f43815dc9be53e",
+  "template": "chatml",
+  "visual_max_tokens": 256,
+  "artifacts": {
+    "model": {
+      "filename": "Qwen3VL-2B-Instruct-Q4_K_M.gguf",
+      "bytes": 1107409952,
+      "sha256": "089d75c52f4b7ffc56ba998ffc50aae89fcafc755f9e7208aacca281dca6c2ae"
+    },
+    "projector": {
+      "filename": "mmproj-Qwen3VL-2B-Instruct-F16.gguf",
+      "bytes": 819394848,
+      "sha256": "c3d5afbef5287953acd57b4043d2269456e5761a4eaccb3b71b062996970aea5"
+    }
+  }
+}

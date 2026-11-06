@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 export interface NativeLars {
   evaluate(requestJson: string, cancelToken?: number | null): Promise<string>;
+  evaluateImageV1?(requestJson: string, image: Buffer, cancelToken?: number | null): Promise<string>;
   calibrate(name: string, examplesJsonl: string, maxError?: number | null, cancelToken?: number | null): Promise<string>;
   cancel(cancelToken: number): boolean;
   setCalibrator(name: string, calibratorJson: string): void;

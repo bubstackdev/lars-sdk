@@ -76,6 +76,8 @@ public sealed record CalibrationResult(int Examples, string Kept, double Accurac
 /// <summary>What every decision carries.</summary>
 public abstract record Decision
 {
+    /// <summary>Present for image answers; false means raw, uncalibrated probabilities.</summary>
+    public bool? Calibrated { get; init; }
     /// <summary>The top probability: how likely the answer is right, once calibrated. Thresholds compare to it.</summary>
     public double Confidence { get; init; }
     /// <summary>False when this predicate has a certificate and the confidence is below its threshold, or certification was
@@ -189,6 +191,17 @@ public abstract class Predicate<TInput>
         return response["answers"]![Name]!;
     }
 
+    internal async Task<JsonNode> ImageAnswerAsync(ImageInput image, CancellationToken cancellationToken)
+    {
+        var request = new JsonObject
+        {
+            ["questions"] = new JsonObject { [Name] = Question.DeepClone() },
+            ["lars"] = Extensions(),
+        };
+        var response = await Lars.EvaluateImageAsync(image, request, cancellationToken).ConfigureAwait(false);
+        return response["answers"]![Name]!;
+    }
+
     internal JsonNode Answer(TInput input)
     {
         var request = new JsonObject
@@ -233,6 +246,10 @@ public sealed class Noul<TInput> : Predicate<TInput>
     public async Task<NoulDecision> AskAsync(TInput input, CancellationToken cancellationToken = default) =>
         Decide(await AnswerAsync(input, cancellationToken).ConfigureAwait(false));
 
+    /// <summary>Ask about an image, bypassing this predicate's text state selector.</summary>
+    public async Task<NoulDecision> AskImageAsync(ImageInput image, CancellationToken cancellationToken = default) =>
+        Decide(await ImageAnswerAsync(image, cancellationToken).ConfigureAwait(false));
+
     public Task<CalibrationResult> CalibrateAsync(IEnumerable<(TInput Input, bool Label)> examples, double? maxError = null,
         CancellationToken cancellationToken = default) =>
         CalibrateCore(examples, l => l ? "yes" : "no", maxError, cancellationToken);
@@ -246,6 +263,7 @@ public sealed class Noul<TInput> : Predicate<TInput>
         var confidence = Math.Max(p, 1 - p);
         return new NoulDecision
         {
+            Calibrated = answer["calibrated"]?.GetValue<bool>(),
             Value = p >= Threshold, P = p, Confidence = confidence, Accepted = Lars.Accepts(Name, confidence),
             Abstain = answer["abstain"]?.GetValue<bool>(), Evidence = EvidenceOf(answer),
         };
@@ -257,6 +275,10 @@ public sealed class Noul<TInput> : Predicate<TInput>
 /// <summary>Pick one option of an enum.</summary>
 public sealed class Choice<TInput, T> : Predicate<TInput> where T : struct, Enum
 {
+    /// <summary>Ask about an image, bypassing this predicate's text state selector.</summary>
+    public async Task<ChoiceDecision<T>> AskImageAsync(ImageInput image, CancellationToken cancellationToken = default) =>
+        Decide(await ImageAnswerAsync(image, cancellationToken).ConfigureAwait(false));
+
     private readonly Dictionary<string, T> _byKey;
     private readonly T? _fallback;
     private readonly int _permutations;
@@ -296,6 +318,7 @@ public sealed class Choice<TInput, T> : Predicate<TInput> where T : struct, Enum
         var confidence = probabilities.Values.Max();
         return new ChoiceDecision<T>
         {
+            Calibrated = answer["calibrated"]?.GetValue<bool>(),
             Value = _byKey[answer["choice"]!.GetValue<string>()], Probabilities = probabilities, Confidence = confidence,
             Accepted = Lars.Accepts(Name, confidence), OrderSensitivity = answer["order_sensitivity"]?.GetValue<double>(),
             Abstain = answer["abstain"]?.GetValue<bool>(), Evidence = EvidenceOf(answer),
@@ -504,6 +527,36 @@ public sealed class Lars : IDisposable, IAsyncDisposable
         var text = await Calls.Submit(_handle, (callback, user) => Native.EvaluateAsync(_handle, json, callback, user), cancellationToken)
             .ConfigureAwait(false);
         return JsonNode.Parse(text)!;
+    }
+
+    /// <summary>Experimental image request. Its context comes from the image.</summary>
+    public async Task<JsonNode> EvaluateImageAsync(ImageInput image, JsonObject request, CancellationToken cancellationToken = default)
+    {
+        var body = (JsonObject)request.DeepClone();
+        body["state"] = image.Context?.DeepClone();
+        var json = body.ToJsonString();
+        var text = await Calls.Submit(_handle,
+            (callback, user) => Native.EvaluateImageAsync(_handle, json, image.Bytes, callback, user), cancellationToken).ConfigureAwait(false);
+        return JsonNode.Parse(text)!;
+    }
+
+    /// <summary>Ask several predicates about one image; text state selectors are bypassed.</summary>
+    public async Task<Answers> AskImageAsync<TInput>(ImageInput image, IReadOnlyList<Predicate<TInput>> predicates,
+        CancellationToken cancellationToken = default)
+    {
+        if (predicates.Count == 0) throw new LarsException("invalid_request", "AskImageAsync needs at least one predicate");
+        var questions = new JsonObject();
+        var extensions = predicates[0].Extensions();
+        foreach (var p in predicates)
+        {
+            if (!JsonNode.DeepEquals(extensions, p.Extensions()))
+                throw new LarsException("invalid_request", "image predicates in AskImageAsync must use the same request options");
+            if (p.Options.Explain || IsCalibrated(p.Name))
+                throw new LarsException("invalid_request", "image explain and predicate calibration are not supported yet");
+            questions[p.Name] = p.Question.DeepClone();
+        }
+        var response = await EvaluateImageAsync(image, new JsonObject { ["questions"] = questions, ["lars"] = extensions }, cancellationToken).ConfigureAwait(false);
+        return new Answers(predicates.ToDictionary(p => p.Name, p => p.DecideFrom(response["answers"]![p.Name]!)));
     }
 
     internal async Task<CalibrationResult> CalibrateAsync(string name, string jsonl, double? maxError, CancellationToken cancellationToken)

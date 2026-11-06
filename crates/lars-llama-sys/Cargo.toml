@@ -7,8 +7,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 links = "llama"
-exclude = ["llama.cpp/.git*", "llama.cpp/docs", "llama.cpp/examples", "llama.cpp/tools", "llama.cpp/tests",
+exclude = ["llama.cpp/.git*", "llama.cpp/docs", "llama.cpp/examples", "llama.cpp/tests",
            "llama.cpp/models", "llama.cpp/media", "llama.cpp/gguf-py", "llama.cpp/scripts"]
 
 [build-dependencies]
 cmake = "0.1"
+cc = "1"

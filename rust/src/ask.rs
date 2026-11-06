@@ -25,6 +25,7 @@ pub struct Part<'a, I: ?Sized> {
     pub(crate) question: &'a Value,
     pub(crate) state: &'a (dyn Fn(&I) -> Content + Send + Sync),
     pub(crate) state_version: Option<&'a str>,
+    pub(crate) image_extensions: Value,
 }
 
 /// Reads the decisions out of a response's `answers`, given `accepts(name, confidence)`.
@@ -32,7 +33,13 @@ pub struct Part<'a, I: ?Sized> {
 pub type Decoder<T> = Box<dyn FnOnce(&Value, &dyn Fn(&str, f64) -> bool) -> Result<T> + Send>;
 
 fn part<K: Kind, I: ?Sized>(p: &Predicate<K, I>) -> Part<'_, I> {
-    Part { name: &p.name, question: &p.question, state: &*p.state, state_version: p.state_version.as_deref() }
+    Part {
+        name: &p.name,
+        question: &p.question,
+        state: &*p.state,
+        state_version: p.state_version.as_deref(),
+        image_extensions: p.image_extensions(),
+    }
 }
 
 fn decode<K: Kind>(
