@@ -112,6 +112,8 @@ pub type Multi<T, I = str> = Predicate<kind::Multi<T>, I>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NoulDecision {
+    /// Present on image answers; false means raw probabilities without image calibration.
+    pub calibrated: Option<bool>,
     pub value: bool,
     /// P(yes).
     pub p: f64,
@@ -126,6 +128,7 @@ pub struct NoulDecision {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChoiceDecision<T> {
+    pub calibrated: Option<bool>,
     pub value: T,
     /// Each option's probability, in the order the options were declared.
     pub probabilities: Vec<(T, f64)>,
@@ -196,6 +199,7 @@ impl Kind for kind::Noul {
         let p = number(answer, "noul")?;
         let confidence = p.max(1.0 - p);
         Ok(NoulDecision {
+            calibrated: answer["calibrated"].as_bool(),
             value: p >= self.threshold,
             p,
             confidence,
@@ -227,6 +231,7 @@ impl<T: Key> Kind for kind::Choice<T> {
         let confidence = probabilities.iter().map(|(_, p)| *p).fold(0.0, f64::max);
         let choice = answer["choice"].as_str().ok_or_else(|| Error::internal("the answer has no choice"))?;
         Ok(ChoiceDecision {
+            calibrated: answer["calibrated"].as_bool(),
             value: option(choice)?,
             probabilities,
             confidence,
@@ -427,6 +432,56 @@ impl<K: Kind, I: ?Sized> Predicate<K, I> {
     /// The answer with the probabilities behind it.
     pub fn decide(&self, input: &I) -> Pending<K::Decision> {
         self.answer(input, |d| d)
+    }
+
+    /// Ask this predicate about an image, bypassing its text state selector.
+    pub fn ask_image(&self, image: &crate::ImageInput) -> Pending<K::Value> {
+        let kind = self.kind.clone();
+        self.image_answer(image, move |d| kind.value(d))
+    }
+
+    pub fn decide_image(&self, image: &crate::ImageInput) -> Pending<K::Decision> {
+        self.image_answer(image, |d| d)
+    }
+
+    pub(crate) fn image_extensions(&self) -> Value {
+        let mut extensions = Map::new();
+        self.kind.extensions(&mut extensions);
+        if self.explain {
+            extensions.insert("explain".into(), true.into());
+        }
+        if let Some(margin) = self.abstain_margin {
+            extensions.insert("abstain_margin".into(), margin.into());
+        }
+        Value::Object(extensions)
+    }
+
+    fn image_answer<T: Send + 'static>(
+        &self,
+        image: &crate::ImageInput,
+        then: impl FnOnce(K::Decision) -> T + Send + 'static,
+    ) -> Pending<T> {
+        if let Err(error) = self.lars.register(&self.name, &self.question, self.state_version.as_deref()) {
+            return Pending::ready(Err(error));
+        }
+        if self.lars.is_calibrated(&self.name) {
+            return Pending::ready(Err(Error::invalid("image predicate calibration is not supported yet")));
+        }
+        let mut extensions = Map::new();
+        self.kind.extensions(&mut extensions);
+        if self.explain {
+            extensions.insert("explain".into(), true.into());
+        }
+        if let Some(margin) = self.abstain_margin {
+            extensions.insert("abstain_margin".into(), margin.into());
+        }
+        let request = json!({"questions": { &*self.name: self.question }, "lars": extensions});
+        let (name, kind) = (self.name.clone(), self.kind.clone());
+        self.lars.submit_image(image, request, move |response| {
+            let answer =
+                response["answers"].get(&*name).ok_or_else(|| Error::internal(format!("no answer for {name}")))?;
+            Ok(then(kind.decision(answer, &|_| true)?))
+        })
     }
 
     fn answer<T: Send + 'static>(&self, input: &I, then: impl FnOnce(K::Decision) -> T + Send + 'static) -> Pending<T> {

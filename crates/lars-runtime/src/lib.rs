@@ -110,6 +110,7 @@ pub type Reply = Box<dyn FnOnce(u64, Result<String>) + Send>;
 enum Work {
     Load,
     Evaluate(Box<Request>),
+    EvaluateImage { request: Box<Request>, bytes: Vec<u8> },
     Calibrate { examples: Vec<Example>, source: Option<String>, max_error: Option<f64> },
 }
 
@@ -122,6 +123,7 @@ struct Job {
 
 #[derive(Default)]
 struct WorkerState {
+    image_bytes: AtomicUsize,
     queued: AtomicUsize,
     loaded: AtomicBool,
     loads: AtomicUsize,
@@ -197,7 +199,11 @@ fn build_engine(pack: &Pack, options: &OpenOptions) -> Result<Engine> {
             };
             let model = pack.model_file.as_ref().expect("a llama.cpp pack has a model file");
             let name = format!("{}@{}", pack.name, pack.version);
-            Box::new(LlamaBackend::load(model, pack.template.clone(), &name, llama)?)
+            let mut backend = LlamaBackend::load(model, pack.template.clone(), &name, llama)?;
+            if let Some(projector) = &pack.projector_file {
+                backend.load_projector(projector, pack.image_max_tokens)?;
+            }
+            Box::new(backend)
         }
     };
     let engine_options = EngineOptions {
@@ -348,6 +354,15 @@ fn run_worker(receiver: Receiver<Job>, state: Arc<WorkerState>, pack: Arc<Pack>,
             match job.work {
                 Work::Load => Ok(String::new()),
                 Work::Evaluate(request) => Ok(engine.evaluate(&request)?.to_json().to_string()),
+                Work::EvaluateImage { request, bytes } => {
+                    let mut answer = engine.evaluate_image(&request, &bytes)?.to_json();
+                    let calibrated = !pack.manifest["calibration"].is_null();
+                    for value in answer["answers"].as_object_mut().unwrap().values_mut() {
+                        value["calibrated"] = json!(calibrated);
+                    }
+                    answer["image"] = json!({"calibrated": calibrated, "execution": "serial", "format": 1});
+                    Ok(answer.to_string())
+                }
                 Work::Calibrate { examples, source, max_error } => {
                     calibrate(engine, &pack, &examples, source.as_deref(), max_error)
                 }
@@ -427,7 +442,33 @@ impl Lars {
         &self.host.pack
     }
 
+    // fetch_update is available on our declared Rust 1.85 baseline; its newer name is not.
+    #[allow(deprecated)]
     fn submit(&self, work: Work, reply: Reply) -> u64 {
+        let bytes = match &work {
+            Work::EvaluateImage { bytes, .. } => bytes.len(),
+            _ => 0,
+        };
+        if bytes > 0
+            && self
+                .host
+                .state
+                .image_bytes
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |used| {
+                    used.checked_add(bytes).filter(|n| *n <= 64 * 1024 * 1024)
+                })
+                .is_err()
+        {
+            deliver(reply, 0, Err(Error::invalid("queued image data exceeds 64 MiB; wait for outstanding requests")));
+            return 0;
+        }
+        let state = self.host.state.clone();
+        let reply: Reply = Box::new(move |id, result| {
+            if bytes > 0 {
+                state.image_bytes.fetch_sub(bytes, Ordering::SeqCst);
+            }
+            reply(id, result)
+        });
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         self.pending.lock().unwrap().insert(id);
         let pending = self.pending.clone();
@@ -470,6 +511,43 @@ impl Lars {
             Ok(request) => self.submit(Work::Evaluate(Box::new(request)), reply),
             Err(error) => {
                 deliver(reply, 0, Err(error.into()));
+                0
+            }
+        }
+    }
+
+    fn image_request(&self, request_json: &str, bytes: &[u8]) -> Result<Request> {
+        if self.host.pack.projector_file.is_none() {
+            return Err(Error::invalid("this pack does not support images; open a format 2 vision pack"));
+        }
+        if bytes.is_empty() || bytes.len() > 20 * 1024 * 1024 {
+            return Err(Error::invalid("image must contain 1 byte to 20 MiB"));
+        }
+        let request = Request::from_json(request_json)?;
+        if request.lars.calibrator.is_some()
+            || !request.lars.calibrators.is_empty()
+            || !request.lars.features.is_empty()
+        {
+            return Err(Error::invalid("image predicate calibrators and external features are not supported yet"));
+        }
+        Ok(request)
+    }
+
+    /// Experimental, versioned binary image operation. The context is the request's state.
+    /// This operation cannot silently fall back to text inference on an older binding.
+    pub fn evaluate_image(&self, request_json: &str, bytes: &[u8]) -> Result<String> {
+        let request = self.image_request(request_json, bytes)?;
+        self.wait(|reply| self.submit(Work::EvaluateImage { request: Box::new(request), bytes: bytes.to_vec() }, reply))
+    }
+
+    /// Copies encoded bytes before returning. Cancellation follows the text request contract.
+    pub fn evaluate_image_async(&self, request_json: &str, bytes: &[u8], reply: Reply) -> u64 {
+        match self.image_request(request_json, bytes) {
+            Ok(request) => {
+                self.submit(Work::EvaluateImage { request: Box::new(request), bytes: bytes.to_vec() }, reply)
+            }
+            Err(error) => {
+                deliver(reply, 0, Err(error));
                 0
             }
         }

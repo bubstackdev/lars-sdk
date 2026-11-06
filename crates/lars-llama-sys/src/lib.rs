@@ -8,6 +8,7 @@
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case, clippy::all)]
 
 include!("bindings.rs");
+pub mod vision;
 
 /// The llama.cpp release these bindings and this build come from.
 pub const LLAMA_CPP_VERSION: &str = env!("LARS_LLAMA_CPP_VERSION");

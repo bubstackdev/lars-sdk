@@ -159,6 +159,8 @@ impl Drop for Batch {
 }
 
 pub struct LlamaBackend {
+    vision: Option<NonNull<std::ffi::c_void>>,
+    image_active: bool,
     model: NonNull<sys::llama_model>,
     ctx: NonNull<sys::llama_context>,
     vocab: *const sys::llama_vocab,
@@ -187,6 +189,9 @@ unsafe impl Send for LlamaBackend {}
 impl Drop for LlamaBackend {
     fn drop(&mut self) {
         unsafe {
+            if let Some(vision) = self.vision {
+                sys::vision::lars_vision_close(vision.as_ptr());
+            }
             sys::llama_free(self.ctx.as_ptr());
             sys::llama_model_free(self.model.as_ptr());
         }
@@ -238,6 +243,8 @@ impl LlamaBackend {
             unsafe { sys::llama_model_is_recurrent(model.as_ptr()) || sys::llama_model_is_hybrid(model.as_ptr()) };
         let snapshot_prefixes = recurrent && options.reuse_prefix && options.n_seq_max >= 3;
         Ok(LlamaBackend {
+            vision: None,
+            image_active: false,
             model,
             ctx,
             vocab,
@@ -256,6 +263,41 @@ impl LlamaBackend {
 
     pub fn options(&self) -> &LlamaOptions {
         &self.options
+    }
+
+    /// Attach the matching projector. Images are deliberately evaluated serially without
+    /// cross-request prefix reuse until multimodal branching has independent validation.
+    pub fn load_projector(&mut self, path: &Path, max_tokens: i32) -> Result<()> {
+        let path =
+            CString::new(path.to_string_lossy().as_bytes()).map_err(|_| backend_error("projector path has a NUL"))?;
+        let threads = if self.options.n_threads > 0 {
+            self.options.n_threads
+        } else {
+            std::thread::available_parallelism().map_or(4, |n| n.get() as i32)
+        };
+        let ptr = unsafe {
+            sys::vision::lars_vision_open(
+                path.as_ptr(),
+                self.model.as_ptr(),
+                self.options.gpu_layers != 0,
+                threads,
+                max_tokens,
+            )
+        };
+        let vision = NonNull::new(ptr).ok_or_else(|| backend_error("could not load matching vision projector"))?;
+        if let Some(old) = self.vision.replace(vision) {
+            unsafe {
+                sys::vision::lars_vision_close(old.as_ptr());
+            }
+        }
+        Ok(())
+    }
+
+    fn vision_error(&self) -> lars_core::error::Error {
+        let ptr = self.vision.expect("vision loaded");
+        let message =
+            unsafe { std::ffi::CStr::from_ptr(sys::vision::lars_vision_error(ptr.as_ptr())) }.to_string_lossy();
+        backend_error(message)
     }
 
     /// The model's own chat template from its GGUF metadata, if it has one.
@@ -553,6 +595,35 @@ impl LlamaBackend {
                     .collect::<Result<Vec<_>>>()
             })
             .collect::<Result<_>>()?;
+        if self.image_active {
+            if self.want_hidden {
+                return Err(backend_error("image hidden-state heads are not supported"));
+            }
+            let vision = self.vision.expect("image requires projector");
+            let mut out = Vec::with_capacity(suffixes.len());
+            for (suffix, ids) in suffixes.iter().zip(&label_ids) {
+                let text = format!("{prefix}{suffix}");
+                let code = unsafe {
+                    sys::vision::lars_vision_score(
+                        vision.as_ptr(),
+                        self.ctx.as_ptr(),
+                        text.as_ptr().cast(),
+                        text.len(),
+                        self.options.n_batch as i32,
+                    )
+                };
+                if code != 0 {
+                    return Err(self.vision_error());
+                }
+                let logits = unsafe { sys::llama_get_logits_ith(self.ctx.as_ptr(), -1) };
+                if logits.is_null() {
+                    return Err(backend_error("vision evaluation returned no logits"));
+                }
+                let logits = unsafe { std::slice::from_raw_parts(logits, self.n_vocab) };
+                out.push((ids.iter().map(|&id| logits[id as usize] as f64).collect(), None));
+            }
+            return Ok(out);
+        }
         let prefix_ids = self.tokenize(prefix, true, true);
         self.check_fits(prefix_ids.len())?;
         let mut clean: Vec<(usize, Vec<i32>)> = Vec::new();
@@ -589,6 +660,40 @@ impl LlamaBackend {
 }
 
 impl Backend for LlamaBackend {
+    fn set_image(&mut self, bytes: &[u8]) -> Result<()> {
+        let vision = self.vision.ok_or_else(|| backend_error("this pack has no vision projector"))?;
+        self.cached.clear();
+        self.snapshot.clear();
+        if unsafe { sys::vision::lars_vision_set_image(vision.as_ptr(), bytes.as_ptr(), bytes.len()) } != 0 {
+            return Err(Error::Invalid(self.vision_error().to_string()));
+        }
+        self.image_active = true;
+        Ok(())
+    }
+
+    fn clear_image(&mut self) {
+        self.image_active = false;
+        self.cached.clear();
+        self.snapshot.clear();
+        unsafe {
+            sys::llama_memory_clear(self.memory(), true);
+            if let Some(v) = self.vision {
+                sys::vision::lars_vision_clear(v.as_ptr());
+            }
+        }
+    }
+
+    fn count_input_tokens(&self, text: &str) -> Result<usize> {
+        if !self.image_active || !text.contains("\u{1e}LARS_IMAGE\u{1e}") {
+            return Ok(self.count_tokens(text));
+        }
+        let v = self.vision.expect("vision loaded");
+        let mut count = 0;
+        if unsafe { sys::vision::lars_vision_count(v.as_ptr(), text.as_ptr().cast(), text.len(), &mut count) } != 0 {
+            return Err(self.vision_error());
+        }
+        Ok(count)
+    }
     fn name(&self) -> &str {
         "llamacpp"
     }
