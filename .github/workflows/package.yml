@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - { rid: osx-arm64, node: darwin-arm64, os: macos-15, target: aarch64-apple-darwin, lib: liblars.dylib, addon: liblars_node.dylib }
-          - { rid: osx-x64, node: darwin-x64, os: macos-latest, target: x86_64-apple-darwin, lib: liblars.dylib, addon: liblars_node.dylib }
+          - { rid: osx-x64, node: darwin-x64, os: macos-15-intel, target: x86_64-apple-darwin, lib: liblars.dylib, addon: liblars_node.dylib }
           - { rid: win-x64, node: win32-x64, os: windows-latest, target: x86_64-pc-windows-msvc, lib: lars.dll, addon: lars_node.dll }
     runs-on: ${{ matrix.os }}
     steps:
@@ -134,8 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
-        node: [22, 24, 26]
+        os: [macos-15, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -145,50 +144,30 @@ jobs:
           path: dist
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 22
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.x
-      - name: npm package, installed into a fresh project
-        shell: bash
-        run: |
-          triple=$(node -p 'process.platform + "-" + process.arch')
-          version=$(node -p 'require("./ts/package.json").version')
-          dist="$PWD/dist/npm"
-          mkdir -p "$RUNNER_TEMP/npm-smoke" && cd "$RUNNER_TEMP/npm-smoke"
-          npm init -y > /dev/null && npm pkg set type=module
-          npm install --omit=optional "$dist/moedex-lars-$version.tgz" "$dist/moedex-lars-$triple-$version.tgz"
-          cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
-      - name: standalone GitHub tarball, offline install into a fresh project
-        shell: bash
-        run: |
-          version=$(node -p 'require("./ts/package.json").version')
-          package="$PWD/dist/github/moedex-lars-$version.tgz"
-          mkdir -p "$RUNNER_TEMP/github-smoke" && cd "$RUNNER_TEMP/github-smoke"
-          npm init -y > /dev/null && npm pkg set type=module
-          npm install --offline --ignore-scripts --no-audit --no-fund --cache "$RUNNER_TEMP/empty-npm-cache" "$package"
-          cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
+      - name: both npm distributions on Node 22
+        run: node packaging/smoke/install-npm.mjs
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: both npm distributions on Node 24
+        run: node packaging/smoke/install-npm.mjs
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 26
+      - name: both npm distributions on Node 26
+        run: node packaging/smoke/install-npm.mjs
       - name: NuGet package, restored from a local feed
-        if: matrix.node == 26
         shell: bash
         run: dotnet run -c Release --project packaging/smoke/dotnet -p:LarsFeed="$PWD/dist/nuget"
       - name: verify release checksums
-        if: matrix.node == 26
         shell: bash
-        run: python packaging/release.py verify
+        run: |
+          if command -v python3 >/dev/null; then python3 packaging/release.py verify; else python packaging/release.py verify; fi
 
-  source-test:
-    needs: packages
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: packages
-          path: dist
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
         with:
           toolchain: stable
