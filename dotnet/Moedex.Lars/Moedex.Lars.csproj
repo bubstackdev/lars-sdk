@@ -21,6 +21,7 @@
          runtimes/{osx-arm64,osx-x64,linux-x64,linux-arm64,win-x64}/native/. .NET resolves it from
          the package on its own; LARS_NATIVE overrides it during development. -->
     <None Include="runtimes/**/*" Pack="true" PackagePath="runtimes/" />
+    <None Include="THIRD_PARTY_LICENSES/**/*" Pack="true" PackagePath="THIRD_PARTY_LICENSES/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

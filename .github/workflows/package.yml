@@ -1,14 +1,15 @@
 name: package
 
 # Native libraries for every platform, the npm and NuGet packages built from them, and install
-# tests of those packages on each platform. Produces artifacts only: nothing is published.
+# tests of those packages on each platform. Also builds a standalone GitHub npm tarball and
+# pinned Rust source archive. Produces artifacts only: nothing is published to a registry.
 
 on:
   workflow_dispatch:
   push:
     tags: ["v*"]
   pull_request:
-    paths: [".github/workflows/package.yml", "ts/scripts/package-npm.mjs", "packaging/**", "dotnet/Moedex.Lars/Moedex.Lars.csproj"]
+    paths: [".github/workflows/package.yml", "ts/scripts/package-npm.mjs", "packaging/**", "RELEASE.md", "dotnet/Moedex.Lars/Moedex.Lars.csproj"]
 
 permissions:
   contents: read
@@ -79,6 +80,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: stable
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: native-*
@@ -93,20 +99,35 @@ jobs:
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.x
+      - name: packaging regression tests
+        run: |
+          pnpm --dir ts install --frozen-lockfile
+          node --test packaging/package-npm.test.mjs
+      - name: pinned source and dependency notices
+        run: python3 packaging/release.py prepare
       - name: npm
         working-directory: ts
         run: |
           pnpm install --frozen-lockfile
-          node scripts/package-npm.mjs --native ../native/node --out ../dist/npm
+          node scripts/package-npm.mjs --native ../native/node --out ../dist/npm --github-out ../dist/github --notices ../dist/notices --require-platforms darwin-arm64,darwin-x64,linux-arm64,linux-x64,win32-x64
       - name: nuget
         run: |
           cp -r native/runtimes dotnet/Moedex.Lars/
+          cp -r dist/notices dotnet/Moedex.Lars/THIRD_PARTY_LICENSES
           dotnet pack dotnet/Moedex.Lars -c Release -o dist/nuget
           unzip -l dist/nuget/*.nupkg | grep runtimes
+      - name: release manifest and checksums
+        run: |
+          python3 packaging/release.py finalize
+          python3 packaging/release.py verify
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: packages
-          path: dist
+          path: |
+            dist/npm
+            dist/github
+            dist/nuget
+            dist/release
 
   install-test:
     needs: packages
@@ -114,6 +135,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
+        node: [22, 24, 26]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -123,7 +145,7 @@ jobs:
           path: dist
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 10.0.x
@@ -137,6 +159,45 @@ jobs:
           npm init -y > /dev/null && npm pkg set type=module
           npm install --omit=optional "$dist/moedex-lars-$version.tgz" "$dist/moedex-lars-$triple-$version.tgz"
           cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
+      - name: standalone GitHub tarball, offline install into a fresh project
+        shell: bash
+        run: |
+          version=$(node -p 'require("./ts/package.json").version')
+          package="$PWD/dist/github/moedex-lars-$version.tgz"
+          mkdir -p "$RUNNER_TEMP/github-smoke" && cd "$RUNNER_TEMP/github-smoke"
+          npm init -y > /dev/null && npm pkg set type=module
+          npm install --offline --ignore-scripts --no-audit --no-fund --cache "$RUNNER_TEMP/empty-npm-cache" "$package"
+          cp "$GITHUB_WORKSPACE/packaging/smoke/npm-smoke.mjs" . && node npm-smoke.mjs
       - name: NuGet package, restored from a local feed
+        if: matrix.node == 26
         shell: bash
         run: dotnet run -c Release --project packaging/smoke/dotnet -p:LarsFeed="$PWD/dist/nuget"
+      - name: verify release checksums
+        if: matrix.node == 26
+        shell: bash
+        run: python packaging/release.py verify
+
+  source-test:
+    needs: packages
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-latest, ubuntu-24.04-arm, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: packages
+          path: dist
+      - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f
+        with:
+          toolchain: stable
+      - name: Rust SDK from the source archive, without Git metadata
+        shell: bash
+        run: |
+          archive=$(find "$PWD/dist/release" -name 'lars-sdk-*-source.tar.gz' -print -quit)
+          mkdir -p "$RUNNER_TEMP/source-smoke"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/source-smoke"
+          cd "$RUNNER_TEMP"/source-smoke/lars-sdk-*
+          test ! -e .git && test ! -e crates/lars-llama-sys/llama.cpp/.git
+          cargo test --locked --release -p lars-core -p moedex-lars

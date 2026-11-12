@@ -31,9 +31,12 @@ def checksums(directory):
     (directory / "SHA256SUMS").write_text("\n".join(entries) + "\n")
 
 
-def license_notices(destination):
+def license_notices(destination, target="aarch64-apple-darwin"):
     destination.mkdir()
-    meta = json.loads(subprocess.check_output(["cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", "aarch64-apple-darwin"], cwd=ROOT))
+    command = ["cargo", "metadata", "--locked", "--format-version", "1"]
+    if target:
+        command += ["--filter-platform", target]
+    meta = json.loads(subprocess.check_output(command, cwd=ROOT))
     packages = []
     for package in meta["packages"]:
         source = Path(package["manifest_path"]).parent
